@@ -25,31 +25,7 @@
   --cta-hover-foreground      : #FFFFFF;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    /* Base layout */
-  --background                : #0F172A; /* slate-900 */
-  --foreground                : #E5E7EB; /* gray-200 */
 
-  /* Surfaces (cards, sections) */
-  --surface                   : #1E293B; /* slate-800 */
-  --surface-foreground        : #CBD5E1; /* slate-300 */
-
-  /* Brand / Primary */
-  --primary                   : #3B82F6; /* blue-500 */
-  --primary-foreground        : #020617; /* slate-950 */
-
-  --primary-hover             : #2563EB; /* blue-600 */
-  --primary-hover-foreground  : #020617;
-
-  /* Call to Action (explicit intent) */
-  --cta                       : #3B82F6; /* blue-500 */
-  --cta-foreground            : #020617;
-
-  --cta-hover                 : #2563EB; /* blue-600 */
-  --cta-hover-foreground      : #020617;
-  }
-}
 
 
 html.dark {
