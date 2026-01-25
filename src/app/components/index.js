@@ -1,2 +1,5 @@
 export { default as NavBar} from './navigation/Navigation'
 export { default as Hero} from './hero/Hero'
+export { default as AboutMe} from './about/AboutMe'
+export { default as HLProjects} from './HL-Projects/HLProjects'
+export { default as Demos } from './demos/Demos'
