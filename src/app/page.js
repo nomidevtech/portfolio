@@ -1,4 +1,4 @@
-import { NavBar, Hero, AboutMe, HLProjects, Demos } from "./components";
+import { NavBar, Hero, AboutMe, HLProjects, Demos, MyStack, HowIWork, WhyHireMe } from "./components";
 
 
 export default function Home() {
@@ -8,5 +8,8 @@ export default function Home() {
     <AboutMe/>
     <HLProjects/>
     <Demos/>
+    <MyStack/>
+    <HowIWork/>
+    <WhyHireMe/>
   </>;
 }
