@@ -16,7 +16,7 @@ export default function NavBar() {
   // <nav className="bg-neutral-primary fixed w-full z-20 top-0 start-0 border-b border-default">
   return (
     <header>
-      <nav className="bg-neutral-primary  w-full z-20 max-h-1 ">
+      <nav className="bg-neutral-primary  w-full relative z-20 max-h-1 ">
         <div className="max-w-7xl flex flex-wrap items-center justify-between mx-auto p-4">
           <Logo />
           <Hamburger onToggle={handleToggle} isOpen={isOpen} />
