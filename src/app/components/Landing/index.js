@@ -1,10 +1,3 @@
 export { default as NavBar} from './navigation/Navigation'
 export { default as Hero} from './hero/Hero'
-export { default as AboutMe} from './about/AboutMe'
-export { default as HLProjects} from './HL-Projects/HLProjects'
-export { default as Demos } from './demos/Demos'
-export { default as MyStack } from './stack/MyStack'
-export { default as HowIWork } from './how-i-work/HowIWork'
-export { default as WhyHireMe } from './why-hire-me/WhyHireMe'
-export { default as HireMe } from './hire-me/HireMe'
-export { default as Footer } from './footer/Footer'
+
