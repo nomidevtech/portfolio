@@ -1,3 +1,3 @@
-export { default as NavBar} from './navigation/Navigation'
-export { default as Hero} from './hero/Hero'
+export { default as NavBar} from './navigation'
+export { default as Hero} from './hero'
 

@@ -1,14 +1,19 @@
 'use client'
 
 import { useState } from "react";
-import Hamburger from "./Hamburger";
-import Links from "./Links";
+
+
+// sub-components
 import Logo from "./Logo";
+import Hamburger from "./Hamburger";
+import NavLinks from "./NavLinks";
+
+
 
 
 export default function NavBar() {
 
-  const menuItems = ['Home', 'Contact', 'About'];
+  // const menuItems = ['Home', 'Contact', 'About'];
 
   const [isOpen, setIsOpen] = useState(false);
 
@@ -20,7 +25,7 @@ export default function NavBar() {
         <div className="max-w-7xl flex flex-wrap items-center justify-between mx-auto p-4">
           <Logo />
           <Hamburger onToggle={handleToggle} isOpen={isOpen} />
-          <Links menuItems={menuItems} isOpen={isOpen} />
+          <NavLinks isOpen={isOpen} />
         </div>
       </nav>
     </header>

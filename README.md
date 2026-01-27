@@ -1,36 +1,55 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# Nomi Portfolio
 
-## Getting Started
+[Visit Live Site →](https://www.nomidev.com)
 
-First, run the development server:
+This repository contains the source code for **Nomi’s personal portfolio website**, deployed at [https://www.nomidev.com](https://www.nomidev.com).
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+It is built to showcase projects, skills, and experience as a full-stack web developer.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+---
 
-You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
+## 🔹 Purpose
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- Serve as a professional portfolio for Nomi.
+- Demonstrate expertise in modern web development technologies.
+- Provide visitors with access to projects, skills, and contact information.
 
-## Learn More
+---
 
-To learn more about Next.js, take a look at the following resources:
+## 🔹 Tech Stack
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- **Frontend:** React, Next.js, Tailwind CSS
+- **Backend:** Node.js, Express (if applicable)
+- **Database:** MongoDB (if used)
+- **Deployment:** Vercel
+- **Languages:** JavaScript
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+---
 
-## Deploy on Vercel
+## 🔹 Features
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- Responsive and SEO-friendly layout
+- Hero section with introduction and links to freelance profiles
+- Projects showcase with live demos
+- About me and contact sections
+- Metadata optimized for search engines and social sharing
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+---
+
+## 🔹 Deployment
+
+- The site is automatically deployed to Vercel from this repository.
+- URL: [https://www.nomidev.com](https://www.nomidev.com)
+
+---
+
+## 🔹 Notes
+
+- This repository is private.
+- It is used exclusively for managing and deploying the portfolio website.
+- For local development:
+  ```bash
+  git clone <PRIVATE_REPO_URL>
+  cd <repo-directory>
+  npm install
+  npm run dev
