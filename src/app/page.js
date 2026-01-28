@@ -1,7 +1,7 @@
 import dynamic from "next/dynamic";
 
 // excluding lazy-loading or next-dynamic
-import { NavBar, Hero } from "./components/Landing";
+import {  Hero } from "./components/Landing";
 
 // Apply lazy-loading or next-dynamic
 const AboutMe = dynamic(() => import('./components/Landing/about'), {

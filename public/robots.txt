@@ -1,0 +1,17 @@
+# robots.txt for Nomi's Portfolio Website
+
+User-agent: *
+# Allow all main sections of the site
+Allow: /
+
+# Disallow temporary or sensitive directories
+Disallow: /node_modules/
+Disallow: /scripts/
+Disallow: /temp/
+Disallow: /private/
+
+# Crawl delay to prevent server overload
+Crawl-delay: 10
+
+# Reference to sitemap
+Sitemap: https://www.nomidev.com/sitemap.xml
