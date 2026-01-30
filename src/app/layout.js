@@ -35,7 +35,7 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body>
+      <body className="w-screen h-screen bg-background text-foreground">
         <ThemeProvider attribute={'class'}>
           <NavBar/>
           {children}
