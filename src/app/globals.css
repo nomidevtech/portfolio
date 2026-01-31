@@ -1,37 +1,37 @@
 @import "tailwindcss";
 
-
 :root {
   /* Base layout */
-  --background                : #F3F4F6; /* gray-100 */
-  --foreground                : #1F2937; /* gray-800 */
+  --background                : #F9FAFB; /* gray-50: Lighter base for better breathability */
+  --foreground                : #111827; /* gray-900 */
 
   /* Surfaces (cards, sections) */
-  --surface                   : #E5E7EB; /* gray-200 */
+  --surface                   : #FFFFFF; /* White: Cards look better as white on a gray-50 background */
   --surface-foreground        : #374151; /* gray-700 */
 
   /* Brand / Primary */
   --primary                   : #1C64F2; /* blue-600 */
-  --primary-foreground        : #F9FAFB; /* gray-50 */
+  --primary-foreground        : #F9FAFB;
 
-  --primary-hover             : #1A56DB; /* blue-700 */
+  --primary-hover             : #1A56DB;
   --primary-hover-foreground  : #FFFFFF;
 
-  /* Call to Action (explicit intent) */
-  --cta                       : #1C64F2; /* same hue, semantic separation */
+  /* Secondary (Refined to pop on White/Gray surfaces) */
+  --secondary                 : #E0E7FF; /* indigo-100: A soft tint that feels "Blue" but secondary */
+  --secondary-foreground      : #4338CA; /* indigo-700: High contrast text for the tint */
+
+  /* Call to Action */
+  --cta                       : #1C64F2;
   --cta-foreground            : #FFFFFF;
 
   --cta-hover                 : #1A56DB;
   --cta-hover-foreground      : #FFFFFF;
 }
 
-
-
-
 html.dark {
   /* Base layout */
-  --background                : #0F172A; /* slate-900 */
-  --foreground                : #E5E7EB; /* gray-200 */
+  --background                : #0B0F1A; /* Deeper slate for better depth */
+  --foreground                : #F9FAFB;
 
   /* Surfaces (cards, sections) */
   --surface                   : #1E293B; /* slate-800 */
@@ -39,25 +39,28 @@ html.dark {
 
   /* Brand / Primary */
   --primary                   : #3B82F6; /* blue-500 */
-  --primary-foreground        : #020617; /* slate-950 */
+  --primary-foreground        : #020617;
 
-  --primary-hover             : #2563EB; /* blue-600 */
+  --primary-hover             : #2563EB;
   --primary-hover-foreground  : #020617;
 
-  /* Call to Action (explicit intent) */
-  --cta                       : #3B82F6; /* blue-500 */
+  /* Secondary (Refined for Dark Surfaces) */
+  --secondary                 : #334155; /* slate-700: Visibly lighter than the slate-800 surface */
+  --secondary-foreground      : #F1F5F9; /* slate-100 */
+
+  /* Call to Action */
+  --cta                       : #3B82F6;
   --cta-foreground            : #020617;
 
-  --cta-hover                 : #2563EB; /* blue-600 */
+  --cta-hover                 : #2563EB;
   --cta-hover-foreground      : #020617;
 }
 
 @layer base {
   body {
-  font-family: Arial, Helvetica, sans-serif;
+    font-family: Arial, Helvetica, sans-serif;
   }
 }
-
 
 @theme {
   --color-background : var(--background);
@@ -72,15 +75,12 @@ html.dark {
   --color-primary-hover : var(--primary-hover);
   --color-primary-hover-foreground : var(--primary-hover-foreground);
 
+  --color-secondary : var(--secondary);
+  --color-secondary-foreground : var(--secondary-foreground);
+
   --color-cta : var(--cta);
   --color-cta-foreground : var(--cta-foreground);
 
   --color-cta-hover : var(--cta-hover);
   --color-cta-hover-foreground : var(--cta-hover-foreground);
 }
-
-
-
-
-
-
