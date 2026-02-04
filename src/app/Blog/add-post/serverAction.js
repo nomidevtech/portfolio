@@ -1,90 +1,82 @@
 "use server";
 
-import connectDB from "../../Lib/mongoose";
-import Post from "../../../Models/Post";
-import Taxonomy from "../../../Models/Taxonomy";
-import cloudinary from "@/app/Lib/cloudinary";
-
-// import { testConnection } from "@/app/Lib/turso";
-
-
-
-// export async function handleTest() {
-//   const result = await testConnection();
-//   console.log(result);
-//   return result;
-// }
-
-// handleTest();
-
-
+import { db } from "@/app/Lib/turso";
 
 
 
 
 export async function ServerAction(formData) {
+
+  // create and load tables
+
   try {
-    // 1️⃣ Extract scalar + serialized values safely
-    const title = formData.get("title")?.trim();
-    if (!title) throw new Error("Title is required");
 
-    const rawTaxonomies = formData.get("taxonomies") || "[]";
-    const taxonomies = JSON.parse(rawTaxonomies);
-    console.log('here======>>>>>>', taxonomies)
+    await db.execute(`
+      CREATE TABLE IF NOT EXISTS users (
+      id INTEGER PRIMARY KEY,
+      username TEXT UNIQUE NOT NULL,
+      type TEXT NOT NULL DEFAULT 'Guest',
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP
 
-    const rawBlocks = formData.get("blocks");
-    if (!rawBlocks) throw new Error("Blocks are required");
-    const blocks = JSON.parse(rawBlocks);
+      )
+    `);
 
-    // 2️⃣ Connect to MongoDB
-    await connectDB();
+    await db.execute(`
+      CREATE TABLE IF NOT EXISTS categories (
+      id INTEGER PRIMARY KEY,
+      name TEXT UNIQUE NOT NULL
+      )
+      `)
 
-    // 3️⃣ Resolve taxonomies
-    const taxFromDB = [];
-    for (const name of taxonomies) {
-      let tax = await Taxonomy.findOne({ name });
-      if (!tax) {
-        tax = await Taxonomy.create({ name });
-      }
-      taxFromDB.push(tax._id);
-    }
+    await db.execute(`
+      CREATE TABLE IF NOT EXISTS tags (
+      id INTEGER PRIMARY KEY,
+      name TEXT UNIQUE NOT NULL      
+      )
+   `)
 
-    // 4️⃣ Upload image blocks to Cloudinary
-    for (const block of blocks) {
-      if (block.type === "image") {
-        const file = formData.get(block.fileKey);
-        if (!file) throw new Error(`Missing file for block ${block.fileKey}`);
+    await db.execute(`
+    CREATE TABLE IF NOT EXISTS posts(
+    id INTEGER PRIMARY KEY,
+    title TEXT,
+    content TEXT,
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    user_ID INTEGER,
+    FOREIGN KEY(user_id) REFERENCES users(id)
+    )
+    `)
 
-        const buffer = Buffer.from(await file.arrayBuffer());
+    console.log("✅ Tables created or already EXISTS");
 
-        const result = await new Promise((resolve, reject) => {
-          cloudinary.uploader.upload_stream(
-            { folder: "Blog-Imgs" },
-            (err, res) => (err ? reject(err) : resolve(res))
-          ).end(buffer);
-        });
 
-        // normalize block
-        delete block.fileKey;
-        block.url = result.secure_url;
-        block.publicId = result.public_id;
-      }
-    }
+    // // 1️⃣ Extract scalar + serialized values safely
+    // const title = formData.get("title")?.trim();
+    // if (!title) throw new Error("Title is required");
 
-    // 5️⃣ Persist post
-    const post = await Post.create({
-      title,
-      taxonomies: taxFromDB,
-      content: JSON.stringify(blocks),
-      isPublished: true,
-    });
-    console.log("✅ Post created with ID:", post._id.toString());
+    // const rawTaxonomies = formData.get("taxonomies") || "[]";
+    // const taxonomies = JSON.parse(rawTaxonomies);
+    // console.log('here======>>>>>>', taxonomies)
 
-    // 6️⃣ Return success
-    return {
-      ok: true,
-      id: post._id.toString(),
-    };
+    // const rawBlocks = formData.get("blocks");
+    // if (!rawBlocks) throw new Error("Blocks are required");
+    // const blocks = JSON.parse(rawBlocks);
+
+
+
+    // // 3️⃣ Resolve taxonomies
+    // const taxFromDB = [];
+    // for (const name of taxonomies) {
+    //   let tax = await Taxonomy.findOne({ name });
+    //   if (!tax) {
+    //     tax = await Taxonomy.create({ name });
+    //   }
+    //   taxFromDB.push(tax._id);
+    // }
+
+
+
+
+
   } catch (error) {
     console.error("ServerAction error:", error);
     return {
@@ -93,3 +85,10 @@ export async function ServerAction(formData) {
     };
   }
 }
+
+
+
+
+
+
+
