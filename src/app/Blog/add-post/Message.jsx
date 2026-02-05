@@ -1,7 +1,7 @@
 
-export default function Message({ isCatExist }) {
+export default function Message({ isTagExist }) {
     return (
-      isCatExist && <p className="w-full  rounded-sm ">Category Already Added</p>
+      isTagExist && <p className="w-full  rounded-sm ">TAG Already Added</p>
 
     )
 }
