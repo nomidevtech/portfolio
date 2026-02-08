@@ -1,7 +1,7 @@
 'use client'
 
 
-import { categoryData } from "@/app/Lib/data"
+import { categoryData } from "@/app/Lib/Static/data"
 
 export default function TaxonomyInput({ setUserSelectedCat }) {
 

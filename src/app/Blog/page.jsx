@@ -1,46 +1,56 @@
-const Blog = () => {
+import { db } from "../Lib/turso";
+import { Suspense } from "react";
+import PostTitle from "./PostTitle";
+import PostTaxonomy from "./PostTaxonomy";
+import PostContent from "./PostContent";
+import CreatedAt from "./CreatedAt";
+import PostTags from "./PostTags";
+import PostAuthor from "./Auther";
+import Details from "./Details";
+
+const Blog = async () => {
+  const data = await db.execute(`
+    SELECT 
+      posts.*,
+      GROUP_CONCAT(DISTINCT tags.name) AS tag_names,
+      GROUP_CONCAT(DISTINCT taxonomies.name) AS taxonomy_names
+    FROM posts
+    LEFT JOIN post_tags ON posts.id = post_tags.post_id
+    LEFT JOIN tags ON post_tags.tag_id = tags.id
+    LEFT JOIN post_taxonomies ON posts.id = post_taxonomies.post_id
+    LEFT JOIN taxonomies ON post_taxonomies.taxonomy_id = taxonomies.id
+    GROUP BY posts.id
+    ORDER BY posts.created_at DESC
+  `);
+
+  // console.log(data.rows);
+
+
+
+
+
+  //  console.log(content);
+
   return (
-    <section className="min-h-screen bg-background text-foreground p-8 flex flex-col items-center justify-center">
-      <div className="max-w-4xl w-full bg-surface text-surface-foreground rounded-2xl shadow-xl p-10">
-        
-        {/* Header Section */}
-        <h1 className="text-4xl font-bold mb-6 border-b-4 border-primary pb-2 inline-block">
-          Blog
-        </h1>
+    <section className="bg-(--background) min-h-screen w-full py-8 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto grid gap-6 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 mt-22">
+        {data.rows.map((d) => (
+          <div
+            key={d.id}
+            className="bg-(--surface) text-(--surface-foreground) border border-gray-200 dark:border-gray-700 rounded-lg p-6 shadow hover:shadow-lg transition-shadow duration-200 flex flex-col"
+          >
+            <PostTitle title={d.title} />
+            <PostTaxonomy taxonomy={d.taxonomy_names} />
+            <PostContent content={d.content} />
+            <CreatedAt created={d.created_at} />
+            <PostTags tags={d.tag_names} />
+            <Suspense fallback={'loading.....'}>
+              <PostAuthor id={d.user_id} />
+            </Suspense>
 
-        {/* Bio Section */}
-        <div className="space-y-6 text-lg">
-          <p>
-            I am a **full stack web developer** in JavaScript, dedicated to building 
-            performant and scalable web applications [1].
-          </p>
-          
-          <p>
-            My core toolset includes **Next.js and Tailwind CSS**, which I am currently 
-            using to architect my personal portfolio website [1]. I focus on creating 
-            seamless user experiences with modern architecture [1].
-          </p>
-        </div>
-
-        {/* Skills/Tools Highlight */}
-        <div className="mt-10 grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="p-4 rounded-lg bg-background border border-primary/20">
-            <h3 className="text-primary font-bold text-xl mb-2">My Stack</h3>
-            <ul className="list-disc list-inside space-y-1">
-              <li>Next.js</li>
-              <li>Tailwind CSS</li>
-              <li>Full Stack JS Development</li>
-            </ul>
+            <Details postID={d.id} />
           </div>
-          
-          <div className="flex flex-col justify-center items-center md:items-start">
-            <p className="mb-4 font-medium">Interested in working together?</p>
-            {/* CTA Button using theme colors */}
-            <button className="px-6 py-3 bg-cta text-cta-foreground font-bold rounded-lg transition-colors hover:bg-cta-hover hover:text-cta-hover-foreground">
-              Let's Connect
-            </button>
-          </div>
-        </div>
+        ))}
       </div>
     </section>
   );

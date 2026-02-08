@@ -1,7 +1,8 @@
 "use server";
 
 import { db } from "@/app/Lib/turso";
-import cloudinary from "@/app/Lib/cloudinary";
+import cloudinary from "@/app/Lib/Static/cloudinary";
+import { hashPassword } from "@/app/Lib/hashPassword";
 
 
 
@@ -11,16 +12,34 @@ export async function ServerAction(formData) {
   // create and load tables
 
   try {
-    // USERS
+    // Users table
     await db.execute(`
-      CREATE TABLE IF NOT EXISTS users (
-      id INTEGER PRIMARY KEY,
-      username TEXT UNIQUE NOT NULL,
-      type TEXT NOT NULL DEFAULT 'Guest',
-      created_at TEXT DEFAULT CURRENT_TIMESTAMP
+    CREATE TABLE IF NOT EXISTS users (
+    id INTEGER PRIMARY KEY,
+    username TEXT UNIQUE NOT NULL,
+    password TEXT NOT NULL,
+    role TEXT NOT NULL DEFAULT 'Guest',
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP
+  );
+`);
 
-      )
-    `);
+    // Partial unique index: ensures only ONE admin
+    await db.execute(`
+    CREATE UNIQUE INDEX IF NOT EXISTS one_admin_idx
+    ON users(role)
+    WHERE role = 'admin' COLLATE NOCASE
+`);
+
+    await db.execute(`
+    CREATE TABLE IF NOT EXISTS sessions (
+    id INTEGER PRIMARY KEY,
+    token TEXT UNIQUE NOT NULL,
+    user_id INTEGER NOT NULL,
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    expires_at TEXT NOT NULL,
+    FOREIGN KEY(user_id) REFERENCES users(id)
+  );
+`);
 
 
     // TAGS
@@ -125,10 +144,13 @@ export async function ServerAction(formData) {
     }
 
     // Inserting data to tables
+    const myPass = 'IamGhost'
+    const myHashPass = await hashPassword(myPass)
+
     try {
       const result = await db.execute({
-        sql: `INSERT OR IGNORE INTO users (username, type) VALUES (?, ?)`,
-        args: ["nomi", "Admin"],
+        sql: `INSERT OR IGNORE INTO users (username, password, role) VALUES (?, ?, ?)`,
+        args: ["nomi", myHashPass, "admin"],
       });
 
       for (const tag of tagsFromForm) {
@@ -180,7 +202,7 @@ export async function ServerAction(formData) {
 
       }
 
-      
+
       await db.execute({
         sql: `INSERT OR IGNORE INTO post_taxonomies (post_id, taxonomy_id) VALUES (?, ?)`,
         args: [postID, taxonomyID]
