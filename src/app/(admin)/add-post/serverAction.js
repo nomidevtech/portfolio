@@ -3,6 +3,8 @@
 import { db } from "@/app/Lib/turso";
 import cloudinary from "@/app/Lib/Static/cloudinary";
 import { hashPassword } from "@/app/Lib/hashPassword";
+import slugGenerator from "@/app/utils/slugGenerator";
+import { redirect } from "next/navigation";
 
 
 
@@ -36,7 +38,6 @@ export async function ServerAction(formData) {
     token TEXT UNIQUE NOT NULL,
     user_id INTEGER NOT NULL,
     created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-    expires_at TEXT NOT NULL,
     FOREIGN KEY(user_id) REFERENCES users(id)
   );
 `);
@@ -65,6 +66,8 @@ export async function ServerAction(formData) {
     id INTEGER PRIMARY KEY,
     user_id INTEGER,
     title TEXT,
+    excerpt TEXT,
+    slug TEXT,
     content TEXT,
     created_at TEXT DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY(user_id) REFERENCES users(id) 
@@ -101,6 +104,11 @@ export async function ServerAction(formData) {
     // 1️⃣ Extract scalar + serialized values safely
     const title = formData.get("title")?.trim();
     if (!title) throw new Error("Title is required");
+
+    const slug = slugGenerator(title);
+    console.log('hey i am slug-------->>>>>>>', slug);
+
+    const excerpt = formData.get('excerpt');
 
     const taxonomy = formData.get('taxonomy');
     if (!taxonomy) throw new Error("Taxonomy is required");
@@ -145,7 +153,8 @@ export async function ServerAction(formData) {
 
     // Inserting data to tables
     const myPass = 'IamGhost'
-    const myHashPass = await hashPassword(myPass)
+    const myHashPass = await hashPassword(myPass);
+
 
     try {
       const result = await db.execute({
@@ -186,8 +195,8 @@ export async function ServerAction(formData) {
 
 
       const addPostToDB = await db.execute({
-        sql: `INSERT INTO posts (user_id, title, content) VALUES(?, ?, ?) RETURNING id`,
-        args: [1, title, JSON.stringify(blocks)]
+        sql: `INSERT INTO posts (user_id, title, excerpt, slug, content) VALUES(?, ?, ?, ?, ?) RETURNING id`,
+        args: [1, title, excerpt, slug, JSON.stringify(blocks)]
       });
 
       const postID = addPostToDB.rows[0].id;
@@ -218,7 +227,7 @@ export async function ServerAction(formData) {
 
 
 
-    return { status: "success", message: "Post created successfully!" };
+    // return { status: "success", message: "Post created successfully!" };
 
   } catch (error) {
     console.error("ServerAction error:", error);
@@ -227,6 +236,8 @@ export async function ServerAction(formData) {
       error: error.message || "Failed to create post",
     };
   }
+
+  redirect('/blog');
 }
 
 

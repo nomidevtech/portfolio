@@ -5,6 +5,7 @@ import { verifyPassword } from "@/app/Lib/passwordVerification";
 import { randomUUID } from 'crypto'
 import { cookies } from "next/headers";
 import { userVerification } from "@/app/Lib/userVerification";
+import { redirect } from "next/navigation";
 
 
 
@@ -36,7 +37,7 @@ export async function userValidation(prevState, formData) {
 
         const cookieStore = await cookies();
 
-        cookieStore.set("session-token", token, {
+        cookieStore.set("token", token, {
             httpOnly: true,
             secure: process.env.NODE_ENV === "production",
             sameSite: "strict",
@@ -46,11 +47,11 @@ export async function userValidation(prevState, formData) {
 
 
 
-        return {
-            ok: true,
-            message: "Login successfully!",
-            redirectTo: '/add-post'
-        };
+        // return {
+        //     ok: true,
+        //     message: "Login successfully!",
+        //     redirectTo: '/add-post'
+        // };
 
     } catch (err) {
         console.log(err)
@@ -59,5 +60,7 @@ export async function userValidation(prevState, formData) {
             error: err.message || "Failed to create post",
         };
     }
+
+    redirect("/add-post");
 
 }

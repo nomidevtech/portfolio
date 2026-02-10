@@ -15,7 +15,7 @@ export default function NavLinks({ menuItems, isOpen }) {
             About</Link>
         </li>
         <li>
-          <Link href="/Blog" className="block px-3 py-2 transition-colors rounded text-foreground hover:bg-surface-foreground/10 md:hover:bg-transparent md:border-0 md:hover:text-primary md:p-0">
+          <Link href="/blog" className="block px-3 py-2 transition-colors rounded text-foreground hover:bg-surface-foreground/10 md:hover:bg-transparent md:border-0 md:hover:text-primary md:p-0">
             Blog</Link>
         </li>
 

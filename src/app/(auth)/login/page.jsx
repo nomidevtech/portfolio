@@ -3,15 +3,17 @@
 
 import { useActionState } from "react";
 import { userValidation } from "./loginServerAction";
+import Form from 'next/form'
 
 import FormInputs from "./FormInputs";
+
 
 export default function Login() {
     const [state, formAction, isPending] = useActionState(userValidation, null);
 
     return (
         <section className="my-30">
-            <form className="max-w-sm mx-auto" action={formAction}>
+            <Form className="max-w-sm mx-auto" action={formAction}>
 
                 <FormInputs />
                 <button
@@ -31,7 +33,7 @@ export default function Login() {
                 {state?.ok === true && (
                     <p className="mt-4 text-sm text-green-500">{state.message}</p>
                 )}
-            </form>
+            </Form>
         </section>
     );
 }

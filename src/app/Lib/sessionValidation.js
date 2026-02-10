@@ -2,7 +2,7 @@
 
 import { db } from "./turso";
 
-// this function return user objects if a sessions exist for them in db.
+
 
 const sessionValidation = async (token) => {
     try {
@@ -21,18 +21,9 @@ const sessionValidation = async (token) => {
             return { ok: false, message: "You need to login" };
         }
 
-        const user = (
-            await db.execute(
-                `SELECT id, role FROM users WHERE id = ?`,
-                [session.user_id]
-            )
-        ).rows[0];
 
-        if (!user) {
-            return { ok: false, message: "User does not exist" };
-        }
 
-        return { ok: true, message: 'user session found', user };
+        return { ok: true, message: 'user session found', userID: session.user_id };
 
     } catch (err) {
         return { ok: false, message: err.message || "session for user not found" };

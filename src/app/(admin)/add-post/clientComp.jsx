@@ -12,7 +12,7 @@ import Message from "./Message";
 
 
 
-export default function AddPost() {
+export default function Client() {
 
     const [isSubmitted, setIsSubmitted] = useState(false)
 
@@ -24,6 +24,7 @@ export default function AddPost() {
     const [isTagExist, setIsTagExist] = useState(false);
 
     const titleRef = useRef(null);
+    const excerptRef = useRef(null);
 
     const handleSubmit = async () => {
         console.log('i am working')
@@ -48,7 +49,7 @@ export default function AddPost() {
         formData.append('taxonomy', JSON.stringify(userSelectedCat));
         formData.append('tags', JSON.stringify(userSelectedTags));
         formData.append('title', titleRef.current.value);
-
+        formData.append('excerpt', excerptRef.current.value)
 
 
 
@@ -62,6 +63,7 @@ export default function AddPost() {
         return (
             <section className=" flex flex-col justify-center items-center w-1/2 min-h-1/2 my-25 p-4 rounded-2xl bg-surface text-surface-foreground m-auto">
                 <input type="text" placeholder="Add Title" ref={titleRef} />
+                <input type="textArea" placeholder="excerpt" ref={excerptRef}/>
 
                 <TaxonomyInput setUserSelectedCat={setUserSelectedCat} />
                 <TagsInput

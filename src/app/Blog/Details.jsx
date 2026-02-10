@@ -1,8 +1,10 @@
 import Link from "next/link"
 
 Link
-export default function Details ({postID}){
+export default function Details({ postID, slug }) {
     return (
-        <Link href={''}>{postID}</Link>
+        <div>
+            <Link href={`/blog/${postID}/${slug}`} > Read More</Link>
+        </div>
     )
 }
