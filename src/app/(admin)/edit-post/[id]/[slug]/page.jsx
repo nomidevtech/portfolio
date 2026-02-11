@@ -153,7 +153,7 @@ export default async function EditPost({ params }) {
               </p>
             </div>
 
-            <div className="space-y-6 max-h-[500px] overflow-y-auto border border-gray-200 rounded-2xl p-6 bg-gray-50">
+            <div className="space-y-6 max-h-125 overflow-y-auto border border-gray-200 rounded-2xl p-6 bg-gray-50">
               {content.map((p, index) => {
                 if (p.type === "heading") {
                   return (
