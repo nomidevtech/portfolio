@@ -1,8 +1,9 @@
-export default function PostTags({tags}){
-    const tagsArr = tags.split(',');
-    
-    
+export default function PostTags({ tags }) {
+
+    const tagsArr = tags?.split(',');
+
+
     return (
-        <h1> {tagsArr}</h1>
+        <h1> {tagsArr ? tagsArr : 'no tag'}</h1>
     )
 }

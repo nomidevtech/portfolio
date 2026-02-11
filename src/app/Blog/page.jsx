@@ -8,8 +8,12 @@ import CreatedAt from "./CreatedAt";
 import PostTags from "./PostTags";
 import PostAuthor from "./Auther";
 import Details from "./Details";
+import { adminLoginCheck } from "../Lib/adminLoginCheck";
+import ClientDelete from "./DelClient";
 
 export default async function Blog({ searchParams }) {
+
+
 
   // 1) get page from url
   let page = Number(searchParams.page) || 1;
@@ -72,6 +76,8 @@ export default async function Blog({ searchParams }) {
   const prevPage = page > 1 ? page - 1 : 1;
   const nextPage = page < maxPages ? page + 1 : maxPages;
 
+  const isAdmin = await adminLoginCheck();
+
   return (
     <section className="bg-(--background) min-h-screen w-full py-8 px-4 sm:px-6 lg:px-8">
 
@@ -89,7 +95,12 @@ export default async function Blog({ searchParams }) {
               <PostTags tags={d.tag_names} />
               <PostAuthor Auther={d.author} />
               <Details postID={d.id} slug={d.slug} />
+              {isAdmin.ok && (
+                <> <Link href={`/edit-post/${d.id}/${d.slug}`}>Edit</Link>
+                  <ClientDelete postId={d.id} /> </>
+              )}
             </Suspense>
+
           </div>
         ))}
       </div>

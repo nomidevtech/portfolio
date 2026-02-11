@@ -7,9 +7,15 @@ import PostTags from "./PostTags";
 import PostAuthor from "./Auther";
 import { adminLoginCheck } from "@/app/Lib/adminLoginCheck";
 import { db } from "@/app/Lib/turso";
+import Link from "next/link";
+
+import ClientDelete from "./client";
+
 
 export default async function DynamicPost({ params }) {
     const { id, slug } = await params;
+
+    // console.log('i am id--------------------->', id)
 
     // fetch post
 
@@ -30,7 +36,7 @@ export default async function DynamicPost({ params }) {
 `, [id]);
 
     const postData = result.rows[0]
-    console.log(postData);
+    //console.log(postData);
 
 
 
@@ -56,6 +62,14 @@ export default async function DynamicPost({ params }) {
                 <PostAuthor auther={postData.author_name} />
 
             </div>
+            {isAdmin.ok ? (
+                <>
+                    <Link href={`/edit-post/${id}/${slug}`}>Edit</Link>
+                    <ClientDelete postId={id} />
+                </>
+            ) : null
+            }
+
         </div>
     )
 }
