@@ -1,6 +1,6 @@
 "use server";
 
-import cloudinary from "@/app/Lib/Static/cloudinary";
+import cloudinary from "@/app/Lib/cloudinary";
 import { db } from "@/app/Lib/turso";
 import { redirect } from "next/navigation";
 

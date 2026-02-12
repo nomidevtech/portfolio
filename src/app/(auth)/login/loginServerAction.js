@@ -1,43 +1,34 @@
 'use server'
 
-import { db } from "@/app/Lib/turso";
-import { verifyPassword } from "@/app/Lib/passwordVerification";
 import { randomUUID } from 'crypto'
-import { cookies } from "next/headers";
-import { userVerification } from "@/app/Lib/userVerification";
+import { cookies } from 'next/headers';
 import { redirect } from "next/navigation";
 
+import { db } from '@/app/Lib/turso';
+import verifyUser from '@/app/Lib/verifyUser';
 
 
-export async function userValidation(prevState, formData) {
+
+
+export async function loginActionServer(prevState, formData) {
     try {
-
-        console.log(formData)
 
         const username = formData.get('username');
         const password = formData.get('password');
 
         if (!username || !password) return { ok: false, message: 'username and password required' };
 
-        const isUserExist = await userVerification(username);
+        const isUserVerfied = await verifyUser(username, password);
 
-        if (!isUserExist.ok) return { ok: false, message: 'user does not exist' };
-
-        const storedHash = isUserExist.user.password;
-
-        const passMatch = await verifyPassword(password, storedHash);
-
-        if (!passMatch.ok) return { ok: passMatch.ok, message: passMatch.message }
-
+        if (!isUserVerfied.ok) return { ok: false, message: 'username and password did not match' };
 
         const token = randomUUID();
 
-        const result2 = await db.execute(`INSERT INTO sessions (token, user_id) VALUES(?, ?)`, [token, isUserExist.user.id]);
-
+        const resultSession = await db.execute(`INSERT INTO sessions (user_id, token) VALUES (?, ?)`, [isUserVerfied.user.id, token]);
 
         const cookieStore = await cookies();
 
-        cookieStore.set("token", token, {
+        cookieStore.set('token', token, {
             httpOnly: true,
             secure: process.env.NODE_ENV === "production",
             sameSite: "strict",
@@ -45,22 +36,14 @@ export async function userValidation(prevState, formData) {
             maxAge: 60 * 60 * 24 * 7,
         });
 
-
-
-        // return {
-        //     ok: true,
-        //     message: "Login successfully!",
-        //     redirectTo: '/add-post'
-        // };
-
     } catch (err) {
         console.log(err)
         return {
             ok: false,
-            error: err.message || "Failed to create post",
+            error: err.message || "Failed to login",
         };
     }
 
-    redirect("/add-post");
+    redirect("/blog");
 
 }

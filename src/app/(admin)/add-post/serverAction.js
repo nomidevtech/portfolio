@@ -1,8 +1,8 @@
 "use server";
 
 import { db } from "@/app/Lib/turso";
-import cloudinary from "@/app/Lib/Static/cloudinary";
-import { hashPassword } from "@/app/Lib/hashPassword";
+import cloudinary from "@/app/Lib/cloudinary";
+import { hashPassword } from "@/app/Lib/encryptPass";
 import slugGenerator from "@/app/utils/slugGenerator";
 import { redirect } from "next/navigation";
 

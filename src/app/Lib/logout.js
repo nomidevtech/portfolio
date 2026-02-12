@@ -15,12 +15,11 @@ export async function logout(formData) {
             await db.execute(`DELETE FROM sessions WHERE token = ?`, [token]);
         }
 
-        cookieStore.delete('token');
+        cookieStore.delete('token', { path: '/' });
 
     } catch (err) {
         console.error('Logout error:', err);
     }
 
-    // Always redirect outside the try/catch
     redirect('/login');
 }

@@ -24,7 +24,7 @@ export default function FormInputs() {
                     htmlFor="password"
                     className="block mb-2.5 text-sm font-medium text-heading"
                 >
-                    Your password
+                    Password
                 </label>
 
                 <input
