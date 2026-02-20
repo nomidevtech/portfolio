@@ -1,14 +1,22 @@
 
 export const dynamic = "force-dynamic";
 import { redirect } from "next/navigation";
-import { adminLoginCheck } from "../Lib/adminLoginCheck";
+import getSession from "../Lib/getSession";
+import getUser from "../Lib/getUser";
+
 
 
 export default async function AdminLayout({ children }) {
 
-    const isAdmin = await adminLoginCheck();
+    const sessionRes = await getSession();
+    let isAdmin = false;
 
-    if (!isAdmin.ok) { redirect("/login"); }
+    if (sessionRes.ok) {
+        const userRes = await getUser(sessionRes.session.user_id);
+        isAdmin = userRes.ok && userRes.user?.role === 'admin';
+    }
+
+    if (!isAdmin) { redirect("/login"); }
 
     return (
         <>

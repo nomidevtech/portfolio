@@ -1,16 +1,22 @@
-import { adminLoginCheck } from "@/app/Lib/adminLoginCheck";
+
 import { db } from "@/app/Lib/turso";
 import Form from "next/form";
 import Image from "next/image";
 import { redirect } from "next/navigation";
 import editServerAction from "./editServerAction";
+import getSession from "@/app/Lib/getSession";
+import getUser from "@/app/Lib/getUser";
 
 export default async function EditPost({ params }) {
-  const isAdmin = await adminLoginCheck();
-  if (!isAdmin.ok) redirect("/login");
+
+  const sessionRes = await getSession();
+  const userRes = await getUser(sessionRes.session?.user_id);
+  const isAdmin = sessionRes?.ok && userRes.user?.role === 'admin' || false;
+
+  if (!isAdmin) redirect("/login");
 
   try {
-    const { id, slug } = await params;
+    const { id } = await params;
 
     const result = await db.execute(
       `
@@ -214,7 +220,7 @@ export default async function EditPost({ params }) {
                         <input
                           type="text"
                           name={`image_url${index}`}
-                           defaultValue={JSON.stringify({ url: p.url, publicId: p.publicId })}
+                          defaultValue={JSON.stringify({ url: p.url, publicId: p.publicId })}
                           className="w-full rounded-xl border border-gray-300 px-4 py-2 text-gray-900 focus:outline-none focus:ring-2 focus:ring-black"
                         />
                       </div>

@@ -1,16 +1,21 @@
-import { adminLoginCheck } from "@/app/Lib/adminLoginCheck"
+import getSession from "@/app/Lib/getSession";
 import AdminDropdown from "./adminDropdown"; // client component
 import Link from "next/link";
+import getUser from "@/app/Lib/getUser";
 
 export default async function AdminSection() {
 
-    const isAdmin = await adminLoginCheck();
+    const sessionRes = await getSession();
+    const userRes = await getUser(sessionRes.session?.user_id);
+    const isAdmin = sessionRes?.ok && userRes.user?.role === 'admin' || false;
 
-    if (!isAdmin.ok) return (<Link href={'/login'}>Login</Link>);
 
-    const username = isAdmin.username
+    if (!isAdmin) return (<Link href={'/login'}>Login</Link>);
 
     return (
-        <AdminDropdown username={username} />
+        <>
+            {isAdmin && <p>{userRes.user?.username || 'user'}</p>}
+            <AdminDropdown username={userRes.user?.username} />
+        </>
     )
 }

@@ -1,22 +1,32 @@
 'use client'
 
-import delServerAction from "../Lib/delServerAction"
+// import delServerAction from "../Lib/delServerAction"
+import { useRouter } from "next/navigation"
 
 export default function ClientDelete({ postId }) {
-
-    console.log(postId)
-    
+    const router = useRouter();
 
     const handleDelete = async () => {
-        console.log('clicked')
-        const confirmed = confirm('Are you sure?');
+        const confirmed = confirm('Are you sure you want to delete this post?');
 
         if (confirmed) {
-            const result = await delServerAction(postId);
-            if(!result.ok) return <p>failed to delete</p>
+            // const result = await delServerAction(postId);
 
+            if (!result.ok) {
+                alert('Failed to delete: ' + (result.message || 'Unknown error'));
+                return;
+            }
+
+            router.refresh();
         }
     }
 
-    return <button onClick={() => handleDelete()}>Delete</button>
+    return (
+        <button
+            onClick={handleDelete}
+            className="text-red-500 hover:text-red-700 underline"
+        >
+            Delete
+        </button>
+    )
 }

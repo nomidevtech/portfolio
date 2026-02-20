@@ -20,6 +20,6 @@ export default async function getSession() {
 
     } catch (err) {
         console.log(err);
-        return { ok: false, message: err }
+        return { ok: false, message: "Session lookup failed" }
     }
 } 

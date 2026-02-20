@@ -7,7 +7,7 @@ import {  Hero } from "./components/Landing";
 const AboutMe = dynamic(() => import('./components/Landing/about'), {
   loading: () => <p>Loading....</p>
 });
-const HLProjects = dynamic(() => import('./components/Landing/HL-Projects'), {
+const HLProjects = dynamic(() => import('./components/Landing/highlighted-projects'), {
   loading: () => <p>Loading....</p>
 });
 const Demos = dynamic(() => import('./components/Landing/demos'), {
@@ -19,7 +19,7 @@ const MyStack = dynamic(() => import('./components/Landing/stack'), {
 const HowIWork = dynamic(() => import('./components/Landing/how-i-work'), {
   loading: () => <p>Loading....</p>
 });
-const WhyHireMe = dynamic(() => import('./components/Landing/why-hire-me'), {
+const WhyHireMe = dynamic(() => import('./components/Landing/why-hire-me/index'), {
   loading: () => <p>Loading....</p>
 });
 const HireMe = dynamic(() => import('./components/Landing/hire-me'), {

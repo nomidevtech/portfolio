@@ -1,6 +1,5 @@
 "use server";
 
-import cloudinary from "@/app/Lib/cloudinary";
 import { db } from "@/app/Lib/turso";
 import slugGenerator from "@/app/utils/slugGenerator";
 import { redirect } from "next/navigation";
@@ -8,14 +7,16 @@ import { redirect } from "next/navigation";
 export default async function editServerAction(formData) {
 
   console.log('iam formData------------>', formData)
-  try {
-    const postId = formData.get("postId");
-    const title = formData.get("title")?.trim();
-    const slug = slugGenerator(title);
-    const excerpt = formData.get("excerpt")?.trim();
-    const taxonomyName = formData.get("taxonomy")?.trim();
 
-    const tagsRaw = formData.get("tags")?.trim();
+  const postId = formData.get("postId");
+  const title = formData.get("title")?.trim();
+  const slug = slugGenerator(title);
+  const excerpt = formData.get("excerpt")?.trim();
+  const taxonomyName = formData.get("taxonomy")?.trim();
+  const tagsRaw = formData.get("tags")?.trim();
+
+  try {
+
 
     // convert tags string -> array
     const tags = tagsRaw
@@ -122,5 +123,6 @@ export default async function editServerAction(formData) {
   }
 
   //redirect(`/blog/${formData.get("postId")}/${formData.get("slug")}`);
-  redirect(`/blog/`);
+  //redirect(`/blog/`);
+  redirect(`/blog/${postId}/${slug}`)
 }

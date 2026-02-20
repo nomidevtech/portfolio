@@ -1,11 +1,11 @@
 'use client'
 
-import delServerAction from "@/app/Lib/delServerAction"
+import delPost from "./delServerAction"
 
 export default function ClientDelete({ postId }) {
 
     console.log(postId)
-    
+
 
     const handleDelete = async () => {
         console.log('clicked')
@@ -13,10 +13,10 @@ export default function ClientDelete({ postId }) {
 
         if (confirmed) {
             const result = await delServerAction(postId);
-            if(!result.ok) return <p>failed to delete</p>
+            if (!result.ok || !result.deleted) return <p>failed to delete</p>
 
         }
-    }
+        return <button onClick={() => handleDelete()} >Delete</button>
 
-    return <button onClick={() => handleDelete()}>Delete</button>
+    }
 }

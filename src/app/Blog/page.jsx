@@ -8,19 +8,16 @@ import CreatedAt from "./CreatedAt";
 import PostTags from "./PostTags";
 import PostAuthor from "./Auther";
 import Details from "./Details";
-import { adminLoginCheck } from "../Lib/adminLoginCheck";
 import ClientDelete from "./DelClient";
+import getSession from "../Lib/getSession";
+import getUser from "../Lib/getUser";
 
 export default async function Blog({ searchParams }) {
 
-
-
-  // 1) get page from url
   let page = Number(searchParams.page) || 1;
-
   const limit = 10;
 
-  // 2) count total posts
+
   const countResult = (await db.execute(
     `SELECT COUNT(*) AS numberOfPosts FROM posts`
   )).rows[0];
@@ -28,13 +25,13 @@ export default async function Blog({ searchParams }) {
   const totalPosts = countResult.numberOfPosts;
   const maxPages = Math.ceil(totalPosts / limit);
 
-  // 3) prevent invalid page values
+
   if (page < 1) page = 1;
-  if (page > maxPages) page = maxPages;
+  if (page > maxPages && maxPages > 0) page = maxPages;
 
   const offset = (page - 1) * limit;
 
-  // 4) fetch posts for this page ONLY
+
   const data = await db.execute(`
     SELECT 
       posts.*,
@@ -52,42 +49,35 @@ export default async function Blog({ searchParams }) {
     LIMIT ? OFFSET ?
   `, [limit, offset]);
 
-  // 5) build nav buttons
-  const maxNavBtns = 5;
-  const halfOfMaxNavBtns = Math.floor(maxNavBtns / 2);
 
-  let start = page - halfOfMaxNavBtns;
-  let end = page + halfOfMaxNavBtns;
+  const maxNavBtns = 5;
+  const half = Math.floor(maxNavBtns / 2);
+  let start = page - half;
+  let end = page + half;
 
   if (start < 1) {
     start = 1;
     end = maxNavBtns;
   }
-
   if (end > maxPages) {
     end = maxPages;
-    start = maxPages - maxNavBtns + 1;
-    if (start < 1) start = 1;
+    start = Math.max(1, maxPages - maxNavBtns + 1);
   }
+  const pages = Array.from({ length: Math.max(0, end - start + 1) }, (_, i) => start + i);
 
-  const pages = Array.from({ length: end - start + 1 }, (_, i) => start + i);
-
-  // 6) next/prev logic
-  const prevPage = page > 1 ? page - 1 : 1;
-  const nextPage = page < maxPages ? page + 1 : maxPages;
-
-  const isAdmin = await adminLoginCheck();
+  const sessionRes = await getSession();
+  const userRes = await getUser(sessionRes.session?.user_id);
+  const isAdmin = sessionRes?.ok && userRes.user?.role === 'admin' || false;
 
   return (
     <section className="bg-(--background) min-h-screen w-full py-8 px-4 sm:px-6 lg:px-8">
-
       <div className="max-w-7xl mx-auto grid gap-6 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 mt-22">
         {data.rows.map((d) => (
           <div
             key={d.id}
             className="bg-(--surface) text-(--surface-foreground) border border-gray-200 dark:border-gray-700 rounded-lg p-6 shadow hover:shadow-lg transition-shadow duration-200 flex flex-col"
           >
-            <Suspense fallback={"loading....."}>
+            <Suspense fallback="loading.....">
               <PostTitle title={d.title} />
               <PostTaxonomy taxonomy={d.taxonomy_names} />
               <PostExcerpt content={d.excerpt} />
@@ -95,44 +85,36 @@ export default async function Blog({ searchParams }) {
               <PostTags tags={d.tag_names} />
               <PostAuthor Auther={d.author} />
               <Details postID={d.id} slug={d.slug} />
-              {isAdmin.ok && (
-                <> <Link href={`/edit-post/${d.id}/${d.slug}`}>Edit</Link>
-                  <ClientDelete postId={d.id} /> </>
+
+              {/* FIX: Used boolean isAdmin check */}
+              {isAdmin && (
+                <div className="mt-4 flex gap-2">
+                  <Link href={`/edit-post/${d.id}/${d.slug}`} className="text-blue-500 underline">Edit</Link>
+                  <ClientDelete postId={d.id} />
+                </div>
               )}
             </Suspense>
-
           </div>
         ))}
       </div>
 
+      {/* Pagination */}
       <div className="w-full flex justify-center gap-6 mt-20">
-
-        {/* Prev */}
         {page > 1 && (
-          <Link href={`/blog?page=${prevPage}`} className="px-4 py-2 border rounded">
-            Prev
-          </Link>
+          <Link href={`/blog?page=${page - 1}`} className="px-4 py-2 border rounded">Prev</Link>
         )}
-
-        {/* Number buttons */}
         {pages.map((p) => (
           <Link
             key={p}
             href={`/blog?page=${p}`}
-            className={`px-4 py-2 border rounded ${p === page ? "bg-primary text-primary-foreground" : ""
-              }`}
+            className={`px-4 py-2 border rounded ${p === page ? "bg-primary text-white" : ""}`}
           >
             {p}
           </Link>
         ))}
-
-        {/* Next */}
         {page < maxPages && (
-          <Link href={`/blog?page=${nextPage}`} className="px-4 py-2 border rounded">
-            Next
-          </Link>
+          <Link href={`/blog?page=${page + 1}`} className="px-4 py-2 border rounded">Next</Link>
         )}
-
       </div>
     </section>
   );

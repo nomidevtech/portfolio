@@ -5,11 +5,13 @@ import PostContent from "./PostContent";
 import CreatedAt from "./CreatedAt";
 import PostTags from "./PostTags";
 import PostAuthor from "./Auther";
-import { adminLoginCheck } from "@/app/Lib/adminLoginCheck";
 import { db } from "@/app/Lib/turso";
 import Link from "next/link";
 
 import ClientDelete from "./client";
+import getSession from "@/app/Lib/getSession";
+import getUser from "@/app/Lib/getUser";
+import { notFound } from "next/navigation";
 
 
 export default async function DynamicPost({ params }) {
@@ -35,7 +37,8 @@ export default async function DynamicPost({ params }) {
     GROUP BY posts.id
 `, [id]);
 
-    const postData = result.rows[0]
+    const postData = result.rows[0];
+    if (!postData) return notFound();
     //console.log(postData);
 
 
@@ -43,7 +46,11 @@ export default async function DynamicPost({ params }) {
     const isSlugMatch = postData.slug === slug;
     if (!isSlugMatch) return <div>Slug does not match</div>;
 
-    const isAdmin = await adminLoginCheck();
+    const sessionRes = await getSession();
+    const userRes = await getUser(sessionRes.session?.user_id);
+    const isAdmin = sessionRes?.ok && userRes.user?.role === 'admin' || false;
+
+
 
 
     return (
@@ -62,7 +69,7 @@ export default async function DynamicPost({ params }) {
                 <PostAuthor auther={postData.author_name} />
 
             </div>
-            {isAdmin.ok ? (
+            {isAdmin ? (
                 <>
                     <Link href={`/edit-post/${id}/${slug}`}>Edit</Link>
                     <ClientDelete postId={id} />

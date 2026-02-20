@@ -1,11 +1,11 @@
 'use server'
 
-import { encryptPass } from "@/app/Lib/encryptPass";
+import { encryptPass } from "@/app/utils/encryptPass";
 import { db } from "@/app/Lib/turso";
 import getSession from "@/app/Lib/getSession";
 import verifyUser from "@/app/Lib/verifyUser";
 
-export async function changePassServerAction(prevState, formData) {
+export async function changePassServerAction(_, formData) {
   try {
     const oldPassword = formData.get('oldPassword');
     const newPassword = formData.get('newPassword');

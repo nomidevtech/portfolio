@@ -1,7 +1,7 @@
 'use client'
 
 
-import { categoryData } from "@/app/Lib/Static/data"
+// import { categoryData } from "@/app/Lib/Static/data"
 
 export default function TaxonomyInput({ setUserSelectedCat }) {
 
@@ -20,7 +20,7 @@ export default function TaxonomyInput({ setUserSelectedCat }) {
         onChange={(e) => setUserSelectedCat(e.target.value)}
       />
       <datalist id="categories">
-        {categoryData.map(c => <option key={c} value={c}>{c}</option>)}
+        {/* {categoryData.map(c => <option key={c} value={c}>{c}</option>)} */}
       </datalist>
 
 
