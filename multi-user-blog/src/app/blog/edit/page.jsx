@@ -1,15 +1,15 @@
 import { Suspense } from "react";
-import DynamicPostServerComponent from "./DPSC";
+import EditPostServerComponent from "./DPSC";
 
 
-export default async function DynamicPost({ searchParams }) {
+export default async function EditPost({ searchParams }) {
 
     const { value } = await searchParams;
     if (!value) return <p>Link is broken</p>
 
     return (<>
         <Suspense fallback={<div>Loading...</div>}>
-            <DynamicPostServerComponent value={value} />
+            <EditPostServerComponent value={value} />
         </Suspense>
     </>);
 }

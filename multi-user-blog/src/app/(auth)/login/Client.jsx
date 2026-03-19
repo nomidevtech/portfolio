@@ -63,7 +63,7 @@ export default function Client() {
 
                 <p className="text-zinc-600 text-sm text-center mt-6">
                     Don't have an account?{" "}
-                    <a href="/signup" className="text-zinc-300 hover:text-white transition-colors">
+                    <a href="/sign-up" className="text-zinc-300 hover:text-white transition-colors">
                         Sign up
                     </a>
                 </p>

@@ -1,10 +1,10 @@
 import { getUser } from "@/app/lib/getUser";
 import { db } from "@/app/lib/turso";
-import EditCLient from "./EditClient";
+import PostForm from "@/app/components/PostForm";
 
 
 
-export default async function DynamicPostServerComponent({ value }) {
+export default async function EditPostServerComponent({ value }) {
 
     const fetchCurrentUser = await getUser();
     const fetchPost = await db.execute(`
@@ -46,6 +46,6 @@ export default async function DynamicPostServerComponent({ value }) {
 
 
     return (
-        <EditCLient post={post} />
+        <PostForm post={post} />
     );
 }

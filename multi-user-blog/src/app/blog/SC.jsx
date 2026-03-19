@@ -2,11 +2,10 @@ import Link from "next/link";
 import { getUser } from "../lib/getUser";
 import { db } from "../lib/turso";
 import Form from "next/form";
+import AddToFavorties from "../components/AddToFavorties";
+
 
 export default async function BlogServerComponent() {
-
-
-
 
   const fetchPosts = await db.execute(`
     SELECT
@@ -26,6 +25,24 @@ export default async function BlogServerComponent() {
 
   const allPosts = fetchPosts.rows;
   const currentUser = await getUser();
+
+
+  let favsByCurrentUser = [];
+
+  if (currentUser?.id) {
+    const result = await db.execute(`
+      SELECT post_id FROM favorites WHERE user_id = ? 
+    `, [currentUser.id]);
+
+    favsByCurrentUser = result.rows.map((row) => row.post_id);
+  };
+
+  for (const post of allPosts) {
+    post.isFavorited = favsByCurrentUser.includes(post.id);
+  }
+
+
+
 
 
 
@@ -55,6 +72,7 @@ export default async function BlogServerComponent() {
                 </Form>
               </div>
             )}
+            {currentUser?.id && <AddToFavorties ppid={post.public_id} isFavorited={post.isFavorited} />}
           </div>
         ))}
       </ul>

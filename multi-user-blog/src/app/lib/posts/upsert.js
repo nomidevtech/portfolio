@@ -1,9 +1,9 @@
 "use server";
 
 import { nanoid } from "nanoid";
-import { cloudinaryUpload } from "./cloudinary";
-import { getUser } from "./getUser";
-import { db } from "./turso";
+import { cloudinaryUpload } from "../cloudinary";
+import { getUser } from "../getUser";
+import { db } from "../turso";
 import { redirect } from "next/navigation";
 
 // try {
@@ -63,7 +63,7 @@ export async function postUpsert(formData) {
         console.error(error);
         throw error;
     };
-    redirect(`/post/${redirectSlug}/${redirectPublicId}`);
+    redirect(`/blog/${redirectSlug}/${redirectPublicId}`);
 }
 
 const separateContent = (formData) => {

@@ -1,14 +1,14 @@
 'use client'
 
-import { postUpsert } from "@/app/lib/upsert";
+import { postUpsert } from "@/app/lib/posts/upsert";
 import Form from "next/form";
 import { useState, useEffect } from "react";
 
 
-export default function AddPost({ post }) {
+export default function PostForm({ post = {} }) {
 
     const prevContent = [];
-    post.content.forEach(item => {
+    post.content?.forEach(item => {
         if (item.type && item.value) return prevContent.push([item.type, item.value]);
     });
 
@@ -18,7 +18,7 @@ export default function AddPost({ post }) {
 
 
     const [blocks, setBlocks] = useState([]);
-    const [userTags, setUserTags] = useState(post.tags);
+    const [userTags, setUserTags] = useState(post.tags || []);
 
 
     useEffect(() => {
