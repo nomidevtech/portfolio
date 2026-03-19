@@ -19,7 +19,7 @@ import { redirect } from "next/navigation";
 
 export async function postUpsert(formData) {
 
-    console.log([...formData.entries()]);
+    // console.log([...formData.entries()]);
 
     let redirectSlug, redirectPublicId;
 
@@ -37,7 +37,7 @@ export async function postUpsert(formData) {
         const tags = tagsArr.length > 0 ? tagsArr : ['no-tags'];
 
         const contentArr = separateContent(formData);
-        const contentWithBlobs = contentArr.length > 0 ? contentArr : ['no-content'];
+        const contentWithBlobs = contentArr.length > 0 ? contentArr : [{ type: null, name: null, value: null }];
         const contentNormalized = await uploadBlobs(contentWithBlobs);
 
         const { postId, publicId } = await upsertPost(existingPostPublicId, contentNormalized, title, slug, excerpt, currentUser.id);
@@ -106,6 +106,10 @@ const uploadBlobs = async (contentBlocks) => {
                     publicId: result.publicId
                 };
             }
+        }
+        else if (block.type === 'image' && typeof block.value === 'string') {
+            const pasred = JSON.parse(block.value);
+            block.value = pasred;
         }
     }
     return copy;
