@@ -64,7 +64,7 @@ export default async function DynamicPostServerComponent({ pid, slug }) {
                 {content.map((item, index) => {
                     if (item.type === "heading") return <h2 key={index}>{item.value}</h2>
                     if (item.type === "paragraph") return <p key={index}>{item.value}</p>
-                    if (item.type === "image" && item.value.url) return <Image key={index} src={item.value.url ?? null} width={500} height={500} />
+                    if (item.type === "image" && item.value.url) return <Image key={index} src={item.value.url ?? null} alt={`${post.slug}-image-${index}`} width={500} height={500} />
                 }
                 )}
             </div>

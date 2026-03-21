@@ -40,7 +40,7 @@ export const cloudinaryUpload = async (file) => {
     }
 };
 
-export const cloudinaryDelete = async (publicId) => {
+export const cloudinaryDeleteSingle = async (publicId) => {
     if (!publicId) {
         throw new Error("publicId is required to delete an image");
     }
@@ -49,6 +49,25 @@ export const cloudinaryDelete = async (publicId) => {
         const result = await cloudinary.uploader.destroy(publicId);
 
         if (result.result !== "ok") {
+            throw new Error("Cloudinary delete failed");
+        }
+
+        return result;
+
+    } catch (error) {
+        throw new Error(`Cloudinary delete error: ${error.message}`);
+    }
+};
+
+export const cloudinaryDeleteMultiple = async (publicIdsArr = []) => {
+    if (!publicIdsArr || publicIdsArr.length === 0) {
+        throw new Error("publicIds is required to delete multiple images");
+    }
+
+    try {
+        const result = await cloudinary.api.delete_resources(publicIdsArr);
+
+        if (!result.deleted) {
             throw new Error("Cloudinary delete failed");
         }
 

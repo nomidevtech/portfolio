@@ -1,7 +1,7 @@
 "use server";
 
 import { nanoid } from "nanoid";
-import { cloudinaryUpload } from "../cloudinary";
+import { cloudinaryDelete, cloudinaryDeleteMultiple, cloudinaryUpload } from "../cloudinary";
 import { getUser } from "../getUser";
 import { db } from "../turso";
 import { redirect } from "next/navigation";
@@ -22,6 +22,7 @@ export async function postUpsert(formData) {
     // console.log([...formData.entries()]);
 
     let redirectSlug, redirectPublicId;
+    // let newImagesPIds, oldImagesPIds;
 
     try {
         let existingPostPublicId = formData.get('post_public_id') || null;
@@ -39,6 +40,20 @@ export async function postUpsert(formData) {
         const contentArr = separateContent(formData);
         const contentWithBlobs = contentArr.length > 0 ? contentArr : [{ type: null, name: null, value: null }];
         const contentNormalized = await uploadBlobs(contentWithBlobs);
+
+        const fetchOldPost = await db.execute(`SELECT content FROM posts WHERE public_id = ? LIMIT 1`, [existingPostPublicId]);
+
+
+
+        if (existingPostPublicId && fetchOldPost.rows.length > 0) {
+            const oldImagesPIds = getImagesPIds(JSON.parse(fetchOldPost.rows[0].content));
+            const newImagesPIds = getImagesPIds(contentNormalized);
+
+            await deleteImages(oldImagesPIds, newImagesPIds);
+        }
+
+
+
 
         const { postId, publicId } = await upsertPost(existingPostPublicId, contentNormalized, title, slug, excerpt, currentUser.id);
         if (!postId) throw new Error('no post upserted');
@@ -249,4 +264,26 @@ const postTagResults = async (post_id, tagIdsArr) => {
     }
 
     return allSuccess;
+};
+
+
+async function deleteImages(oldImagesPIds, newImagesPIds) {
+    const idsToDelete = oldImagesPIds.filter(oldId => !newImagesPIds.includes(oldId));
+    if (idsToDelete.length === 0) return;
+    try {
+        await cloudinaryDeleteMultiple(idsToDelete);
+    } catch (err) {
+        console.error('Failed to delete orphan images:', idsToDelete, err);
+       
+    }
+};
+
+
+
+function getImagesPIds(content) {
+    const pIds = [];
+    for (const { type, value } of content) {
+        if (type === 'image' && value?.publicId) pIds.push(value.publicId);
+    }
+    return pIds;
 };
