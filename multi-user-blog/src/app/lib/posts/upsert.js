@@ -78,7 +78,7 @@ export async function postUpsert(formData) {
         console.error(error);
         throw error;
     };
-    redirect(`/blog/${redirectSlug}/${redirectPublicId}`);
+    redirect(`/post/${redirectSlug}/${redirectPublicId}`);
 }
 
 const separateContent = (formData) => {
@@ -274,7 +274,7 @@ async function deleteImages(oldImagesPIds, newImagesPIds) {
         await cloudinaryDeleteMultiple(idsToDelete);
     } catch (err) {
         console.error('Failed to delete orphan images:', idsToDelete, err);
-       
+
     }
 };
 

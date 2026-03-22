@@ -1,6 +1,6 @@
 'use client';
 import Form from "next/form";
-import { addTofavorties } from "../lib/posts/favorties";
+import { addTofavorites } from "../lib/posts/favorites";
 
 import { useActionState, useState } from "react";
 
@@ -8,7 +8,7 @@ export default function AddToFavorties({ ppid, isFavorited = false }) {
 
     const initialState = { ok: null, message: "" };
 
-    const [state, formAction, isPending] = useActionState(addTofavorties, initialState);
+    const [state, formAction, isPending] = useActionState(addTofavorites, initialState);
 
     const [fav, setFav] = useState(isFavorited);
 

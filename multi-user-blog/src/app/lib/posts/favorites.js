@@ -3,7 +3,7 @@
 import { getUser } from "../getUser";
 import { db } from "../turso";
 
-export async function addTofavorties(_, formData) {
+export async function addTofavorites(_, formData) {
 
   const ppid = formData.get("ppid");
   if (!ppid) {

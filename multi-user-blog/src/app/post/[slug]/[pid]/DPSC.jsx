@@ -1,4 +1,5 @@
 import AddToFavorties from "@/app/components/AddToFavorties";
+import DeleteButton from "@/app/components/DeleteBTN";
 import { getUser } from "@/app/lib/getUser";
 import { db } from "@/app/lib/turso";
 import Image from "next/image";
@@ -30,7 +31,7 @@ export default async function DynamicPostServerComponent({ pid, slug }) {
     if (fetchPost?.rows?.length === 0) return <p>Post not found</p>
 
     const post = fetchPost.rows[0];
-    const tags = post.tags.split(', ');
+    const tags = post?.tags?.split(', ');
     const content = JSON.parse(post.content);
 
     let isFavorited = false;
@@ -71,8 +72,8 @@ export default async function DynamicPostServerComponent({ pid, slug }) {
         }
         {currentUser?.id ? <AddToFavorties ppid={post.public_id} isFavorited={isFavorited} /> : <p>Login to add to favorites</p>}
 
-        {currentUser?.id === post.user_id && <p><Link href={`/blog/edit/${post.public_id}`}>Edit</Link></p>}
-        {currentUser?.id === post.user_id && <p><Link href={`/blog/delete/${post.public_id}`}>Delete</Link></p>}
+        {currentUser?.id === post.user_id && <p><Link href={`/edit/${post.public_id}`}>Edit</Link></p>}
+        {currentUser?.id === post.user_id && <DeleteButton publicId={post.public_id} />}
 
     </>);
 }

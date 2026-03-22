@@ -5,7 +5,7 @@ import Form from "next/form";
 import { useState, useEffect } from "react";
 
 
-export default function PostForm({ post = {} }) {
+export default function PostForm({ post = {}, taxonomies = [], tags = [] }) {
 
     const prevContent = [];
     post.content?.forEach(item => {
@@ -26,8 +26,6 @@ export default function PostForm({ post = {} }) {
         setBlocks(prevContent);
     }, []);
 
-    const taxonomies = ['NEXTJS', 'REACT', 'VUEJS'];
-    const allTags = ['tag1', 'tag2', 'tag3'];
 
     return (
         <>
@@ -63,7 +61,7 @@ export default function PostForm({ post = {} }) {
 
                         const value = e.target.value.trim();
                         if (!value) return;
-                        if (!allTags.includes(value)) return;
+                        if (!tags.includes(value)) return;
                         if (userTags.includes(value)) return;
                         setUserTags(prev => [...prev, value]);
                         e.target.value = '';
@@ -71,7 +69,7 @@ export default function PostForm({ post = {} }) {
                 />
 
                 <datalist id="tags">
-                    {allTags.map((tag, idx) => <option key={idx} value={tag} />)}
+                    {tags.map((tag, idx) => <option key={idx} value={tag} />)}
                 </datalist>
 
                 {userTags.map((tag, idx) =>

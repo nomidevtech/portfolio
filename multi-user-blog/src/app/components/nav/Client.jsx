@@ -65,6 +65,8 @@ export default function NavBarClient({ serializedUser }) {
 
                                 <Link href="/settings" style={itemStyle}>Settings</Link>
                                 <Link href="/add-post" style={itemStyle}>Add Post</Link>
+                                <Link href="/my-posts" style={itemStyle}>My Posts</Link>
+                                <Link href="/favorites" style={itemStyle}>Favorites</Link>
 
                                 <hr style={{ margin: "8px 0", borderColor: "#334155" }} />
 

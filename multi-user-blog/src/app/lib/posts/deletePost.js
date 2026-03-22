@@ -1,8 +1,12 @@
 "use server";
 
+import { redirect } from "next/navigation";
+import { db } from "../turso";
+
+
 export async function deletePostServerAction(_, formData) {
 
-    const ppid = formData.get('post_public_id');
+    const ppid = formData.get('ppid');
     if (!ppid) {
         return { ok: false, message: "Post public id is broken or missing." };
     }
@@ -22,10 +26,11 @@ export async function deletePostServerAction(_, formData) {
             return { ok: false, message: "failed to delete post" };
         }
 
-        return { ok: true, message: "post deleted" };
+       //return { ok: true, message: "post deleted" };
 
     } catch (error) {
         console.error(error);
         return { ok: false, message: "Something went wrong" };
     }
+    redirect("/blog");
 }

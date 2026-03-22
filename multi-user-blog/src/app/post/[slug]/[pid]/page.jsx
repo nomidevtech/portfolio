@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import DynamicPostClinet from "./DPClient";
+import DynamicPostServerComponent from "./DPSC";
 
 
 export default async function DynamicPost({ params }) {
@@ -11,7 +11,7 @@ export default async function DynamicPost({ params }) {
 
     return (
         <Suspense fallback={<div>Loading...</div>}>
-            <DynamicPostClinet slug={slug} pid={pid} />
+            <DynamicPostServerComponent slug={slug} pid={pid} />
         </Suspense>
     );
 }

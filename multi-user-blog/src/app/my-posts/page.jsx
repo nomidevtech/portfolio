@@ -1,11 +1,10 @@
-
 import { Suspense } from "react";
-import AddPostServerComponent from "./APSC";
+import MyPostsServerComponent from "./MPSC";
 
-export default function AddPost() {
+export default function MyPosts() {
     return (
         <Suspense fallback={<p>Loading...</p>}>
-            <AddPostServerComponent />
+            <MyPostsServerComponent />
         </Suspense>
     );
 }

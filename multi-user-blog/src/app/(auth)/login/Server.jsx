@@ -1,4 +1,5 @@
 import { db } from "@/app/lib/turso";
+import Client from "./Client";
 
 
 export default async function Server({ token }) {
@@ -14,11 +15,7 @@ export default async function Server({ token }) {
 
     if (result.rows.length === 0) {
         return (
-            <div className="min-h-screen bg-zinc-950 flex items-center justify-center px-4">
-                <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-8 text-center">
-                    <p className="text-red-400 text-sm">Session not found or expired.</p>
-                </div>
-            </div>
+            <Client />
         );
     }
 

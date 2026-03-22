@@ -50,7 +50,7 @@ export default function SettingsForm({ serializedUser }) {
 
         </Form>
         <Form action={logout}><button type="submit">Logout</button></Form>
-        <Link href={'/delete'}>Delete Account</Link>
+        <Link href={'/delete_account'}>Delete Account</Link>
     </>
     );
 }

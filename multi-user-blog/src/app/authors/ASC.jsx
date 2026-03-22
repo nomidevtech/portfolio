@@ -1,32 +1,33 @@
 import Link from "next/link";
 import { getUser } from "../lib/getUser";
 import { db } from "../lib/turso";
-import AddToFavorties from "../components/AddToFavorties";
 import DeleteButton from "../components/DeleteBTN";
+import AddToFavorties from "../components/AddToFavorties";
 
-
-
-export default async function BlogServerComponent() {
+export default async function AuthorsServerComponent({ author }) {
 
   const fetchPosts = await db.execute(`
-    SELECT
-    posts.*,
-    taxonomies.name as taxonomy,
-    GROUP_CONCAT(DISTINCT tags.name) as tags,
-    users.username as author
-    FROM posts
-    LEFT JOIN post_taxonomies ON posts.id = post_taxonomies.post_id
-    LEFT JOIN taxonomies ON post_taxonomies.taxonomy_id = taxonomies.id
-    LEFT JOIN post_tags ON posts.id = post_tags.post_id
-    LEFT JOIN tags ON post_tags.tag_id = tags.id
-    LEFT JOIN users ON posts.user_id = users.id
-    GROUP BY posts.id
-    ORDER BY posts.created_at DESC
-  `);
+        SELECT
+        posts.*,
+        taxonomies.name as taxonomy,
+        GROUP_CONCAT(DISTINCT tags.name) as tags,
+        users.username as author
+        FROM posts
+        LEFT JOIN post_taxonomies ON posts.id = post_taxonomies.post_id
+        LEFT JOIN taxonomies ON post_taxonomies.taxonomy_id = taxonomies.id
+        LEFT JOIN post_tags ON posts.id = post_tags.post_id
+        LEFT JOIN tags ON post_tags.tag_id = tags.id
+        LEFT JOIN users ON posts.user_id = users.id
+        WHERE users.username = ?
+        GROUP BY posts.id
+        ORDER BY posts.created_at DESC
+    `, [author]);
 
-  const allPosts = fetchPosts.rows;
+  if (fetchPosts?.rows?.length === 0) return <p>no posts by {author}</p>
+
+  const posts = fetchPosts.rows;
+
   const currentUser = await getUser();
-
 
   let favsByCurrentUser = [];
 
@@ -39,17 +40,20 @@ export default async function BlogServerComponent() {
     };
   };
 
-  for (const post of allPosts) {
-    post.isFavorited = favsByCurrentUser.includes(post.id);
+  if (currentUser?.id && favsByCurrentUser.length > 0) {
+    for (const post of posts) {
+      post.isFavorited = favsByCurrentUser.includes(post.id);
+    }
   }
+
 
 
 
   return (
     <div>
-      <h1>Blog</h1>
+      <h1>Posts by {author}</h1>
       <ul>
-        {allPosts.map((post, idx) => (
+        {posts.map((post, idx) => (
           <div key={idx} className="border-2 m-4">
             <li key={post.id}>
               <h2>{post.title}</h2>
