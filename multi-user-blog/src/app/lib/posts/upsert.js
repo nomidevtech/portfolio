@@ -6,6 +6,7 @@ import { getUser } from "../getUser";
 import { db } from "../turso";
 import { redirect } from "next/navigation";
 
+
 // try {
 //     await initPostTable();
 //     await initTaxonomyTable();
@@ -25,9 +26,7 @@ export async function postUpsert(formData) {
     // let newImagesPIds, oldImagesPIds;
 
     try {
-        let existingPostPublicId = formData.get('post_public_id') || null;
-
-        const currentUser = await getUser() || null;
+        const existingPPID = formData.get('post_public_id') || null;
 
         const title = formData.get('title')?.trim() || 'no title';
         const slug = title?.replace(/\s+/g, '-').toLowerCase() || 'no-slug';
@@ -41,11 +40,17 @@ export async function postUpsert(formData) {
         const contentWithBlobs = contentArr.length > 0 ? contentArr : [{ type: null, name: null, value: null }];
         const contentNormalized = await uploadBlobs(contentWithBlobs);
 
-        const fetchOldPost = await db.execute(`SELECT content FROM posts WHERE public_id = ? LIMIT 1`, [existingPostPublicId]);
+        const fetchOldPost = await db.execute(`SELECT user_id, content FROM posts WHERE public_id = ? LIMIT 1`, [existingPPID]);
+
+        const currentUser = await getUser();
+        if (!currentUser?.id) redirect('/login');
+
+        const autherizedToUpdate = fetchOldPost?.rows?.length > 0 && fetchOldPost.rows[0].user_id === currentUser?.id;
 
 
 
-        if (existingPostPublicId && fetchOldPost.rows.length > 0) {
+
+        if (existingPPID && fetchOldPost.rows.length > 0 && autherizedToUpdate) {
             const oldImagesPIds = getImagesPIds(JSON.parse(fetchOldPost.rows[0].content));
             const newImagesPIds = getImagesPIds(contentNormalized);
 
@@ -54,8 +59,7 @@ export async function postUpsert(formData) {
 
 
 
-
-        const { postId, publicId } = await upsertPost(existingPostPublicId, contentNormalized, title, slug, excerpt, currentUser.id);
+        const { postId, publicId } = await upsertPost(existingPPID, contentNormalized, title, slug, excerpt, currentUser.id, autherizedToUpdate);
         if (!postId) throw new Error('no post upserted');
 
         const taxonomyId = await upsertTaxonomy(taxonomy);
@@ -195,7 +199,7 @@ async function initPost_tags() {
     `);
 }
 
-const upsertPost = async (public_id, content, title, slug, excerpt, user_id) => {
+const upsertPost = async (public_id, content, title, slug, excerpt, user_id, isAutherized) => {
     if (!public_id) {
         const newPublicId = nanoid(12);
         const result = await db.execute(`
@@ -205,6 +209,8 @@ const upsertPost = async (public_id, content, title, slug, excerpt, user_id) => 
         `, [newPublicId, user_id, title, slug, excerpt, JSON.stringify(content)]);
         return { postId: result.rows[0]?.id, publicId: newPublicId };
     } else {
+        if (!isAutherized) throw new Error('unauthorized');
+
         const result = await db.execute(`
             UPDATE posts SET title = ?, slug = ?, excerpt = ?, content = ? WHERE public_id = ?
             RETURNING id
@@ -236,20 +242,16 @@ const upsertPost_taxonomies = async (post_id, taxonomy_id) => {
 
 const upsertTags = async (tagsArr) => {
 
-    const clean = tagsArr.filter(Boolean).map(tag => tag.trim().replace(/\s+/g, '-').toLowerCase());
+    const clean = [...new Set(tagsArr.filter(Boolean).map(tag => tag.trim().replace(/\s+/g, '-').toLowerCase()))];
+    if (clean.length === 0) return [];
 
-    const ids = [];
+    const placeholders = clean.map(() => '(?)').join(', ');
 
-    for (const tag of clean) {
-        const result = await db.execute(`SELECT id FROM tags WHERE name = ? LIMIT 1`, [tag]);
-        if (result.rows.length > 0) ids.push(result.rows[0].id);
-        else {
-            const result2 = await db.execute(`INSERT INTO tags (name) VALUES (?) RETURNING id`, [tag]);
-            ids.push(result2.rows[0].id);
-        }
-    }
+    await db.execute(`INSERT OR IGNORE INTO tags (name) VALUES ${placeholders}`, clean);
+    const result = await db.execute(`SELECT id FROM tags WHERE name IN (${placeholders})`, clean);
 
-    return ids;
+    return result.rows.map(r => r.id);
+
 };
 
 const postTagResults = async (post_id, tagIdsArr) => {

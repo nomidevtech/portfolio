@@ -1,8 +1,9 @@
 'use client'
 import Link from "next/link";
 import DeleteButton from "../components/DeleteBTN";
-import AddToFavorties from "../components/AddToFavorties";
+
 import { useState } from "react";
+import AddTofavorites from "../components/AddToFavorites";
 
 export default function FavoritesClinetComponent({ postsSerialized }) {
 
@@ -43,7 +44,7 @@ export default function FavoritesClinetComponent({ postsSerialized }) {
                     </ul>
 
                     {post.isFavorited && (
-                        <AddToFavorties
+                        <AddTofavorites
                             ppid={post.public_id}
                             isFavorited={post.isFavorited}
                         />

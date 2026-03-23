@@ -2,7 +2,7 @@
 
 import crypto from "crypto";
 import { db } from "@/app/lib/turso";
-import { compare} from "@/app/utils/bcrypt";
+import { compare } from "@/app/utils/bcrypt";
 import { cookies, headers } from "next/headers";
 import { redis } from "@/app/lib/redis";
 import { redirect } from "next/navigation";  // ← fixed import
@@ -108,7 +108,7 @@ export async function loginSA(_, formData) {  // ← prevState added for useActi
 
             return {
                 ok: false,
-                message: `Invalid username or password. ${maxAttempts - attempts + 1} attempts left`
+                message: `Invalid username or password. ${maxAttempts - attempts} attempts left`
             };
         }
 
@@ -125,11 +125,8 @@ export async function loginSA(_, formData) {  // ← prevState added for useActi
 
 
 
-        // 14 day lifetime
-        const expiresAt =
-            new Date(Date.now() + 1000 * 60 * 60 * 24 * 14)
-                .toISOString();
 
+        const expiresAt = Date.now() + 1000 * 60 * 60 * 24 * 14;
 
 
         await db.execute(

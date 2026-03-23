@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import AuthersServerComponent from "./ASC";
+import TagsServerComponent from "./TSC";
 
 export default async function Authors({ searchParams }) {
     const { value } = await searchParams;
@@ -7,7 +7,7 @@ export default async function Authors({ searchParams }) {
 
     return (
         <Suspense fallback={<p>Loading...</p>}>
-            <AuthersServerComponent author={value} />
+            <TagsServerComponent tag={value} />
         </Suspense>
     );
 }

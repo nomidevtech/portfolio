@@ -1,9 +1,11 @@
-import AddToFavorties from "@/app/components/AddToFavorties";
+
+import AddTofavorites from "@/app/components/AddToFavorites";
 import DeleteButton from "@/app/components/DeleteBTN";
 import { getUser } from "@/app/lib/getUser";
 import { db } from "@/app/lib/turso";
 import Image from "next/image";
 import Link from "next/link";
+
 
 
 export default async function DynamicPostServerComponent({ pid, slug }) {
@@ -31,7 +33,7 @@ export default async function DynamicPostServerComponent({ pid, slug }) {
     if (fetchPost?.rows?.length === 0) return <p>Post not found</p>
 
     const post = fetchPost.rows[0];
-    const tags = post?.tags?.split(', ');
+    const tags = post?.tags?.split(',').map((tag) => tag.trim()).filter(Boolean);
     const content = JSON.parse(post.content);
 
     let isFavorited = false;
@@ -39,14 +41,9 @@ export default async function DynamicPostServerComponent({ pid, slug }) {
     if (currentUser?.id) {
         const fetchFavorites = await db.execute(`SELECT * FROM favorites WHERE user_id = ? AND post_id = ?`, [currentUser?.id, post?.id]);
 
-        isFavorited = fetchFavorites?.rows[0]?.length > 0 ? true : false;
+        isFavorited = fetchFavorites?.rows?.length > 0 ? true : false;
     }
 
-
-
-
-    console.log(post, '===========================');
-    console.log(isFavorited, '------------------------==============');
 
 
 
@@ -70,7 +67,7 @@ export default async function DynamicPostServerComponent({ pid, slug }) {
                 )}
             </div>
         }
-        {currentUser?.id ? <AddToFavorties ppid={post.public_id} isFavorited={isFavorited} /> : <p>Login to add to favorites</p>}
+        {currentUser?.id ? <AddTofavorites ppid={post.public_id} isFavorited={isFavorited} /> : <p>Login to add to favorites</p>}
 
         {currentUser?.id === post.user_id && <p><Link href={`/edit/${post.public_id}`}>Edit</Link></p>}
         {currentUser?.id === post.user_id && <DeleteButton publicId={post.public_id} />}

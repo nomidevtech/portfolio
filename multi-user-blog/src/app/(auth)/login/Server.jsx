@@ -1,5 +1,6 @@
 import { db } from "@/app/lib/turso";
 import Client from "./Client";
+import { logout } from "@/app/lib/logout";
 
 
 export default async function Server({ token }) {
@@ -49,7 +50,7 @@ export default async function Server({ token }) {
                 </div>
 
                 {/* Logout via server action */}
-                <form action={logoutSA}>
+                <form action={logout}>
                     <button
                         type="submit"
                         className="w-full bg-zinc-800 text-zinc-300 border border-zinc-700 font-medium rounded-lg py-2.5 text-sm hover:bg-red-950 hover:text-red-400 hover:border-red-800 transition-colors"

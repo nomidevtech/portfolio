@@ -1,8 +1,5 @@
-import Link from "next/link";
-import AddToFavorties from "../components/AddToFavorties";
 import { getUser } from "../lib/getUser";
 import { db } from "../lib/turso";
-import DeleteButton from "../components/DeleteBTN";
 import FavoritesClinetComponent from "./FavClient";
 
 export default async function FavoritesServerComponent() {
@@ -14,9 +11,13 @@ export default async function FavoritesServerComponent() {
     SELECT post_id FROM favorites WHERE user_id = ? 
   `, [currentUser.id]);
 
+  if (getPostIds.rows.length === 0) {
+    return <p>No posts added to favorites yet.</p>;
+  }
+
 
   const placeholders = getPostIds.rows.map((_) => "?").join(", ");
-  const idsClause = getPostIds.rows.map((row) => row.post_id).filter(Boolean);
+  const idsClause = getPostIds.rows.map((row) => row.post_id);
 
   const fetchPosts = await db.execute(`
     SELECT
@@ -35,9 +36,6 @@ export default async function FavoritesServerComponent() {
     ORDER BY posts.created_at DESC
   `, [...idsClause]);
 
-  console.log(fetchPosts);
-
-  if (fetchPosts?.rows?.length === 0) return <p>No post was added to favorites</p>
 
   const posts = fetchPosts.rows;
 
@@ -49,8 +47,6 @@ export default async function FavoritesServerComponent() {
       post.isOwned = true;
     }
   }
-
-
 
   return (
     <FavoritesClinetComponent postsSerialized={JSON.stringify(posts)} />

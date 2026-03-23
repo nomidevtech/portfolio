@@ -2,7 +2,8 @@ import Link from "next/link";
 import { getUser } from "../lib/getUser";
 import { db } from "../lib/turso";
 import DeleteButton from "../components/DeleteBTN";
-import AddToFavorties from "../components/AddToFavorties";
+import AddTofavorites from "../components/AddToFavorites";
+
 
 export default async function MyPostsServerComponent() {
 
@@ -67,7 +68,7 @@ export default async function MyPostsServerComponent() {
                 <DeleteButton publicId={post.public_id} />
               </div>
             )}
-            {currentUser?.id && <AddToFavorties ppid={post.public_id} isFavorited={post.isFavorited} />}
+            {currentUser?.id && <AddTofavorites ppid={post.public_id} isFavorited={post.isFavorited} />}
           </div>
         ))}
       </ul>

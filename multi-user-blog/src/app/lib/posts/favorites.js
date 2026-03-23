@@ -7,22 +7,9 @@ export async function addTofavorites(_, formData) {
 
   const ppid = formData.get("ppid");
   if (!ppid) {
-    return { ok: false, message: "Post public id is broken or missing." };
+    return { ok: false, added: null, removed: null, message: "Post public id is broken or missing." };
   }
 
-  const currentUser = await getUser();
-  if (!currentUser) {
-    return { ok: false, message: "User needs to be logged in." };
-  }
-
-  const getPost = await db.execute(
-    `SELECT id FROM posts WHERE public_id = ?`,
-    [ppid]
-  );
-
-  if (getPost.rows.length === 0) {
-    return { ok: false, message: "Post not found." };
-  }
 
   try {
 
@@ -35,6 +22,20 @@ export async function addTofavorites(_, formData) {
     //   FOREIGN KEY (post_id) REFERENCES posts(id) ON DELETE CASCADE ON UPDATE CASCADE
     //   )
     // `);
+
+    const currentUser = await getUser();
+    if (!currentUser?.id) {
+      return { ok: false, added: null, removed: null, message: "User needs to be logged in." };
+    }
+
+    const getPost = await db.execute(
+      `SELECT id FROM posts WHERE public_id = ?`,
+      [ppid]
+    );
+
+    if (getPost.rows.length === 0) {
+      return { ok: false, added: null, removed: null, message: "Post not found." };
+    }
 
 
 
@@ -49,9 +50,9 @@ export async function addTofavorites(_, formData) {
         `INSERT INTO favorites (user_id, post_id) VALUES (?, ?)`,
         [currentUser.id, postId]
       )
-      if (result.rowsAffected === 0) return { ok: false, message: "failed to add to favorites." };
+      if (result.rowsAffected === 0) return { ok: false, added: null, removed: null, message: "failed to add to favorites." };
 
-      return { ok: true, message: "Post added to favorites." };
+      return { ok: true, added: true, removed: false, message: "Post added to favorites." };
 
 
     } else if (favs.rows.length > 0) {
@@ -59,15 +60,15 @@ export async function addTofavorites(_, formData) {
         `DELETE FROM favorites WHERE user_id = ? AND post_id = ?`,
         [currentUser.id, postId]
       )
-      if (result.rowsAffected === 0) return { ok: false, message: "failed to remove from favorites." };
+      if (result.rowsAffected === 0) return { ok: false, added: null, removed: null, message: "failed to remove from favorites." };
 
-      return { ok: true, message: "Post removed from favorites." };
+      return { ok: true, added: false, removed: true, message: "Post removed from favorites." };
 
     }
 
 
   } catch (error) {
     console.error(error);
-    return { ok: false, message: "Something went wrong." };
+    return { ok: false, added: null, removed: null, message: "Something went wrong." };
   }
 }

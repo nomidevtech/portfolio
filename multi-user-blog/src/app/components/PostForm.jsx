@@ -12,8 +12,6 @@ export default function PostForm({ post = {}, taxonomies = [], tags = [] }) {
         if (item.type && item.value) return prevContent.push([item.type, item.value]);
     });
 
-    console.log(post);
-
 
 
 
@@ -101,7 +99,8 @@ export default function PostForm({ post = {}, taxonomies = [], tags = [] }) {
                             {key === 'paragraph' &&
                                 <>
                                     <label htmlFor={`paragraph-${index}`}>Paragraph</label>
-                                    <input name={`paragraph-${index}`} type="text" placeholder="Paragraph" defaultValue={value} />
+                                    <textarea name={`paragraph-${index}`} rows={5}
+                                        placeholder="Paragraph" defaultValue={value} />
                                 </>}
 
                             {key === 'image' &&

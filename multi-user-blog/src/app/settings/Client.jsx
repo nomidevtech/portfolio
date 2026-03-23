@@ -10,9 +10,11 @@ import Link from "next/link";
 import { logout } from "../lib/logout";
 
 
-const initialState = { success: null, message: "" };
+
 
 export default function SettingsForm({ serializedUser }) {
+
+    const initialState = { success: null, message: "" };
 
     const [state, formAction, isPending] = useActionState(updateUserSA, initialState);
     const [usernameState, usernameAction, usernamePending] = useActionState(checkUsername, initialState);
@@ -27,7 +29,7 @@ export default function SettingsForm({ serializedUser }) {
 
         {!isVerfied && <>
             <p className="text-red-400 text-sm">Email is not verified. Please verify your email to use to add posts.</p>
-            <button onClick={() => { setSent(true); return emailOrchestrator(user.email) }}>Verify Email</button>
+            <button onClick={() => { setSent(true); return emailOrchestrator(user.public_id, user.email) }}>Verify Email</button>
             {sent && <p className="text-green-400 text-sm">Email sent. Please check your inbox. And refresh the page.</p>}
         </>
         }
@@ -36,6 +38,7 @@ export default function SettingsForm({ serializedUser }) {
         {state.message && (<p >{state.message}</p>)}
 
         <Form action={formAction}>
+            <input type="hidden" name="ppid" value={user.public_id} readOnly />
             <input name="name" defaultValue={user.name} />
             <input name="username" defaultValue={user.username} onBlur={(e) => startTransition(() => usernameAction(e.target.value))} />
             {usernamePending && <p>Checking username...</p>}

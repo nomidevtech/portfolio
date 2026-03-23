@@ -10,7 +10,10 @@ export async function getUser() {
         const session = await getSession("mub-session-token");
         if (!session) return null;
 
-        const sessionRes = await db.execute('SELECT user_id FROM sessions WHERE session_id = ?', [session]);
+        const sessionRes = await db.execute(
+            'SELECT user_id FROM sessions WHERE session_id = ? AND expires_at > ?',
+            [session, Date.now()]
+        );
 
         if (sessionRes.rows.length === 0) return null;
 

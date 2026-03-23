@@ -2,9 +2,10 @@ import Link from "next/link";
 import { getUser } from "../lib/getUser";
 import { db } from "../lib/turso";
 import DeleteButton from "../components/DeleteBTN";
-import AddTofavorites from "../components/AddTofavorites";
+import AddTofavorites from "../components/AddToFavorites";
 
-export default async function AuthorsServerComponent({ author }) {
+
+export default async function TaxonomiesServerComponent({ taxonomy }) {
 
   const fetchPosts = await db.execute(`
         SELECT
@@ -18,12 +19,12 @@ export default async function AuthorsServerComponent({ author }) {
         LEFT JOIN post_tags ON posts.id = post_tags.post_id
         LEFT JOIN tags ON post_tags.tag_id = tags.id
         LEFT JOIN users ON posts.user_id = users.id
-        WHERE users.username = ?
+        WHERE taxonomies.name = ?
         GROUP BY posts.id
         ORDER BY posts.created_at DESC
-    `, [author]);
+    `, [taxonomy]);
 
-  if (fetchPosts?.rows?.length === 0) return <p>no posts by {author}</p>
+  if (fetchPosts?.rows?.length === 0) return <p>no posts for {taxonomy}</p>
 
   const posts = fetchPosts.rows;
 
@@ -51,15 +52,15 @@ export default async function AuthorsServerComponent({ author }) {
 
   return (
     <div>
-      <h1>Posts by {author}</h1>
+      <h1>Posts by {taxonomy}</h1>
       <ul>
         {posts.map((post, idx) => (
           <div key={idx} className="border-2 m-4">
             <li key={post.id}>
               <h2>{post.title}</h2>
               <p>{post.excerpt}</p>
-              {post.tags && <p>tags:{post.tags?.split(', ')?.map((tag, idx) => <Link key={idx} href={`/tags?value=${tag}`}>{tag}</Link>)}</p>}
-              {post.taxonomy && <Link href={`/taxonomies/${post.taxonomy}`}>{post.taxonomy}</Link>}
+              {post.tags && <p>tags:{post.tags?.split(', ')?.map((tag, idx) => <Link key={idx} href={`/tags/${tag}`}>{tag}</Link>)}</p>}
+              {post.taxonomy && <Link href={`/taxonomies?value=${post.taxonomy}`}>{post.taxonomy}</Link>}
               {post.author && <Link href={`/authors?value=${post.author}`}>by:{post.author}</Link>}
               <p>{post.created_at}</p>
               <Link href={`/post/${post.slug}/${post.public_id}`}>Read more</Link>

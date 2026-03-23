@@ -14,7 +14,7 @@ export async function submitServerAction(_, formData) {
     const password = formData.get('password')?.trim();
     const confirmPassword = formData.get('confirmPassword')?.trim();
 
-    if (!name || !username || !email || !password || !confirmPassword) return { ok: false, error: 'All fields are required' };
+    if (!name || !username || !email || !password || !confirmPassword) return { ok: false, message: 'All fields are required' };
     if (password !== confirmPassword) return { ok: false, message: 'Passwords do not match' };
 
 
@@ -26,20 +26,20 @@ export async function submitServerAction(_, formData) {
         const user_pid = nanoid();
 
 
-        await db.execute(`
-            CREATE TABLE IF NOT EXISTS users (
-            id INTEGER PRIMARY KEY,
-            public_id TEXT,
-            name TEXT,
-            username TEXT UNIQUE,
-            role TEXT DEFAULT 'user',
-            email TEXT UNIQUE,
-            email_verified BOOLEAN DEFAULT 0,
-            email_token TEXT,
-            password TEXT,
-            CreatedAt DATETIME DEFAULT CURRENT_TIMESTAMP
-            )
-        `);
+        // await db.execute(`
+        //     CREATE TABLE IF NOT EXISTS users (
+        //     id INTEGER PRIMARY KEY,
+        //     public_id TEXT,
+        //     name TEXT,
+        //     username TEXT UNIQUE,
+        //     role TEXT DEFAULT 'user',
+        //     email TEXT UNIQUE,
+        //     email_verified BOOLEAN DEFAULT 0,
+        //     email_token TEXT,
+        //     password TEXT,
+        //     CreatedAt DATETIME DEFAULT CURRENT_TIMESTAMP
+        //     )
+        // `);
 
         const result = await db.execute(`
         INSERT INTO users (public_id, name, username, email, email_token, password) VALUES (
@@ -48,7 +48,7 @@ export async function submitServerAction(_, formData) {
 
         if (result.rowsAffected === 0) return { ok: false, message: 'Something went wrong' };
 
-        const sendingVerificationEmail = await emailOrchestrator(email);
+        const sendingVerificationEmail = await emailOrchestrator(user_pid, email);
 
         if (sendingVerificationEmail.error) return { ok: false, message: sendingVerificationEmail.error.message };
 
