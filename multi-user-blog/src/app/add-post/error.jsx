@@ -4,7 +4,7 @@
 export default function Error({ error, reset }) {
     return (
         <div>
-            <p>Something went wrong: {error?.message || 'Unknown error'}</p>
+            <p>File type might not be valid image. Select valid image. Error: {error?.message || 'Unknown error'}</p>
             <button onClick={reset}>Try again</button>
         </div>
     )

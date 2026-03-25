@@ -6,7 +6,9 @@ import { useActionState } from "react";
 
 export default function Client() {
 
-    const [state, formAction, isPending] = useActionState(loginSA, null);
+    const initialState = { ok: null, message: "" };
+
+    const [state, formAction, isPending] = useActionState(loginSA, initialState);
 
     return (
         <div className="min-h-screen bg-zinc-950 flex items-center justify-center px-4">
@@ -44,8 +46,8 @@ export default function Client() {
                     {/* Message — red for error, green for success */}
                     {state && (
                         <p className={`text-sm px-3 py-2 rounded-lg border ${state.ok
-                                ? "text-green-400 bg-green-950 border-green-800"
-                                : "text-red-400 bg-red-950 border-red-800"
+                            ? "text-green-400 bg-green-950 border-green-800"
+                            : "text-red-400 bg-red-950 border-red-800"
                             }`}>
                             {state.ok ? "Login successful! Redirecting…" : state.message}
                         </p>

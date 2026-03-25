@@ -1,6 +1,6 @@
 'use client'
 import { useState, useRef, startTransition, useActionState } from "react";
-import { searchServerAction } from "../authors/SSA";
+import { searchServerAction } from "./SSA";
 import Link from "next/link";
 
 export default function SearchBar() {

@@ -2,7 +2,7 @@
 
 import { startTransition, useActionState } from "react"
 import Form from "next/form"
-import { submitServerAction } from "./submitSA"
+import { signuptServerAction } from "./signupSA"
 import { checkUsername } from "@/app/lib/checkUsername";
 import { checkEmail } from "@/app/lib/checkEmail";
 
@@ -10,7 +10,7 @@ export default function SignUpClientComponent() {
 
     const initialState = { ok: null, message: "" };
 
-    const [submitState, submitAction, submitPending] = useActionState(submitServerAction, initialState);
+    const [submitState, submitAction, submitPending] = useActionState(signuptServerAction, initialState);
     const [usernameState, usernameAction, usernamePending] = useActionState(checkUsername, null);
     const [emailState, emailAction, emailPending] = useActionState(checkEmail, null);
 
@@ -43,7 +43,7 @@ export default function SignUpClientComponent() {
                     {usernamePending && (
                         <p className="text-sm text-zinc-500">Checking username availability...</p>
                     )}
-                    
+
                     {usernameState?.message && (
                         <p className={`text-sm rounded-lg px-4 py-2 ${usernameState.ok ? 'text-emerald-400 bg-emerald-900/20 border border-emerald-900/50' : 'text-red-400 bg-red-900/20 border border-red-900/50'}`}>
                             {usernameState.message}

@@ -7,7 +7,7 @@ import crypto from "crypto";
 import { emailOrchestrator } from "@/app/lib/resend";
 
 
-export async function submitServerAction(_, formData) {
+export async function signuptServerAction(_, formData) {
     const name = formData.get('name')?.trim().toUpperCase();
     const username = formData.get('username')?.trim().replace(/\s+/g, '').toLowerCase();
     const email = formData.get('email')?.trim();

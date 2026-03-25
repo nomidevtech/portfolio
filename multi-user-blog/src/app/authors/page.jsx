@@ -1,13 +1,85 @@
-import { Suspense } from "react";
-import AuthersServerComponent from "./ASC";
+import Link from "next/link";
+import { getUser } from "../lib/getUser";
+import { db } from "../lib/turso";
+import DeleteButton from "../components/DeleteBTN";
+import AddTofavorites from "../components/AddToFavorites";
+
 
 export default async function Authors({ searchParams }) {
-    const { value } = await searchParams;
-    if (!value) return <p>Link is broken</p>
 
-    return (
-        <Suspense fallback={<p>Loading...</p>}>
-            <AuthersServerComponent author={value} />
-        </Suspense>
-    );
+  const { value } = await searchParams;
+  if (!value) return <p>Link is broken</p>
+
+  const author = value;
+
+  const fetchPosts = await db.execute(`
+        SELECT
+        posts.*,
+        taxonomies.name as taxonomy,
+        GROUP_CONCAT(DISTINCT tags.name) as tags,
+        users.username as author
+        FROM posts
+        LEFT JOIN post_taxonomies ON posts.id = post_taxonomies.post_id
+        LEFT JOIN taxonomies ON post_taxonomies.taxonomy_id = taxonomies.id
+        LEFT JOIN post_tags ON posts.id = post_tags.post_id
+        LEFT JOIN tags ON post_tags.tag_id = tags.id
+        LEFT JOIN users ON posts.user_id = users.id
+        WHERE users.username = ?
+        GROUP BY posts.id
+        ORDER BY posts.created_at DESC
+    `, [author]);
+
+  if (fetchPosts?.rows?.length === 0) return <p>no posts by {author}</p>
+
+  const posts = fetchPosts.rows;
+
+  const currentUser = await getUser();
+
+  let favsByCurrentUser = [];
+
+  if (currentUser?.id) {
+    const result = await db.execute(`
+      SELECT post_id FROM favorites WHERE user_id = ? 
+    `, [currentUser.id]);
+    if (result.rows?.length > 0) {
+      favsByCurrentUser = result.rows.map((row) => row.post_id);
+    };
+  };
+
+  if (currentUser?.id && favsByCurrentUser.length > 0) {
+    for (const post of posts) {
+      post.isFavorited = favsByCurrentUser.includes(post.id);
+    }
+  }
+
+
+
+
+  return (
+    <div>
+      <h1>Posts by {author}</h1>
+      <ul>
+        {posts.map((post, idx) => (
+          <div key={idx} className="border-2 m-4">
+            <li key={post.id}>
+              <h2>{post.title}</h2>
+              <p>{post.excerpt}</p>
+              {post.tags && <p>tags:{post.tags?.split(', ')?.map((tag, idx) => <Link key={idx} href={`/tags?value=${tag}`}>{tag}</Link>)}</p>}
+              {post.taxonomy && <Link href={`/taxonomies/${post.taxonomy}`}>{post.taxonomy}</Link>}
+              {post.author && <Link href={`/authors?value=${post.author}`}>by:{post.author}</Link>}
+              <p>{post.created_at}</p>
+              <Link href={`/post/${post.slug}/${post.public_id}`}>Read more</Link>
+            </li>
+            {post.user_id === currentUser?.id && (
+              <div>
+                <Link href={`/edit?value=${post.public_id}`}>Edit</Link>
+                <DeleteButton publicId={post.public_id} />
+              </div>
+            )}
+            {currentUser?.id && <AddTofavorites ppid={post.public_id} isFavorited={post.isFavorited} />}
+          </div>
+        ))}
+      </ul>
+    </div >
+  );
 }
