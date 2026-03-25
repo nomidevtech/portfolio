@@ -2,7 +2,8 @@ import Link from "next/link";
 import { getUser } from "../lib/getUser";
 import { db } from "../lib/turso";
 import DeleteButton from "../components/DeleteBTN";
-import AddTofavorites from "../components/AddTofavorites";
+import AddTofavorites from "../components/AddToFavorites";
+
 
 export default async function AuthorsServerComponent({ author }) {
 

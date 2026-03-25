@@ -2,7 +2,7 @@
 
 import { postUpsert } from "@/app/lib/posts/upsert";
 import Form from "next/form";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useActionState } from "react";
 
 
 export default function PostForm({ post = {}, taxonomies = [], tags = [] }) {
@@ -13,8 +13,9 @@ export default function PostForm({ post = {}, taxonomies = [], tags = [] }) {
     });
 
 
+    const initialState = { ok: null, message: "" };
 
-
+    const [state, formAction, isPending] = useActionState(postUpsert, initialState);
     const [blocks, setBlocks] = useState([]);
     const [userTags, setUserTags] = useState(post.tags || []);
 
@@ -31,7 +32,9 @@ export default function PostForm({ post = {}, taxonomies = [], tags = [] }) {
             <button type="button" onClick={() => setBlocks(prev => [...prev, ['paragraph', null]])}>add paragraph</button>
             <button type="button" onClick={() => setBlocks(prev => [...prev, ['image', null]])}>add image</button>
 
-            <Form action={postUpsert} >
+            {state.message && <p>{state.message}</p>}
+
+            <Form action={formAction} >
                 <input name="post_public_id" type="hidden" readOnly value={post.post_public_id} />
                 <input name="title" type="text" placeholder="Title" defaultValue={post.title ?? ""} />
                 <textarea name="excerpt" placeholder="excerpt" defaultValue={post.excerpt ?? ""} />
@@ -142,7 +145,11 @@ export default function PostForm({ post = {}, taxonomies = [], tags = [] }) {
                     );
                 })}
 
-                <button type="submit">Submit</button>
+                <button type="submit">
+                    {post.post_public_id
+                        ? (isPending ? "Updating..." : "Update")
+                        : (isPending ? "Creating..." : "Create")}
+                </button>
             </Form>
         </>
     );

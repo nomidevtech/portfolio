@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { db } from "../turso";
 import { getUser } from "../getUser";
+import { cloudinaryDeleteMultiple } from "../cloudinary";
 
 
 export async function deletePostServerAction(_, formData) {
@@ -21,7 +22,7 @@ export async function deletePostServerAction(_, formData) {
         }
 
 
-        const fetchPost = await db.execute(`SELECT id, user_id FROM posts WHERE public_id = ?`, [ppid]);
+        const fetchPost = await db.execute(`SELECT id, user_id, content FROM posts WHERE public_id = ?`, [ppid]);
 
         if (fetchPost.rows.length === 0) {
             return { ok: false, message: "Post not found." };
@@ -37,6 +38,18 @@ export async function deletePostServerAction(_, formData) {
 
         if (result.rowsAffected === 0) {
             return { ok: false, message: "failed to delete post" };
+        }
+        const acquireImag = JSON.parse(fetchPost.rows[0].content);
+        const ids = [];
+        if(acquireImag.length > 0) {
+            for (const block of acquireImag) {
+                if (block.type === "image" && block.value?.publicId) {
+                    ids.push(block.value.publicId);
+                }
+            }
+        }
+        if(ids.length > 0) {
+            await cloudinaryDeleteMultiple(ids);
         }
 
         //return { ok: true, message: "post deleted" };

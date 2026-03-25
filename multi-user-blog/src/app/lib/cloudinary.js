@@ -6,13 +6,13 @@ cloudinary.config({
     api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
-export const cloudinaryUpload = async (file) => {
-    if (!file) {
+export const cloudinaryUpload = async (buffer) => {
+    if (!buffer) {
         throw new Error("No file provided for upload");
     }
 
     try {
-        const buffer = Buffer.from(await file.arrayBuffer());
+
 
         const result = await new Promise((resolve, reject) => {
             cloudinary.uploader
@@ -31,12 +31,14 @@ export const cloudinaryUpload = async (file) => {
         }
 
         return {
+            ok: true,
             url: result.secure_url,
             publicId: result.public_id,
         };
 
     } catch (error) {
-        throw new Error(`Cloudinary upload error: ${error.message}`);
+        console.log(error);
+        return { ok: false, message: `Cloudinary upload error: ${error.message ? error.message : 'some error while uploading to cloudinary'}` };
     }
 };
 
@@ -55,7 +57,7 @@ export const cloudinaryDeleteSingle = async (publicId) => {
         return result;
 
     } catch (error) {
-        throw new Error(`Cloudinary delete error: ${error.message}`);
+        return { ok: false, message: `Cloudinary delete error: ${error.message ? error.message : 'some error while deleting from cloudinary'}` };
     }
 };
 
@@ -74,7 +76,7 @@ export const cloudinaryDeleteMultiple = async (publicIdsArr = []) => {
         return result;
 
     } catch (error) {
-        throw new Error(`Cloudinary delete error: ${error.message}`);
+        return { ok: false, message: `Cloudinary delete error: ${error.message ? error.message : 'some error while deleting from cloudinary'}` };
     }
 };
 

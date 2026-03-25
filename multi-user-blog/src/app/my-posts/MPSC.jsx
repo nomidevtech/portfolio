@@ -56,9 +56,9 @@ export default async function MyPostsServerComponent() {
             <li key={post.id}>
               <h2>{post.title}</h2>
               <p>{post.excerpt}</p>
-              <p>tags:{post.tags}</p>
-              <p>{post.taxonomy}</p>
-              <p>{post.author}</p>
+              {post.tags && <p>tags:{post.tags?.split(',')?.map((tag, idx) => <Link key={idx} href={`/tags?value=${tag.trim()}`}>{tag}</Link>)}</p>}
+              {post.taxonomy && <Link href={`/taxonomies?value=${post.taxonomy}`}>{post.taxonomy}</Link>}
+              {post.author && <Link href={`/authors?value=${post.author}`}>by:{post.author}</Link>}
               <p>{post.created_at}</p>
               <Link href={`/post/${post.slug}/${post.public_id}`}>Read more</Link>
             </li>

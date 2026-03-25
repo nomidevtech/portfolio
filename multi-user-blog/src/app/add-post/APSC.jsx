@@ -1,3 +1,4 @@
+import Link from "next/link";
 import PostForm from "../components/PostForm";
 import { getUser } from "../lib/getUser";
 import { db } from "../lib/turso";
@@ -5,6 +6,8 @@ import { db } from "../lib/turso";
 export default async function AddPostServerComponent() {
     const currentUser = await getUser();
     if (!currentUser?.id) return <p>You must <a href="/login">login</a></p>
+
+    if (currentUser?.email_verified === 0) return <div><p>Please verify your email first.</p><p><Link href="/settings">click here to go to Settings</Link></p></div>
 
     const dummyTaxonomies = ['NEXTJS', 'REACT', 'VUEJS'];
     const dummnyAllTags = ['tag1', 'tag2', 'tag3'];

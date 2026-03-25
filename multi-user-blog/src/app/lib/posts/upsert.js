@@ -1,10 +1,11 @@
 "use server";
 
 import { nanoid } from "nanoid";
-import { cloudinaryDelete, cloudinaryDeleteMultiple, cloudinaryUpload } from "../cloudinary";
+import { cloudinaryDeleteMultiple, cloudinaryUpload } from "../cloudinary";
 import { getUser } from "../getUser";
 import { db } from "../turso";
 import { redirect } from "next/navigation";
+import sharp from "sharp";
 
 
 // try {
@@ -18,7 +19,7 @@ import { redirect } from "next/navigation";
 //     throw error;
 // }
 
-export async function postUpsert(formData) {
+export async function postUpsert(_, formData) {
 
     // console.log([...formData.entries()]);
 
@@ -80,7 +81,7 @@ export async function postUpsert(formData) {
 
     } catch (error) {
         console.error(error);
-        throw error;
+        return { ok: false, message: error.message ? error.message : 'Something went wrong' };
     };
     redirect(`/post/${redirectSlug}/${redirectPublicId}`);
 }
@@ -117,7 +118,20 @@ const uploadBlobs = async (contentBlocks) => {
             block.value.size > 0
         ) {
 
-            const result = await cloudinaryUpload(block.value);
+            let arrayBuffer;
+            try {
+                arrayBuffer = await block.value.arrayBuffer();
+            } catch {
+                throw new Error("Failed to read image file");
+            }
+
+            const buffer = Buffer.from(arrayBuffer);
+
+            const sharpResult = await sharpValidation(buffer);
+            if (!sharpResult.ok) throw new Error(sharpResult.message);
+
+            const result = await cloudinaryUpload(buffer);
+            if (!result.ok) throw new Error(result.message);
 
             if (result?.url && result?.publicId) {
                 block.value = {
@@ -289,3 +303,39 @@ function getImagesPIds(content) {
     }
     return pIds;
 };
+
+
+async function sharpValidation(buffer) {
+    try {
+        const image = sharp(buffer, { failOnError: true });
+        const metadata = await image.metadata();
+
+        const allowedFormats = new Set(["jpeg", "png", "webp"]);
+        if (!allowedFormats.has(metadata.format)) {
+            return { ok: false, file: null, message: "Unsupported format" };
+        }
+
+        if (!metadata.width || !metadata.height) {
+            return { ok: false, file: null, message: "Invalid dimensions" };
+        }
+
+        if (metadata.width < 300 || metadata.height < 300) {
+            return { ok: false, file: null, message: "Image too small" };
+        }
+
+        if (metadata.width > 5000 || metadata.height > 5000) {
+            return { ok: false, file: null, message: "Image too large" };
+        }
+
+        const processedBuffer = await sharp(buffer)
+            .rotate()
+            .resize(1200, 1200, { fit: "inside", withoutEnlargement: true })
+            .webp({ quality: 80 })
+            .toBuffer();
+
+        return { ok: true, file: processedBuffer, message: null };
+
+    } catch {
+        return { ok: false, file: null, message: "Invalid image file" };
+    }
+}
