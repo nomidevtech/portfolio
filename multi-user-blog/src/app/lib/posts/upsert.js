@@ -21,6 +21,11 @@ import sharp from "sharp";
 
 export async function postUpsert(_, formData) {
 
+    const currentUser = await getUser();
+    if (!currentUser?.id) redirect('/login');
+
+    if (currentUser?.email_verified !== 1) return { ok: false, message: "Please verify your email first." };
+
     // console.log([...formData.entries()]);
 
     let redirectSlug, redirectPublicId;
@@ -30,12 +35,13 @@ export async function postUpsert(_, formData) {
         const existingPPID = formData.get('post_public_id') || null;
 
         const title = formData.get('title')?.trim() || 'no title';
-        const slug = title?.replace(/\s+/g, '-').toLowerCase() || 'no-slug';
-        const excerpt = formData.get('excerpt')?.trim() || 'no excerpt';
-        const taxonomy = formData.get('taxonomy')?.trim().replace(/\s+/g, '-').toUpperCase() || 'no-taxonomy';
+        if (!title) return { ok: false, message: "Title is required." };
+        const slug = title?.replace(/\s+/g, '-').toLowerCase() || 'titleless';
+        const excerpt = formData.get('excerpt')?.trim() || 'no description';
+        const taxonomy = formData.get('taxonomy')?.trim().replace(/\s+/g, '-').toUpperCase() || 'uncategorized';
 
         const tagsArr = formData.getAll('tags').filter(Boolean);
-        const tags = tagsArr.length > 0 ? tagsArr : ['no-tags'];
+        const tags = tagsArr.length > 0 ? tagsArr : ['uncategorized'];
 
         const contentArr = separateContent(formData);
         const contentWithBlobs = contentArr.length > 0 ? contentArr : [{ type: null, name: null, value: null }];
@@ -43,8 +49,7 @@ export async function postUpsert(_, formData) {
 
         const fetchOldPost = await db.execute(`SELECT user_id, content FROM posts WHERE public_id = ? LIMIT 1`, [existingPPID]);
 
-        const currentUser = await getUser();
-        if (!currentUser?.id) redirect('/login');
+
 
         const autherizedToUpdate = fetchOldPost?.rows?.length > 0 && fetchOldPost.rows[0].user_id === currentUser?.id;
 
@@ -104,6 +109,9 @@ const separateContent = (formData) => {
         });
     }
 
+    const MAX_BLOCKS = 20;
+    if (content.length > MAX_BLOCKS) throw new Error(`You can't have more than ${MAX_BLOCKS} blocks`);
+
     return content;
 };
 
@@ -119,6 +127,11 @@ const uploadBlobs = async (contentBlocks) => {
         ) {
 
             let arrayBuffer;
+
+            const MAX_SIZE = 10 * 1024 * 1024; // 10MB
+            if (block.value.size > MAX_SIZE) throw new Error("Image must be under 10MB");
+
+
             try {
                 arrayBuffer = await block.value.arrayBuffer();
             } catch {
@@ -130,7 +143,7 @@ const uploadBlobs = async (contentBlocks) => {
             const sharpResult = await sharpValidation(buffer);
             if (!sharpResult.ok) throw new Error(sharpResult.message);
 
-            const result = await cloudinaryUpload(buffer);
+            const result = await cloudinaryUpload(sharpResult?.file);
             if (!result.ok) throw new Error(result.message);
 
             if (result?.url && result?.publicId) {
@@ -269,17 +282,14 @@ const upsertTags = async (tagsArr) => {
 };
 
 const postTagResults = async (post_id, tagIdsArr) => {
-
     if (!post_id || tagIdsArr.length === 0) return false;
-
-    let allSuccess = true;
-
-    for (const tagId of tagIdsArr) {
-        const result = await db.execute(`INSERT INTO post_tags (post_id, tag_id) VALUES (?, ?)`, [post_id, tagId]);
-        if (!result.rowsAffected || result.rowsAffected === 0) allSuccess = false;
-    }
-
-    return allSuccess;
+    const placeholders = tagIdsArr.map(() => '(?, ?)').join(', ');
+    const values = tagIdsArr.flatMap(tagId => [post_id, tagId]);
+    const result = await db.execute(
+        `INSERT INTO post_tags (post_id, tag_id) VALUES ${placeholders}`,
+        values
+    );
+    return result.rowsAffected > 0;
 };
 
 

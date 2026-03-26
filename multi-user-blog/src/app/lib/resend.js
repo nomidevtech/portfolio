@@ -8,23 +8,22 @@ import { db } from "../lib/turso";
 
 const resendInstance = new Resend(process.env.RESEND_API_KEY);
 
-export const emailOrchestrator = async (user_pid, email) => {
-
-    const token = crypto.randomBytes(32).toString("hex");
-    const hashToken = await hash(token);
-
+export const emailOrchestrator = async (user_pid, email, incomingToken) => {
     try {
         const verified = await isVerified(user_pid);
         if (verified.email === email && verified.email_verified) {
             return { ok: true, message: "Email is already verified." };
         }
 
-        const inserted = await insertTokenIntoDB(user_pid, hashToken);
-        if (!inserted) return { ok: false, message: "Something went wrong" };
+        // Only generate + store a new token when not called from signup
+        if (!incomingToken) {
+            incomingToken = crypto.randomBytes(32).toString("hex");
+            const hashToken = await hash(incomingToken);
+            const inserted = await insertTokenIntoDB(user_pid, hashToken);
+            if (!inserted) return { ok: false, message: "Something went wrong" };
+        }
 
-        const sent = await sendWithResend(resendInstance, user_pid, email, token);
-        return sent;
-
+        return await sendWithResend(resendInstance, user_pid, email, incomingToken);
     } catch (error) {
         console.error(error);
         return { ok: false, message: "Something went wrong" };

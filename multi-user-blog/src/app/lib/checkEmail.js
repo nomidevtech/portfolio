@@ -1,9 +1,13 @@
 "use server";
 
 import { db } from "@/app/lib/turso";
+import { redisIpLimit } from "../utils/redidIpLimit";
 
 export async function checkEmail(_, email) {
     if (!email) return { ok: false, message: 'Email is required' };
+
+    const ipLimit = await redisIpLimit(5, 'email_check');
+    if (!ipLimit.ok) return ipLimit;
 
 
     if (!email.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)) {

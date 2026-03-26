@@ -17,9 +17,23 @@ export async function updateUserSA(_, formData) {
         return { ok: false, message: "All fields are required." };
     }
 
+    if (username.length < 3 || username.length > 20) {
+        return { ok: false, message: "Username must be 3–20 characters." };
+    }
+    if (!/^[a-zA-Z0-9_-]+$/.test(username)) {
+        return { ok: false, message: "Username can only contain letters, numbers, - and _" };
+    }
+    if (name.length > 50) {
+        return { ok: false, message: "Name is too long." };
+    }
+
+   
+
+
+
     try {
 
-        const fetchUser = await db.execute(`SELECT * FROM users WHERE public_id = ?`, [ppid]);
+        const fetchUser = await db.execute(`SELECT id, public_id, name, username, email FROM users WHERE public_id = ?`, [ppid]);
         if (fetchUser.rows.length === 0) {
             return { ok: false, message: "User not found." };
         }

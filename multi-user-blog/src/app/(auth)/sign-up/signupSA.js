@@ -5,63 +5,63 @@ import { hash } from "@/app/utils/bcrypt";
 import { redirect } from "next/navigation";
 import crypto from "crypto";
 import { emailOrchestrator } from "@/app/lib/resend";
-
+import { redisIpLimit } from "@/app/utils/redidIpLimit";
 
 export async function signuptServerAction(_, formData) {
+
     const name = formData.get('name')?.trim().toUpperCase();
     const username = formData.get('username')?.trim().replace(/\s+/g, '').toLowerCase();
     const email = formData.get('email')?.trim();
     const password = formData.get('password')?.trim();
     const confirmPassword = formData.get('confirmPassword')?.trim();
 
-    if (!name || !username || !email || !password || !confirmPassword) return { ok: false, message: 'All fields are required' };
-    if (password !== confirmPassword) return { ok: false, message: 'Passwords do not match' };
+    if (!name || !username || !email || !password || !confirmPassword) {
+        return { ok: false, message: 'All fields are required' };
+    }
 
+    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailPattern.test(email)) return { ok: false, message: 'Invalid email format' };
+
+    const passwordPattern = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/;
+    if (!passwordPattern.test(password)) {
+        return { ok: false, message: 'Password must be at least 8 characters, include uppercase, lowercase, and a number' };
+    }
+
+    if (password !== confirmPassword) {
+        return { ok: false, message: 'Passwords do not match' };
+    }
+
+    const ipLimit = await redisIpLimit(5, 'signup_check');
+    if (!ipLimit.ok) return ipLimit;
 
     try {
-
         const hashPassword = await hash(password);
+
         const rawToken = crypto.randomBytes(32).toString('hex');
         const hashToken = await hash(rawToken);
+
         const user_pid = nanoid();
 
-
-        // await db.execute(`
-        //     CREATE TABLE IF NOT EXISTS users (
-        //     id INTEGER PRIMARY KEY,
-        //     public_id TEXT,
-        //     name TEXT,
-        //     username TEXT UNIQUE,
-        //     role TEXT DEFAULT 'user',
-        //     email TEXT UNIQUE,
-        //     email_verified BOOLEAN DEFAULT 0,
-        //     email_token TEXT,
-        //     password TEXT,
-        //     CreatedAt DATETIME DEFAULT CURRENT_TIMESTAMP
-        //     )
-        // `);
-
         const result = await db.execute(`
-        INSERT INTO users (public_id, name, username, email, email_token, password) VALUES (
-            ?, ?, ?, ?, ?, ? ) 
-    `, [user_pid, name, username, email, hashToken, hashPassword]);
+            INSERT INTO users (public_id, name, username, email, email_token, password)
+            VALUES (?, ?, ?, ?, ?, ?)
+        `, [user_pid, name, username, email, hashToken, hashPassword]);
 
-        if (result.rowsAffected === 0) return { ok: false, message: 'Something went wrong' };
+        if (result.rowsAffected === 0) {
+            return { ok: false, message: 'Something went wrong' };
+        }
 
-        const sendingVerificationEmail = await emailOrchestrator(user_pid, email);
+        const sendingVerificationEmail =
+            await emailOrchestrator(user_pid, email, rawToken);
 
-        if (sendingVerificationEmail.error) return { ok: false, message: sendingVerificationEmail.error.message };
-
-        // return { ok: true, emailSent: true, message: 'Account created successfully. Verification email sent' };
-
-
-
+        if (sendingVerificationEmail.error) {
+            return { ok: false, message: sendingVerificationEmail.error.message };
+        }
 
     } catch (error) {
         console.error(error);
-
-        return { ok: false, message: error.message };
+        return { ok: false, message: 'something went wrong while signing up' };
     }
 
     redirect('/login');
-};
+}

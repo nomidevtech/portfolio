@@ -9,6 +9,7 @@ import { cookies } from "next/headers";
 export async function logout() {
 
     const cookieStore = await cookies();
+    const token = cookieStore.get('mub-session-token');
 
 
     try {
@@ -16,7 +17,7 @@ export async function logout() {
         const currentUser = await getUser();
         if (!currentUser) return null;
 
-        await db.execute('DELETE FROM sessions WHERE user_id = ?', [currentUser.id]);
+        await db.execute('DELETE FROM sessions WHERE user_id = ? AND session_id = ?', [currentUser?.id, token?.value]);
 
         cookieStore.delete("mub-session-token");
 

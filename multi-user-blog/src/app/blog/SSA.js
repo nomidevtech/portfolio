@@ -23,7 +23,7 @@ export async function searchServerAction(_, value) {
         const clause = searchTerms.map(() => `title LIKE ?`).join(' OR ');
         const values = searchTerms.map(term => `%${term}%`);
 
-        const query = `SELECT * FROM posts WHERE ${clause} LIMIT 10`;
+        const query = `SELECT public_id, title, slug FROM posts WHERE ${clause} LIMIT 10`;
 
 
         const result = await db.execute(query, values);

@@ -5,6 +5,9 @@ import { getUser } from "@/app/lib/getUser";
 import { db } from "@/app/lib/turso";
 import Image from "next/image";
 import Link from "next/link";
+import Comments from "./Comments";
+
+
 
 
 
@@ -47,6 +50,25 @@ export default async function DynamicPost({ params }) {
         isFavorited = fetchFavorites?.rows?.length > 0 ? true : false;
     }
 
+    const fetchComments = await db.execute(`SELECT * FROM comments WHERE post_id = ? ORDER BY created_at DESC`, [post?.id]);
+
+    const comments = [];
+
+    if (fetchComments?.rows?.length > 0) {
+        const commentsObj = fetchComments.rows;
+
+        commentsObj.map((comment) => {
+            comments.push({
+                cPId: comment.public_id,
+                comment: comment.comment,
+                username: comment.username,
+                created_at: comment.created_at,
+                updated_at: comment.updated_at,
+                isOwned: comment.user_id === currentUser?.id
+            });
+        });
+    };
+
 
 
 
@@ -72,8 +94,17 @@ export default async function DynamicPost({ params }) {
         }
         {currentUser?.id ? <AddTofavorites ppid={post.public_id} isFavorited={isFavorited} /> : <p>Login to add to favorites</p>}
 
-        {currentUser?.id === post.user_id && <p><Link href={`/edit/${post.public_id}`}>Edit</Link></p>}
+        {currentUser?.id === post.user_id && <p><Link href={`/edit?value=${post.public_id}`}>Edit</Link></p>}
         {currentUser?.id === post.user_id && <DeleteButton publicId={post.public_id} />}
+        <Comments commentsSerialized={JSON.stringify(comments)}
+            isLoggedIn={currentUser?.id ? true : false}
+            postPublicId={post.public_id}
+            userPublicId={currentUser?.public_id}
+            isVerified={currentUser?.email_verified === 1 ? true : false}
+        />
+
+
+
 
     </>);
 }

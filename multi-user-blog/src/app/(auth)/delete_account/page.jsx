@@ -2,6 +2,7 @@ import { deleteAccount } from "@/app/lib/deleteAccount";
 import { getUser } from "@/app/lib/getUser";
 import Form from "next/form";
 import Link from "next/link";
+import DeleteClient from "./Client";
 
 
 export default async function DeleteAccount() {
@@ -10,11 +11,6 @@ export default async function DeleteAccount() {
     if (!currentUser?.id) return <p>You must <Link href="/login">login</Link></p>
 
     return (
-        <>
-            This action is irreversible. You will have to create a new account to continue using our services.
-            <Form action={deleteAccount}>
-                <button type="submit">Delete Account</button>
-            </Form>
-        </>
+        <DeleteClient />
     );
 }
