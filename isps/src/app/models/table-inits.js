@@ -14,7 +14,7 @@ export async function initAdminsTable() {
 
         return { ok: true, message: "Admins table initialized" };
     } catch (error) {
-        console.error(error);
+        console.log(error);
         return { ok: false, message: "Error creating admins table" };
     }
 }
@@ -35,7 +35,26 @@ export async function initUsersTable() {
 
         return { ok: true, message: "users table initialized" };
     } catch (error) {
-        console.error(error);
+        console.log(error);
         return { ok: false, message: "Error creating users table" };
+    }
+}
+
+
+export async function initPlansTable() {
+    try {
+        await db.execute(`
+            CREATE TABLE IF NOT EXISTS plans (
+                id INTEGER PRIMARY KEY,
+                public_id TEXT NOT NULL,
+                speed INTEGER UNIQUE,
+                rate INTEGER 
+            )
+        `);
+
+        return { ok: true, message: "plans table initialized" };
+    } catch (error) {
+        console.log(error);
+        return { ok: false, message: "Error creating plans table" };
     }
 }

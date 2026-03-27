@@ -1,0 +1,63 @@
+"use server";
+
+import { db } from "@/app/lib/turso";
+import { nanoid } from "nanoid";
+
+export async function plansServerAction(_, formData) {
+
+    const planId = formData.get("public_id")?.toString().trim();
+
+    const speedRaw = formData.get("speed")?.toString().trim();
+    const rateRaw = formData.get("rate")?.toString().trim();
+
+    const speed = speedRaw ? Number(speedRaw) : null;
+    const rate = rateRaw ? Number(rateRaw) : null;
+
+    try {
+
+        if (!planId && speed && rate) {
+            const result = await db.execute(
+                `INSERT INTO plans (public_id, speed, rate) VALUES (?, ?, ?)`,
+                [nanoid(), speed, rate]
+            );
+
+            if (result.rowsAffected === 0) {
+                return { ok: false, message: "Error adding new plan" };
+            }
+
+            return { ok: true, message: "New plan added successfully" };
+        }
+
+        if (planId && speed && rate) {
+            const result = await db.execute(
+                `UPDATE plans SET speed = ?, rate = ? WHERE public_id = ?`,
+                [speed, rate, planId]
+            );
+
+            if (result.rowsAffected === 0) {
+                return { ok: false, message: "Error updating plan" };
+            }
+
+            return { ok: true, message: "Plan updated successfully" };
+        }
+
+        if (planId && !speed && !rate) {
+            const result = await db.execute(
+                `DELETE FROM plans WHERE public_id = ?`,
+                [planId]
+            );
+
+            if (result.rowsAffected === 0) {
+                return { ok: false, message: "Error deleting plan" };
+            }
+
+            return { ok: true, message: "Plan deleted successfully" };
+        }
+
+        return { ok: false, message: "Invalid request" };
+
+    } catch (error) {
+        console.log(error);
+        return { ok: false, message: "Something went wrong" };
+    }
+}
