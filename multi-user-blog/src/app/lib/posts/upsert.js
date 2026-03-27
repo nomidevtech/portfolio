@@ -34,7 +34,7 @@ export async function postUpsert(_, formData) {
     try {
         const existingPPID = formData.get('post_public_id') || null;
 
-        const title = formData.get('title')?.trim() || 'no title';
+        const title = formData.get('title')?.trim();
         if (!title) return { ok: false, message: "Title is required." };
         const slug = title?.replace(/\s+/g, '-').toLowerCase() || 'titleless';
         const excerpt = formData.get('excerpt')?.trim() || 'no description';
