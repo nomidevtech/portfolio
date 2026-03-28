@@ -89,7 +89,7 @@ export async function initBilling_transactionsTable() {
              id INTEGER PRIMARY KEY AUTOINCREMENT,
             public_id TEXT NOT NULL,
             plan_snapshot TEXT NOT NULL,
-            billing_month TEXT NOT NULL,
+            billing_month INTEGER NOT NULL,
             billing_year INTEGER NOT NULL,
             fee_status TEXT DEFAULT 'unpaid',
             amount_due INTEGER DEFAULT 0,

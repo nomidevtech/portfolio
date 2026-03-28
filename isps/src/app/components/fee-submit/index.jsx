@@ -74,13 +74,24 @@ export default function FeeSubmit() {
 
         {stateUserDetails.ok && (() => {
             const obj = JSON.parse(stateUserDetails?.objSerialized);
+            console.log('i am obj -----------------> ', obj);
 
             return (
                 <>
-                    <p>Selected user: {obj.username}</p>
-                    <p>Contact: {obj.contact}</p>
-                    <p>Current Plan: {obj.plan} Mbps</p>
-                    <p>Current Plan Rate: {obj.rate} Rs</p>
+                    <Form action={formAction}>
+                        <input type="hidden" name="public_id" value={selectedUser.public_id} readOnly />
+                        <input type="text" name="username" defaultValue={selectedUser.username} />
+
+                        <input type="text" name="contact" readOnly value={obj.contact} />
+                        <label >Phone Number</label>
+
+                        <input type="number" name="rate" defaultValue={obj.rate} />
+                        <label >Rs</label>
+
+                        <input type="text" name="speed" readOnly value={obj.plan} />
+                        <label >Mbps</label>
+                        <button type="submit" disabled={isPending} >{isPending ? "Submitting..." : "Submit"}</button>
+                    </Form>
                 </>
             );
         })()}
