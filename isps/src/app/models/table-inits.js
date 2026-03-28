@@ -79,3 +79,32 @@ export async function initUserPlansTable() {
         return { ok: false, message: "Error creating user_plans table" };
     }
 };
+
+
+
+export async function initBilling_transactionsTable() {
+    try {
+        await db.execute(`
+            CREATE TABLE IF NOT EXISTS billing_transactions (
+             id INTEGER PRIMARY KEY AUTOINCREMENT,
+            public_id TEXT NOT NULL,
+            plan_snapshot TEXT NOT NULL,
+            billing_month TEXT NOT NULL,
+            billing_year INTEGER NOT NULL,
+            fee_status TEXT DEFAULT 'unpaid',
+            amount_due INTEGER DEFAULT 0,
+            amount_paid INTEGER DEFAULT 0,
+            remaining_fee INTEGER DEFAULT 0,
+            fee_snapshot TEXT NOT NULL,
+            username_snapshot TEXT NOT NULL,
+            invoice_id TEXT UNIQUE NOT NULL,
+            entry_date TEXT DEFAULT CURRENT_TIMESTAMP
+            )`
+        );
+
+        return { ok: true, message: "billing_transactions table initialized" };
+    } catch (error) {
+        console.log(error);
+        return { ok: false, message: "Error creating billing_transactions table" };
+    }
+};
