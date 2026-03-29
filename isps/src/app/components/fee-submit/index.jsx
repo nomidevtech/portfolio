@@ -5,9 +5,22 @@ import { fetchUserDetails, searchUserAction, submitAction } from "./feeSubmitSA"
 import Form from "next/form";
 
 export default function FeeSubmit() {
-    const [stateSearch, formActionSearch, isPendingSearch] = useActionState(searchUserAction, { ok: null, searchComplete: false, arr: [], message: "" });
-    const [stateDetails, formActionDetails, isPendingDetails] = useActionState(fetchUserDetails, { ok: null, fee_status: null });
-    const [stateSubmit, formActionSubmit, isPendingSubmit] = useActionState(submitAction, { ok: null, message: "" });
+    const [stateSearch, formActionSearch, isPendingSearch] = useActionState(searchUserAction, {
+        ok: null,
+        searchComplete: false,
+        arr: [],
+        message: "",
+    });
+
+    const [stateDetails, formActionDetails, isPendingDetails] = useActionState(fetchUserDetails, {
+        ok: null,
+        fee_status: null,
+    });
+
+    const [stateSubmit, formActionSubmit, isPendingSubmit] = useActionState(submitAction, {
+        ok: null,
+        message: "",
+    });
 
     const [view, setView] = useState("search");
     const searchTimeoutRef = useRef(null);
@@ -20,9 +33,7 @@ export default function FeeSubmit() {
 
     const handleUserOnChange = (e) => {
         const value = e.target.value;
-
         if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
-
         searchTimeoutRef.current = setTimeout(() => {
             startTransition(() => {
                 formActionSearch(value);
@@ -30,9 +41,7 @@ export default function FeeSubmit() {
         }, 500);
     };
 
-    const handleReset = () => {
-        setView("search");
-    };
+    const handleReset = () => setView("search");
 
     if (view === "submit") {
         return (
@@ -41,29 +50,30 @@ export default function FeeSubmit() {
                 <p>Status: {stateSubmit.fee_status}</p>
                 <p>Invoice: {stateSubmit.invoiceId}</p>
                 <p>Remaining: {stateSubmit.remaining_fee}</p>
-
-                <button onClick={handleReset}>
-                    Start New Search
-                </button>
+                <button onClick={handleReset}>Start New Search</button>
             </div>
         );
     }
 
-    if (view === "details" && stateDetails.ok) {
+    if (view === "details") {
+        if (!stateDetails.ok) {
+            return (
+                <div>
+                    <p>{stateDetails.message}</p>
+                    <button onClick={handleReset}>&larr; Back to Search</button>
+                </div>
+            );
+        }
+
         return (
             <div>
-                <div>
-                    <h3>Payment Details for {stateDetails.username}</h3>
-                </div>
+                <h3>Payment Details for {stateDetails.username}</h3>
 
                 {(stateDetails.fee_status === "paid" || stateDetails.fee_status === "partial") && (
                     <div>
                         <p>{stateDetails.message}</p>
                         {stateDetails.invoiceId && <p>Invoice ID: {stateDetails.invoiceId}</p>}
-
-                        <button onClick={handleReset}>
-                            &larr; Back to Search
-                        </button>
+                        <button onClick={handleReset}>&larr; Back to Search</button>
                     </div>
                 )}
 
@@ -74,9 +84,7 @@ export default function FeeSubmit() {
                         <input type="text" name="contact" readOnly value={stateDetails.contact || ""} />
                         <input type="text" name="plan" readOnly value={stateDetails.plan || ""} />
                         <input type="number" name="fee_paid" defaultValue={stateDetails.rate || 0} />
-
                         {stateSubmit.ok === false && <p>{stateSubmit.message}</p>}
-
                         <button type="submit">
                             {isPendingSubmit ? "Submitting..." : "Submit Payment"}
                         </button>
@@ -85,8 +93,6 @@ export default function FeeSubmit() {
             </div>
         );
     }
-
-    if (view !== "search") return null;
 
     return (
         <div>
@@ -112,7 +118,6 @@ export default function FeeSubmit() {
                             >
                                 <input type="hidden" name="public_id" value={user.public_id} />
                                 <input type="hidden" name="username" value={user.username} />
-
                                 <button type="submit">
                                     {isPendingDetails ? "Fetching..." : user.username}
                                 </button>
@@ -122,7 +127,7 @@ export default function FeeSubmit() {
                 </div>
             )}
 
-            {stateSearch.ok && stateSearch.searchComplete && stateSearch.arr.length === 0 && (
+            {stateSearch.searchComplete && stateSearch.arr.length === 0 && (
                 <p>No user found</p>
             )}
         </div>
