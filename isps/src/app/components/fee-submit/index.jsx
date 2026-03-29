@@ -1,102 +1,130 @@
 'use client';
 
-import { startTransition, useActionState, useRef, useState } from "react";
+import { startTransition, useActionState, useRef, useState, useEffect } from "react";
 import { fetchUserDetails, searchUserAction, submitAction } from "./feeSubmitSA";
 import Form from "next/form";
 
 export default function FeeSubmit() {
+    const [stateSearch, formActionSearch, isPendingSearch] = useActionState(searchUserAction, { ok: null, searchComplete: false, arr: [], message: "" });
+    const [stateDetails, formActionDetails, isPendingDetails] = useActionState(fetchUserDetails, { ok: null, fee_status: null });
+    const [stateSubmit, formActionSubmit, isPendingSubmit] = useActionState(submitAction, { ok: null, message: "" });
 
-    const intialState = { ok: null, searchComplete: false, arr: [], message: "" };
-    const intialState2 = { ok: null, searchComplete: false, obj: {}, message: "" };
+    const [view, setView] = useState("search");
+    const searchTimeoutRef = useRef(null);
 
-    const [state, formAction, isPending] = useActionState(submitAction, { ok: null, message: "" });
-    const [stateUsername, formActionUsername, isPendingUsername] = useActionState(searchUserAction, intialState);
-    const [stateUserDetails, formActionUserDetails, isPendingUserDetails] = useActionState(fetchUserDetails, intialState2);
+    useEffect(() => {
+        if (stateSubmit.ok) {
+            setView("submit");
+        }
+    }, [stateSubmit.ok]);
 
-    const [selectedUser, setSelectedUser] = useState(null);
-
-    const usernameRef = useRef(null);
-
-
-
-    const hanldeUserOnChange = (e) => {
+    const handleUserOnChange = (e) => {
         const value = e.target.value;
-        if (usernameRef.current) clearTimeout(usernameRef.current);
 
-        usernameRef.current = setTimeout(() => {
+        if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
+
+        searchTimeoutRef.current = setTimeout(() => {
             startTransition(() => {
-                formActionUsername(value);
+                formActionSearch(value);
             });
         }, 500);
     };
 
+    const handleReset = () => {
+        setView("search");
+    };
 
-    return (<>
-        {/* ================ fetch Username ================ */}
-        <input
-            type="text"
-            name="term"
-            placeholder="search user"
-            onChange={hanldeUserOnChange}
-        />
-        {isPendingUsername && "Loading..."}
-        {stateUsername.ok && stateUsername.searchComplete && stateUsername.arr.length > 0 && <>
-            {stateUsername.arr.map((user) => (
-                <div key={user.public_id} >
-                    <button
-                        className="cursor-pointer"
-                        onClick={() => setSelectedUser({
-                            public_id: user.public_id,
-                            username: user.username
-                        })}
-                    >
-                        {user.username}
-                    </button>
+    if (view === "submit") {
+        return (
+            <div>
+                <p>{stateSubmit.message}</p>
+                <p>Status: {stateSubmit.fee_status}</p>
+                <p>Invoice: {stateSubmit.invoiceId}</p>
+                <p>Remaining: {stateSubmit.remaining_fee}</p>
+
+                <button onClick={handleReset}>
+                    Start New Search
+                </button>
+            </div>
+        );
+    }
+
+    if (view === "details" && stateDetails.ok) {
+        return (
+            <div>
+                <div>
+                    <h3>Payment Details for {stateDetails.username}</h3>
                 </div>
-            ))}
-        </>}
-        {stateUsername.ok && stateUsername.searchComplete && stateUsername.arr.length === 0 && <p>No user found</p>}
-        {selectedUser && <>
-            <p>Selected user: {selectedUser.username}
-            </p>
-            <button onClick={() => setSelectedUser(null)}>Clear User</button>
-        </>}
 
+                {(stateDetails.fee_status === "paid" || stateDetails.fee_status === "partial") && (
+                    <div>
+                        <p>{stateDetails.message}</p>
+                        {stateDetails.invoiceId && <p>Invoice ID: {stateDetails.invoiceId}</p>}
 
-        {/* ================ fetch User Details ================ */}
-        {selectedUser &&
-            <Form action={formActionUserDetails}>
-                <input type="hidden" name="user_public_id" value={selectedUser.public_id} />
-                <button type="submit" disabled={isPendingUserDetails} >{isPendingUserDetails ? "Fetching..." : "Fetch Details"}</button>
-            </Form>
-        }
-        {!stateUserDetails.ok && stateUserDetails.searchComplete && <p> {stateUserDetails.message} make an entry down</p>}
+                        <button onClick={handleReset}>
+                            &larr; Back to Search
+                        </button>
+                    </div>
+                )}
 
-        {stateUserDetails.ok && (() => {
-            const obj = JSON.parse(stateUserDetails?.objSerialized);
-            console.log('i am obj -----------------> ', obj);
+                {stateDetails.fee_status === "unpaid" && (
+                    <Form action={formActionSubmit}>
+                        <input type="hidden" name="public_id" value={stateDetails.public_id} />
+                        <input type="text" name="username" readOnly value={stateDetails.username || ""} />
+                        <input type="text" name="contact" readOnly value={stateDetails.contact || ""} />
+                        <input type="text" name="plan" readOnly value={stateDetails.plan || ""} />
+                        <input type="number" name="fee_paid" defaultValue={stateDetails.rate || 0} />
 
-            return (
-                <>
-                    <Form action={formAction}>
-                        <input type="hidden" name="public_id" value={selectedUser.public_id} readOnly />
-                        <input type="text" name="username" defaultValue={selectedUser.username} />
+                        {stateSubmit.ok === false && <p>{stateSubmit.message}</p>}
 
-                        <input type="text" name="contact" readOnly value={obj.contact} />
-                        <label >Phone Number</label>
-
-                        <input type="number" name="rate" defaultValue={obj.rate} />
-                        <label >Rs</label>
-
-                        <input type="text" name="speed" readOnly value={obj.plan} />
-                        <label >Mbps</label>
-                        <button type="submit" disabled={isPending} >{isPending ? "Submitting..." : "Submit"}</button>
+                        <button type="submit">
+                            {isPendingSubmit ? "Submitting..." : "Submit Payment"}
+                        </button>
                     </Form>
-                </>
-            );
-        })()}
+                )}
+            </div>
+        );
+    }
 
+    if (view !== "search") return null;
 
+    return (
+        <div>
+            <input
+                type="text"
+                placeholder="Search user..."
+                onChange={handleUserOnChange}
+            />
 
-    </>);;
+            {isPendingSearch && <p>Loading...</p>}
+
+            {stateSearch.ok && stateSearch.arr.length > 0 && (
+                <div>
+                    {stateSearch.arr.map((user) => (
+                        <div key={user.public_id}>
+                            <Form
+                                action={(formData) => {
+                                    startTransition(() => {
+                                        formActionDetails(formData);
+                                        setView("details");
+                                    });
+                                }}
+                            >
+                                <input type="hidden" name="public_id" value={user.public_id} />
+                                <input type="hidden" name="username" value={user.username} />
+
+                                <button type="submit">
+                                    {isPendingDetails ? "Fetching..." : user.username}
+                                </button>
+                            </Form>
+                        </div>
+                    ))}
+                </div>
+            )}
+
+            {stateSearch.ok && stateSearch.searchComplete && stateSearch.arr.length === 0 && (
+                <p>No user found</p>
+            )}
+        </div>
+    );
 }

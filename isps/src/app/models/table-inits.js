@@ -86,8 +86,9 @@ export async function initBilling_transactionsTable() {
     try {
         await db.execute(`
             CREATE TABLE IF NOT EXISTS billing_transactions (
-             id INTEGER PRIMARY KEY AUTOINCREMENT,
+             id INTEGER PRIMARY KEY,
             public_id TEXT NOT NULL,
+            admin_id INTEGER NOT NULL,
             plan_snapshot TEXT NOT NULL,
             billing_month INTEGER NOT NULL,
             billing_year INTEGER NOT NULL,
@@ -98,7 +99,8 @@ export async function initBilling_transactionsTable() {
             fee_snapshot TEXT NOT NULL,
             username_snapshot TEXT NOT NULL,
             invoice_id TEXT UNIQUE NOT NULL,
-            entry_date TEXT DEFAULT CURRENT_TIMESTAMP
+            entry_date TEXT DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (admin_id) REFERENCES admins(id) ON DELETE CASCADE ON UPDATE CASCADE
             )`
         );
 
