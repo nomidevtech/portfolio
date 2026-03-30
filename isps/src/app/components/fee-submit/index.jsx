@@ -3,8 +3,17 @@
 import { startTransition, useActionState, useRef, useState, useEffect } from "react";
 import { fetchUserDetails, searchUserAction, submitAction } from "./feeSubmitSA";
 import Form from "next/form";
+import { updateRecords } from "@/app/lib/update-records";
 
 export default function FeeSubmit() {
+
+    return (
+        <Form action={updateRecords}>
+            <button type="submit">Submit</button>
+        </Form>
+    )
+
+
     const [stateSearch, formActionSearch, isPendingSearch] = useActionState(searchUserAction, {
         ok: null,
         searchComplete: false,
@@ -25,11 +34,6 @@ export default function FeeSubmit() {
     const [view, setView] = useState("search");
     const searchTimeoutRef = useRef(null);
 
-    useEffect(() => {
-        if (stateSubmit.ok) {
-            setView("submit");
-        }
-    }, [stateSubmit.ok]);
 
     const handleUserOnChange = (e) => {
         const value = e.target.value;

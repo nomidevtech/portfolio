@@ -65,9 +65,8 @@ export async function initUserPlansTable() {
     try {
         await db.execute(`
            CREATE TABLE IF NOT EXISTS user_plans (
-            user_id INTEGER NOT NULL,
+            user_id INTEGER PRIMARY KEY,
             plan_id INTEGER NOT NULL,
-            PRIMARY KEY (user_id, plan_id),
             FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE ON UPDATE CASCADE,
             FOREIGN KEY (plan_id) REFERENCES plans (id) ON DELETE CASCADE ON UPDATE CASCADE
             );
@@ -84,24 +83,37 @@ export async function initUserPlansTable() {
 
 export async function initBilling_transactionsTable() {
     try {
-        await db.execute(`
+            await db.execute(`
             CREATE TABLE IF NOT EXISTS billing_transactions (
-             id INTEGER PRIMARY KEY,
-            public_id TEXT NOT NULL,
-            admin_id INTEGER NOT NULL,
-            plan_snapshot TEXT NOT NULL,
-            billing_month INTEGER NOT NULL,
-            billing_year INTEGER NOT NULL,
+            id INTEGER PRIMARY KEY,
+            public_id TEXT,
+
+            user_id INTEGER,   
+            admin_id INTEGER,
+
+            billing_month INTEGER,
+            billing_year INTEGER,
+
             fee_status TEXT DEFAULT 'unpaid',
             amount_due INTEGER DEFAULT 0,
             amount_paid INTEGER DEFAULT 0,
             remaining_fee INTEGER DEFAULT 0,
-            fee_snapshot TEXT NOT NULL,
-            username_snapshot TEXT NOT NULL,
-            invoice_id TEXT UNIQUE NOT NULL,
+            
+            plan_snapshot TEXT,
+            fee_snapshot TEXT,
+            username_snapshot,
+            contact_snapshot,
+            password_snapshot,
+
+            invoice_id TEXT UNIQUE,
+
             entry_date TEXT DEFAULT CURRENT_TIMESTAMP,
+            last_updated TEXT DEFAULT CURRENT_TIMESTAMP,
+           
+            UNIQUE(user_id, billing_month, billing_year),
+
             FOREIGN KEY (admin_id) REFERENCES admins(id) ON DELETE CASCADE ON UPDATE CASCADE
-            )`
+            );`
         );
 
         return { ok: true, message: "billing_transactions table initialized" };
