@@ -2,23 +2,21 @@
 
 import { db } from "@/app/lib/turso";
 import { updateRecords } from "@/app/lib/update-records";
+import { initBilling_transactionsTable } from "@/app/models/table-inits";
+import { nanoid } from "nanoid";
 
 export async function searchUser(_, searchTerm) {
-    if (!searchTerm || searchTerm.trim() === "") {
-        return { ok: false, searchComplete: false, arr: [], message: "" };
-    }
-
+    if (!searchTerm) return { ok: false, searchComplete: false, arr: [], message: "Search term is required" };
     try {
+
         const fetch = await db.execute(`
-            SELECT public_id, username
-            FROM users
-            WHERE username LIKE ?
-            LIMIT 5
+        SELECT public_id, username
+        FROM users
+        WHERE username LIKE ?
+        LIMIT 5
         `, [`%${searchTerm}%`]);
 
-        if (fetch.rows.length === 0) {
-            return { ok: false, searchComplete: true, arr: [], message: "No user found" };
-        }
+        if (fetch.rows.length === 0) return { ok: false, searchComplete: true, arr: [], message: "No user found" };
 
         const arr = fetch.rows.map(user => ({
             public_id: user.public_id,
@@ -26,86 +24,129 @@ export async function searchUser(_, searchTerm) {
         }));
 
         return { ok: true, searchComplete: true, arr, message: "Search completed" };
+
     } catch (error) {
+        console.error(error);
         return { ok: false, searchComplete: false, arr: [], message: "Database error." };
     }
+
 }
 
-export async function fetchDetails(prevState, formData) {
+
+
+export async function fetchDetails(_, formData) {
     try {
+        if (!formData) {
+            return { ok: false, message: "Search term is broken" };
+        }
 
         await updateRecords();
 
-        if (!formData) return { ok: false, message: "Invalid Request" };
+        const user_public_id = formData.get("user_public_id");
+        const username = formData.get("username");
 
-        const payment = formData.get("payment");
-        const record_public_id = formData.get("record_public_id");
+        const fetchUserId = await db.execute(
+            "SELECT id FROM users WHERE public_id = ?",
+            [user_public_id]
+        );
 
-        if (payment !== null && record_public_id) {
-            const payVal = parseFloat(payment);
-            const currentRecord = await db.execute(
-                "SELECT remaining_fee FROM billing_transactions WHERE public_id = ?",
-                [record_public_id]
-            );
+        const userId = fetchUserId?.rows?.[0]?.id;
 
-            if (!currentRecord.rows.length) return { ok: false, message: "Record not found" };
-
-            const newRemaining = Math.max(0, currentRecord.rows[0].remaining_fee - payVal);
-            const newStatus = newRemaining <= 0 ? "paid" : "partial";
-
-            await db.execute(
-                "UPDATE billing_transactions SET remaining_fee = ?, fee_status = ? WHERE public_id = ?",
-                [newRemaining, newStatus, record_public_id]
-            );
+        if (!userId) {
+            return { ok: false, searchComplete: false, message: "User details conflict" };
         }
 
-        const user_public_id = formData.get("public_id") || prevState?.user_public_id;
-        const username = formData.get("username") || prevState?.username;
-        const active_record_id = record_public_id || prevState?.record_public_id;
+        const d = new Date();
+        const month = d.getMonth() + 1;
+        const year = d.getFullYear();
 
-        let row;
-        if (active_record_id) {
-            const fetchByRecord = await db.execute(
-                `SELECT public_id, fee_status, amount_due, remaining_fee, plan_snapshot, contact_snapshot, username_snapshot 
-                 FROM billing_transactions WHERE public_id = ?`,
-                [active_record_id]
-            );
-            row = fetchByRecord.rows[0];
-        } else {
-            const fetchUserId = await db.execute("SELECT id FROM users WHERE public_id = ?", [user_public_id]);
-            const userId = fetchUserId?.rows?.[0]?.id;
+        const columns =
+            "public_id, fee_status, amount_due, remaining_fee, plan_snapshot, contact_snapshot, username_snapshot";
 
-            if (!userId) return { ok: false, searchComplete: true, message: "User not found" };
 
-            const d = new Date();
-            const month = d.getMonth() + 1;
-            const year = d.getFullYear();
+        const fetchCurrentMonthRecord = await db.execute(
+            `SELECT ${columns}
+             FROM billing_transactions
+             WHERE user_id = ?
+             AND username_snapshot = ?
+             AND billing_month = ?
+             AND billing_year = ?`,
+            [userId, username, month, year]
+        );
 
-            const fetchCurrent = await db.execute(
-                `SELECT public_id, fee_status, amount_due, remaining_fee, plan_snapshot, contact_snapshot, username_snapshot
-                 FROM billing_transactions
-                 WHERE user_id = ? AND billing_month = ? AND billing_year = ?`,
-                [userId, month, year]
-            );
-            row = fetchCurrent.rows[0];
+        const row = fetchCurrentMonthRecord?.rows?.[0];
+
+        if (!row) {
+            return {
+                ok: false,
+                searchComplete: false,
+                message: "update records in settings"
+            };
         }
 
-        if (!row) return { ok: false, searchComplete: true, message: "Update records in settings" };
-
-        return {
-            ok: true,
-            searchComplete: true,
-            user_public_id,
+        const payload = {
             record_public_id: row.public_id,
             fee_status: row.fee_status,
             amount_due: row.amount_due,
             remaining_fee: row.remaining_fee,
             plan: row.plan_snapshot,
             contact: row.contact_snapshot,
-            username: row.username_snapshot,
-            message: payment ? "Payment Updated" : "Details Loaded"
+            username: row.username_snapshot
         };
+
+
+        return { ok: true, searchComplete: true, ...payload, message: "Search completed" };
     } catch (error) {
+        console.error(error);
         return { ok: false, message: "Database error." };
     }
+}
+
+
+
+
+export async function submit(_, formData) {
+    try {
+        const record_public_id = formData.get("record_public_id");
+        const username = formData.get("username");
+        const paymentRaw = formData.get("payment");
+        const payment = paymentRaw ? Number(paymentRaw) : 0;
+
+        if (!record_public_id || !username) return { ok: false, message: "Search term is broken" };
+        if (payment === 0) return { ok: false, message: "Payment cannot be zero" };
+
+        const d = new Date();
+        const month = d.getMonth() + 1;
+        const year = d.getFullYear();
+
+        const fetchUserId = await db.execute(`
+            SELECT amount_due, remaining_fee FROM billing_transactions
+            WHERE public_id = ? AND username_snapshot = ? AND billing_month = ? AND billing_year = ?
+        `, [record_public_id, username, month, year]);
+
+        if (fetchUserId.rows.length === 0) return { ok: false, message: "update records in settings" };
+
+        const amount_due = fetchUserId.rows[0].amount_due;
+        const remaining_fee = fetchUserId.rows[0].remaining_fee;
+
+        const remainingFee = remaining_fee - payment;
+        const feeStatus = remainingFee <= 0 ? "paid" : (remainingFee === amount_due ? "unpaid" : "partial");
+
+        const invoiceId = `${month}${year}-${record_public_id}${nanoid(8)}`;
+
+        const update = await db.execute(`
+            UPDATE billing_transactions
+            SET fee_status = ?, amount_paid = ?, remaining_fee = ?, invoice_id = ?
+            WHERE public_id = ? AND username_snapshot = ? AND billing_month = ? AND billing_year = ?
+        `, [feeStatus, payment, remainingFee, invoiceId, record_public_id, username, month, year]);
+
+        return { ok: true, message: "Payment submitted", invoiceId, submitComplete: true };
+
+
+    } catch (error) {
+        console.log(error);
+        return { ok: false, message: "Database error." };
+    }
+
+
 }

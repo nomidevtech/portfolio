@@ -6,12 +6,15 @@ import { initUsersTable } from "@/app/models/table-inits";
 import { nanoid } from "nanoid";
 
 export async function addUserServerAction(_, formData) {
+    await initUsersTable();
+    await updateRecords();
+
     try {
         const username = formData.get("username")?.toString().trim();
         const planPublicId = formData.get("plan_public_id")?.toString().trim();
-        const password = formData.get("password")?.toString().trim();
+        const password = formData.get("password")?.toString().trim() || null;
         const contactRaw = formData.get("contact")?.toString().trim();
-        const contact = contactRaw ? parseInt(contactRaw) : null;
+        const contact = contactRaw ? Number(contactRaw) : 0;
 
         if (!username || !planPublicId) {
             return { ok: false, message: "Username and plan are required" };
@@ -26,7 +29,7 @@ export async function addUserServerAction(_, formData) {
 
         const planId = fetchPlanDetails.rows[0].id;
 
-        await updateRecords();
+
 
         const result = await db.execute(
             `INSERT INTO users (public_id, admin_id, username, password, contact) 

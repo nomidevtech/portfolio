@@ -49,7 +49,7 @@ export async function updateRecords() {
             const fee_snapshot = userObj.fee ? `${userObj.fee}Rs` : null;
             const username_snapshot = userObj.username;
             const contact_snapshot = userObj.contact;
-            const password_snapshot = userObj.password;
+            const password_snapshot = userObj.password ? userObj.password : null;
             const remaining_fee = amount_due;
 
             VALUES.push(

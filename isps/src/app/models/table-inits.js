@@ -27,8 +27,8 @@ export async function initUsersTable() {
                 public_id TEXT NOT NULL,
                 admin_id INTEGER NOT NULL,
                 username TEXT UNIQUE NOT NULL,
-                password TEXT,
-                contact INTEGER,
+                password TEXT DEFAULT NULL,
+                contact INTEGER DEFAULT 0,
                 FOREIGN KEY (admin_id) REFERENCES admins (id) ON DELETE CASCADE ON UPDATE CASCADE
             )
         `);
@@ -101,11 +101,11 @@ export async function initBilling_transactionsTable() {
             
             plan_snapshot TEXT,
             fee_snapshot TEXT,
-            username_snapshot,
-            contact_snapshot,
-            password_snapshot,
+            username_snapshot TEXT,
+            contact_snapshot INTEGER DEFAULT 0,
+            password_snapshot TEXT DEFAULT NULL,
 
-            invoice_id TEXT UNIQUE,
+            invoice_id TEXT UNIQUE DEFAULT NULL,
 
             entry_date TEXT DEFAULT CURRENT_TIMESTAMP,
             last_updated TEXT DEFAULT CURRENT_TIMESTAMP,
