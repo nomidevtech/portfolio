@@ -4,7 +4,7 @@ export async function initAdminsTable() {
     try {
         await db.execute(`
             CREATE TABLE IF NOT EXISTS admins (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                id INTEGER PRIMARY KEY,
                 public_id TEXT NOT NULL,
                 username TEXT UNIQUE NOT NULL,
                 email TEXT,
@@ -23,7 +23,7 @@ export async function initUsersTable() {
     try {
         await db.execute(`
             CREATE TABLE IF NOT EXISTS users (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                id INTEGER PRIMARY KEY,
                 public_id TEXT NOT NULL,
                 admin_id INTEGER NOT NULL,
                 username TEXT UNIQUE NOT NULL,
@@ -83,7 +83,7 @@ export async function initUserPlansTable() {
 
 export async function initBilling_transactionsTable() {
     try {
-            await db.execute(`
+        await db.execute(`
             CREATE TABLE IF NOT EXISTS billing_transactions (
             id INTEGER PRIMARY KEY,
             public_id TEXT,

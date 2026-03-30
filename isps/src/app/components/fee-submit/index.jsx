@@ -1,139 +1,71 @@
-'use client';
+'use client'
 
-import { startTransition, useActionState, useRef, useState, useEffect } from "react";
-import { fetchUserDetails, searchUserAction, submitAction } from "./feeSubmitSA";
+import { startTransition, useActionState, useRef } from "react";
+import { fetchDetails, searchUser } from "./feeSubmitSA";
 import Form from "next/form";
-import { updateRecords } from "@/app/lib/update-records";
 
 export default function FeeSubmit() {
 
-    return (
-        <Form action={updateRecords}>
-            <button type="submit">Submit</button>
-        </Form>
-    )
-
-
-    const [stateSearch, formActionSearch, isPendingSearch] = useActionState(searchUserAction, {
-        ok: null,
-        searchComplete: false,
-        arr: [],
-        message: "",
-    });
-
-    const [stateDetails, formActionDetails, isPendingDetails] = useActionState(fetchUserDetails, {
-        ok: null,
+    const properties = {
+        record_public_id: null,
         fee_status: null,
-    });
-
-    const [stateSubmit, formActionSubmit, isPendingSubmit] = useActionState(submitAction, {
-        ok: null,
-        message: "",
-    });
-
-    const [view, setView] = useState("search");
-    const searchTimeoutRef = useRef(null);
-
-
-    const handleUserOnChange = (e) => {
-        const value = e.target.value;
-        if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
-        searchTimeoutRef.current = setTimeout(() => {
-            startTransition(() => {
-                formActionSearch(value);
-            });
-        }, 500);
+        amount_due: null,
+        remaining_fee: null,
+        plan: null,
+        contact: null,
+        username: null,
     };
 
-    const handleReset = () => setView("search");
+    const initialState = { ok: null, searchComplete: false, arr: [], message: "" };
+    const initialState2 = { ok: null, searchComplete: false, message: "", ...properties };
 
-    if (view === "submit") {
-        return (
-            <div>
-                <p>{stateSubmit.message}</p>
-                <p>Status: {stateSubmit.fee_status}</p>
-                <p>Invoice: {stateSubmit.invoiceId}</p>
-                <p>Remaining: {stateSubmit.remaining_fee}</p>
-                <button onClick={handleReset}>Start New Search</button>
-            </div>
-        );
-    }
+    const [stateSearch, actionSearch, isPendingSearch] = useActionState(searchUser, initialState);
+    const [stateDetails, actionDetails, isPendingDetails] = useActionState(fetchDetails, initialState2);
 
-    if (view === "details") {
-        if (!stateDetails.ok) {
-            return (
-                <div>
-                    <p>{stateDetails.message}</p>
-                    <button onClick={handleReset}>&larr; Back to Search</button>
-                </div>
-            );
-        }
+    const timerRef = useRef(null);
 
-        return (
-            <div>
-                <h3>Payment Details for {stateDetails.username}</h3>
+    const handleOnChange = (e) => {
+        const value = e.target.value;
+        if (timerRef.current) clearTimeout(timerRef.current);
 
-                {(stateDetails.fee_status === "paid" || stateDetails.fee_status === "partial") && (
-                    <div>
-                        <p>{stateDetails.message}</p>
-                        {stateDetails.invoiceId && <p>Invoice ID: {stateDetails.invoiceId}</p>}
-                        <button onClick={handleReset}>&larr; Back to Search</button>
-                    </div>
-                )}
+        timerRef.current = setTimeout(() => {
+            startTransition(() => {
+                actionSearch(value);
+            });
+        }, 1000);
+    };
 
-                {stateDetails.fee_status === "unpaid" && (
-                    <Form action={formActionSubmit}>
-                        <input type="hidden" name="public_id" value={stateDetails.public_id} />
-                        <input type="text" name="username" readOnly value={stateDetails.username || ""} />
-                        <input type="text" name="contact" readOnly value={stateDetails.contact || ""} />
-                        <input type="text" name="plan" readOnly value={stateDetails.plan || ""} />
-                        <input type="number" name="fee_paid" defaultValue={stateDetails.rate || 0} />
-                        {stateSubmit.ok === false && <p>{stateSubmit.message}</p>}
-                        <button type="submit">
-                            {isPendingSubmit ? "Submitting..." : "Submit Payment"}
-                        </button>
-                    </Form>
-                )}
-            </div>
-        );
-    }
+    return (<>
+        <input type="text" name="username" placeholder=" search username" onChange={handleOnChange} />
 
-    return (
-        <div>
-            <input
-                type="text"
-                placeholder="Search user..."
-                onChange={handleUserOnChange}
-            />
+        {!stateSearch.ok && stateSearch.searchComplete && stateSearch.arr.length === 0 && <p>{stateSearch.message}</p>}
 
-            {isPendingSearch && <p>Loading...</p>}
+        {stateSearch.ok && stateSearch.arr.length > 0 && stateSearch.arr.map(user => (
+            <Form key={user.public_id} action={actionDetails}>
+                <input type="hidden" name="public_id" value={user.public_id} />
+                <input type="hidden" name="username" value={user.username} />
+                <button type="submit" disabled={isPendingDetails}>
+                    {user.username}
+                </button>
+            </Form>
+        ))}
 
-            {stateSearch.ok && stateSearch.arr.length > 0 && (
-                <div>
-                    {stateSearch.arr.map((user) => (
-                        <div key={user.public_id}>
-                            <Form
-                                action={(formData) => {
-                                    startTransition(() => {
-                                        formActionDetails(formData);
-                                        setView("details");
-                                    });
-                                }}
-                            >
-                                <input type="hidden" name="public_id" value={user.public_id} />
-                                <input type="hidden" name="username" value={user.username} />
-                                <button type="submit">
-                                    {isPendingDetails ? "Fetching..." : user.username}
-                                </button>
-                            </Form>
-                        </div>
-                    ))}
-                </div>
-            )}
+        {!stateDetails.ok && stateDetails.searchComplete && <p>{stateDetails.message}</p>}
 
-            {stateSearch.searchComplete && stateSearch.arr.length === 0 && (
-                <p>No user found</p>
-            )}
-        </div>
-    );
+        {stateDetails.ok && stateDetails.record_public_id && (
+            <Form action={actionDetails}>
+                <input type="hidden" name="record_public_id" value={stateDetails.record_public_id} />
+                <input type="text" name="username" value={stateDetails.username || ""} readOnly />
+                <input type="text" name="plan" value={stateDetails.plan || ""} readOnly />
+                <input type="text" name="fee_status" value={stateDetails.fee_status || ""} readOnly />
+                <input type="number" name="amount_due" value={stateDetails.amount_due || 0} readOnly />
+                <input type="number" name="remaining_fee" value={stateDetails.remaining_fee || 0} readOnly />
+                <input type="text" name="contact" value={stateDetails.contact || ""} readOnly />
+                <input type="number" name="payment" placeholder="payment" defaultValue={stateDetails.remaining_fee || 0} />
+                <button type="submit" disabled={isPendingDetails}>
+                    {isPendingDetails ? "Updating..." : "Update"}
+                </button>
+            </Form>
+        )}
+    </>);
 }

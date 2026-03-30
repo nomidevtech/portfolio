@@ -28,13 +28,13 @@ export async function updateRecords() {
             [adminId]
         );
 
-        console.log(result.rows);
-
         if (!result.rows.length) return { ok: false, message: "No records found" };
 
         const d = new Date();
+        const month = d.getMonth() + 1;
+        const year = d.getFullYear();
 
-        const parameters = "(public_id, user_id, admin_id, billing_month, billing_year, amount_due, plan_snapshot, fee_snapshot, username_snapshot, contact_snapshot, password_snapshot, invoice_id)";
+        const parameters = "(public_id, user_id, admin_id, billing_month, billing_year, amount_due, plan_snapshot, fee_snapshot, username_snapshot, contact_snapshot, password_snapshot, remaining_fee)";
 
         const placeHolders = result.rows.map(() => "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)").join(", ");
 
@@ -44,15 +44,13 @@ export async function updateRecords() {
             const public_id = nanoid(16);
             const user_id = userObj.user_id;
             const admin_id = userObj.admin_id;
-            const month = d.getMonth() + 1;
-            const year = d.getFullYear();
-            const amount_due = userObj.fee;
+            const amount_due = userObj.fee || 0;
             const plan_snapshot = userObj.plan ? `${userObj.plan}Mbps` : null;
             const fee_snapshot = userObj.fee ? `${userObj.fee}Rs` : null;
             const username_snapshot = userObj.username;
             const contact_snapshot = userObj.contact;
             const password_snapshot = userObj.password;
-            const invoice_id = `${month}${year}-${userObj.user_public_id}-${nanoid(8)}`;
+            const remaining_fee = amount_due;
 
             VALUES.push(
                 public_id,
@@ -66,10 +64,9 @@ export async function updateRecords() {
                 username_snapshot,
                 contact_snapshot,
                 password_snapshot,
-                invoice_id
+                remaining_fee
             );
         }
-
 
         await db.execute(
             `

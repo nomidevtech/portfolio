@@ -1,210 +1,111 @@
 'use server';
 
 import { db } from "@/app/lib/turso";
-import { initBilling_transactionsTable } from "@/app/models/table-inits";
-import { nanoid } from "nanoid";
+import { updateRecords } from "@/app/lib/update-records";
 
-export async function searchUserAction(_, formData) {
-    const query = typeof formData === 'string' ? formData : formData.get('term');
-
-    if (!query) return { ok: false, searchComplete: false, arr: [], message: "Query is required" };
+export async function searchUser(_, searchTerm) {
+    if (!searchTerm || searchTerm.trim() === "") {
+        return { ok: false, searchComplete: false, arr: [], message: "" };
+    }
 
     try {
-        const res = await db.execute(
-            "SELECT public_id, username FROM users WHERE username LIKE ? LIMIT 5",
-            [`%${query}%`]
-        );
+        const fetch = await db.execute(`
+            SELECT public_id, username
+            FROM users
+            WHERE username LIKE ?
+            LIMIT 5
+        `, [`%${searchTerm}%`]);
 
-        if (res.rows.length === 0) {
+        if (fetch.rows.length === 0) {
             return { ok: false, searchComplete: true, arr: [], message: "No user found" };
         }
 
-        const arr = res.rows.map((user) => ({
+        const arr = fetch.rows.map(user => ({
             public_id: user.public_id,
-            username: user.username,
+            username: user.username
         }));
 
         return { ok: true, searchComplete: true, arr, message: "Search completed" };
-    } catch {
+    } catch (error) {
         return { ok: false, searchComplete: false, arr: [], message: "Database error." };
     }
 }
 
-export async function fetchUserDetails(_, formData) {
+export async function fetchDetails(prevState, formData) {
     try {
-        const user_public_id = formData?.get('public_id');
-        const user_username = formData?.get('username');
 
-        if (!user_public_id || !user_username) {
-            return {
-                ok: false,
-                username: null,
-                contact: null,
-                plan: null,
-                rate: null,
-                fee_status: null,
-                remaining_fee: null,
-                invoiceId: null,
-                message: "Missing fields",
-            };
+        await updateRecords();
+
+        if (!formData) return { ok: false, message: "Invalid Request" };
+
+        const payment = formData.get("payment");
+        const record_public_id = formData.get("record_public_id");
+
+        if (payment !== null && record_public_id) {
+            const payVal = parseFloat(payment);
+            const currentRecord = await db.execute(
+                "SELECT remaining_fee FROM billing_transactions WHERE public_id = ?",
+                [record_public_id]
+            );
+
+            if (!currentRecord.rows.length) return { ok: false, message: "Record not found" };
+
+            const newRemaining = Math.max(0, currentRecord.rows[0].remaining_fee - payVal);
+            const newStatus = newRemaining <= 0 ? "paid" : "partial";
+
+            await db.execute(
+                "UPDATE billing_transactions SET remaining_fee = ?, fee_status = ? WHERE public_id = ?",
+                [newRemaining, newStatus, record_public_id]
+            );
         }
 
-        await initBilling_transactionsTable();
+        const user_public_id = formData.get("public_id") || prevState?.user_public_id;
+        const username = formData.get("username") || prevState?.username;
+        const active_record_id = record_public_id || prevState?.record_public_id;
 
-        const d = new Date();
-        const billingMonth = d.getMonth() + 1;
-        const billingYear = d.getFullYear();
+        let row;
+        if (active_record_id) {
+            const fetchByRecord = await db.execute(
+                `SELECT public_id, fee_status, amount_due, remaining_fee, plan_snapshot, contact_snapshot, username_snapshot 
+                 FROM billing_transactions WHERE public_id = ?`,
+                [active_record_id]
+            );
+            row = fetchByRecord.rows[0];
+        } else {
+            const fetchUserId = await db.execute("SELECT id FROM users WHERE public_id = ?", [user_public_id]);
+            const userId = fetchUserId?.rows?.[0]?.id;
 
-        const billingRes = await db.execute(
-            "SELECT * FROM billing_transactions WHERE username_snapshot = ? AND billing_month = ? AND billing_year = ?",
-            [user_username, billingMonth, billingYear]
-        );
+            if (!userId) return { ok: false, searchComplete: true, message: "User not found" };
 
-        if (billingRes.rows.length > 0) {
-            const row = billingRes.rows[0];
-            const isPaid = row.remaining_fee === 0;
-            return {
-                ok: true,
-                username: user_username,
-                contact: null,
-                plan: row.plan_snapshot,
-                rate: row.rate_snapshot,
-                fee_status: isPaid ? 'paid' : 'partial',
-                remaining_fee: row.remaining_fee,
-                invoiceId: row.invoice_id,
-                message: isPaid
-                    ? "Fee has been paid for this month."
-                    : `Partial payment recorded. Remaining fee: ${row.remaining_fee}`,
-            };
+            const d = new Date();
+            const month = d.getMonth() + 1;
+            const year = d.getFullYear();
+
+            const fetchCurrent = await db.execute(
+                `SELECT public_id, fee_status, amount_due, remaining_fee, plan_snapshot, contact_snapshot, username_snapshot
+                 FROM billing_transactions
+                 WHERE user_id = ? AND billing_month = ? AND billing_year = ?`,
+                [userId, month, year]
+            );
+            row = fetchCurrent.rows[0];
         }
 
-        const userRes = await db.execute(
-            `SELECT
-                plans.speed AS plan,
-                plans.rate AS rate,
-                users.contact AS contact
-            FROM users
-            LEFT JOIN user_plans ON users.id = user_plans.user_id
-            LEFT JOIN plans ON user_plans.plan_id = plans.id
-            WHERE users.public_id = ? AND users.username = ?`,
-            [user_public_id, user_username]
-        );
-
-        if (!userRes.rows.length || userRes.rows[0].plan === null) {
-            return {
-                ok: false,
-                username: null,
-                contact: null,
-                plan: null,
-                rate: null,
-                fee_status: null,
-                remaining_fee: null,
-                invoiceId: null,
-                message: "User has no active plan. Please subscribe first.",
-            };
-        }
+        if (!row) return { ok: false, searchComplete: true, message: "Update records in settings" };
 
         return {
             ok: true,
-            username: user_username,
-            public_id: user_public_id,
-            contact: userRes.rows[0].contact,
-            plan: userRes.rows[0].plan,
-            rate: userRes.rows[0].rate,
-            fee_status: 'unpaid',
-            remaining_fee: null,
-            invoiceId: null,
-            message: "User details fetched",
+            searchComplete: true,
+            user_public_id,
+            record_public_id: row.public_id,
+            fee_status: row.fee_status,
+            amount_due: row.amount_due,
+            remaining_fee: row.remaining_fee,
+            plan: row.plan_snapshot,
+            contact: row.contact_snapshot,
+            username: row.username_snapshot,
+            message: payment ? "Payment Updated" : "Details Loaded"
         };
-    } catch {
-        return {
-            ok: false,
-            username: null,
-            contact: null,
-            plan: null,
-            rate: null,
-            fee_status: null,
-            remaining_fee: null,
-            invoiceId: null,
-            message: "Something went wrong. Please try again.",
-        };
-    }
-}
-
-export async function submitAction(_, formData) {
-    try {
-        const user_public_id = formData?.get('public_id');
-        const user_username = formData?.get('username');
-        const fee_paid = Number(formData?.get('fee_paid') ?? 0);
-
-        if (!user_public_id || !user_username) {
-            return { ok: false, message: "Missing fields" };
-        }
-
-        const userRes = await db.execute(
-            `SELECT
-                plans.speed AS plan,
-                plans.rate AS rate,
-                users.contact AS contact
-            FROM users
-            LEFT JOIN user_plans ON users.id = user_plans.user_id
-            LEFT JOIN plans ON user_plans.plan_id = plans.id
-            WHERE users.public_id = ? AND users.username = ?`,
-            [user_public_id, user_username]
-        );
-
-        if (!userRes.rows.length) {
-            return { ok: false, message: "User not found" };
-        }
-
-        const { plan, rate, contact } = userRes.rows[0];
-
-        const feeStatus = fee_paid >= rate ? 'paid' : fee_paid > 0 ? 'partial' : 'unpaid';
-
-        const d = new Date();
-        const billingMonth = d.getMonth() + 1;
-        const billingYear = d.getFullYear();
-        const remainingFee = Math.max(0, rate - fee_paid);
-        const invoiceId = `${billingMonth}${billingYear}-${nanoid(10)}`;
-
-        const insertResult = await db.execute(
-            `INSERT INTO billing_transactions (
-                public_id, admin_id, plan_snapshot, billing_month, billing_year,
-                fee_status, amount_due, amount_paid, remaining_fee,
-                fee_snapshot, username_snapshot, invoice_id
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-            [
-                nanoid(12),
-                1,
-                `${plan}Mbps`,
-                billingMonth,
-                billingYear,
-                feeStatus,
-                rate,
-                fee_paid,
-                remainingFee,
-                `${fee_paid}Rs`,
-                user_username,
-                invoiceId,
-            ]
-        );
-
-        if (insertResult.rowsAffected === 0) {
-            return { ok: false, message: "Failed to insert record" };
-        }
-
-        return {
-            ok: true,
-            username: user_username,
-            contact,
-            plan,
-            rate,
-            fee_status: feeStatus,
-            remaining_fee: remainingFee,
-            invoiceId,
-            message: "Entry added to billing records.",
-        };
-    } catch {
-        return { ok: false, message: "Something went wrong." };
+    } catch (error) {
+        return { ok: false, message: "Database error." };
     }
 }
