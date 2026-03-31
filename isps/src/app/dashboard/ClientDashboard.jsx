@@ -127,29 +127,27 @@ export default function ClientDashboard({ payload }) {
           <p className="text-xs font-medium text-zinc-500 uppercase tracking-widest mb-1">Fee Status</p>
           <p className="text-lg font-semibold text-white mb-6">Student Breakdown</p>
           <div className="flex items-center gap-6">
-            <div className="w-40 h-40 shrink-0">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={donutData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={42}
-                    outerRadius={64}
-                    paddingAngle={3}
-                    dataKey="value"
-                  >
-                    {donutData.map((entry) => (
-                      <Cell
-                        key={entry.name}
-                        fill={STATUS_COLORS[entry.name]}
-                        stroke="transparent"
-                      />
-                    ))}
-                  </Pie>
-                  <Tooltip content={<CustomTooltip />} />
-                </PieChart>
-              </ResponsiveContainer>
+            <div className="shrink-0">
+              <PieChart width={160} height={160}>
+                <Pie
+                  data={donutData}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={42}
+                  outerRadius={64}
+                  paddingAngle={3}
+                  dataKey="value"
+                >
+                  {donutData.map((entry) => (
+                    <Cell
+                      key={entry.name}
+                      fill={STATUS_COLORS[entry.name]}
+                      stroke="transparent"
+                    />
+                  ))}
+                </Pie>
+                <Tooltip content={<CustomTooltip />} />
+              </PieChart>
             </div>
             <div className="flex flex-col gap-3 flex-1">
               {[
@@ -180,27 +178,29 @@ export default function ClientDashboard({ payload }) {
         <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6">
           <p className="text-xs font-medium text-zinc-500 uppercase tracking-widest mb-1">Financials</p>
           <p className="text-lg font-semibold text-white mb-6">Revenue Breakdown</p>
-          <ResponsiveContainer width="100%" height={180}>
-            <BarChart data={barData} barSize={32}>
-              <CartesianGrid vertical={false} stroke="#27272a" />
-              <XAxis
-                dataKey="name"
-                tick={{ fill: "#71717a", fontSize: 11 }}
-                axisLine={false}
-                tickLine={false}
-              />
-              <YAxis
-                tick={{ fill: "#71717a", fontSize: 11 }}
-                axisLine={false}
-                tickLine={false}
-                tickFormatter={(v) => `₨${(v / 1000).toFixed(0)}k`}
-              />
-              <Tooltip content={<BarTooltip />} cursor={{ fill: "#27272a" }} />
-              <Bar dataKey="Revenue" fill="#3b82f6" radius={[4, 4, 0, 0]} />
-              <Bar dataKey="Collected" fill="#22c55e" radius={[4, 4, 0, 0]} />
-              <Bar dataKey="Pending" fill="#f59e0b" radius={[4, 4, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
+          <div style={{ width: "100%", height: 180 }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={barData} barSize={32}>
+                <CartesianGrid vertical={false} stroke="#27272a" />
+                <XAxis
+                  dataKey="name"
+                  tick={{ fill: "#71717a", fontSize: 11 }}
+                  axisLine={false}
+                  tickLine={false}
+                />
+                <YAxis
+                  tick={{ fill: "#71717a", fontSize: 11 }}
+                  axisLine={false}
+                  tickLine={false}
+                  tickFormatter={(v) => `₨${(v / 1000).toFixed(0)}k`}
+                />
+                <Tooltip content={<BarTooltip />} cursor={{ fill: "#27272a" }} />
+                <Bar dataKey="Revenue" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="Collected" fill="#22c55e" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="Pending" fill="#f59e0b" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
         </div>
       </div>
 

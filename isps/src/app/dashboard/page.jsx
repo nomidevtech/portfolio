@@ -1,5 +1,6 @@
 import { db } from "../lib/turso";
 import ClientDashboard from "./ClientDashboard";
+import ClientDashboard2 from "./ClientDashboard copy";
 
 export default async function Dashboard() {
 
@@ -37,7 +38,7 @@ export default async function Dashboard() {
         paid
     };
 
-    console.log(payload);
+    //console.log(payload);
 
     // for AI 
     //     {
@@ -50,9 +51,13 @@ export default async function Dashboard() {
     //   paid: 2
     // }
 
+    const yearsArr = [2026, 2025];
+    const monthsArr = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
 
-    return (
-        <ClientDashboard payload={payload} />
-    );
+
+    return (<>
+        {/* <ClientDashboard payload={payload} /> */}
+        <ClientDashboard2 payload={payload} yearsArr={yearsArr} monthsArr={monthsArr} />
+    </>);
 }
