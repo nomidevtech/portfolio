@@ -1,46 +1,21 @@
 'use client'
 
-import { useActionState, useEffect } from "react";
+import { useActionState } from "react";
 import { fetchStatsServerAction } from "./fetchSA";
 import Form from "next/form";
 
-export default function ClientDashboard({ payload = {}, yearsArr = [], monthsArr = [] }) {
+export default function ClientDashboard({ initialData, yearsArr = [], monthsArr = [] }) {
 
-  const statsFormat = {
-    numberOfUsers: 0,
-    totalRevenue: 0,
-    recovery: 0,
-    pending: 0,
-    unpaid: 0,
-    partial: 0,
-    paid: 0,
-  };
+  // 1. 'state' equals 'initialData' (parent data) on initial page load.
+  // 2. 'state' updates to the new Server Action return value after submission.
+  const [state, action, isPending] = useActionState(fetchStatsServerAction, initialData);
 
-  const initialState = { ok: null, searchComplete: false, stats: { ...statsFormat }, message: "" };
-  const [state, action, isPending] = useActionState(fetchStatsServerAction, initialState);
-
-  const defaultStats = payload;
-  let customStats = null;
-  let isCustom = false;
-  let stats = isCustom ? customStats : defaultStats;
-
-  useEffect(() => {
-    if (state.ok && state.stats) customStats = state.stats; isCustom = true;
-  }, [state]);
-
-
-
-
-
-
-
-
-
+  const { stats, message } = state;
 
   return (
     <>
       <Form action={action}>
-        <select name="month" defaultValue={""}>
+        <select name="month" defaultValue={""} required>
           <option value="" disabled>Select month</option>
           {monthsArr.map((month) => (
             <option key={month} value={month}>
@@ -48,20 +23,33 @@ export default function ClientDashboard({ payload = {}, yearsArr = [], monthsArr
             </option>
           ))}
         </select>
-        <select name="year" defaultValue={""}>
+
+        <select name="year" defaultValue={2026} required>
           <option value="" disabled>Select year</option>
           {yearsArr.map((year) => (
-            <option key={year} value={year}>
+            <option key={year} value={year} >
               {year}
             </option>
           ))}
         </select>
+
         <button type="submit" disabled={isPending}>
           {isPending ? "Fetching..." : "Fetch"}
         </button>
       </Form>
-      {!state.ok && <p>{state.message}</p>}
 
+      {message && <p style={{ color: !state.ok ? "red" : "inherit" }}>{message}</p>}
+
+      {/* This will show the parent's data on load, and the searched data after submit */}
+      {stats && (
+        <div>
+          <p>Total Users: {stats.numberOfUsers}</p>
+          <p>Total Revenue: {stats.totalRevenue}</p>
+          <p>Recovery: {stats.recovery}</p>
+          <p>Pending: {stats.pending}</p>
+          <p>Paid: {stats.paid} | Partial: {stats.partial} | Unpaid: {stats.unpaid}</p>
+        </div>
+      )}
     </>
   );
 }
