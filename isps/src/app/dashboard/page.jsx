@@ -1,6 +1,6 @@
 import { db } from "../lib/turso";
 import ClientDashboard from "./ClientDashboard";
-import ClientDashboard2 from "./ClientDashboard copy";
+
 
 export default async function Dashboard() {
 
@@ -57,7 +57,6 @@ export default async function Dashboard() {
 
 
     return (<>
-        {/* <ClientDashboard payload={payload} /> */}
-        <ClientDashboard2 payload={payload} yearsArr={yearsArr} monthsArr={monthsArr} />
+        <ClientDashboard payload={payload} yearsArr={yearsArr} monthsArr={monthsArr} />
     </>);
 }
