@@ -2,45 +2,44 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useState } from "react";
 
 const navLinks = [
     { label: "Dashboard", href: "/dashboard" },
-    { label: "Projects", href: "/projects" },
-    { label: "Clients", href: "/clients" },
-    { label: "Invoices", href: "/invoices" },
+    { label: "Collect Fees", href: "/fee-submit" },
+    { label: "Add User", href: "/add-user" },
+    { label: "Manage Plans", href: "/plans" },
     { label: "Settings", href: "/settings" },
 ];
 
 export default function Sidebar() {
     const pathname = usePathname();
+    const [open, setOpen] = useState(true);
 
     return (
-        <aside className="w-56 min-h-screen border-r border-gray-200 bg-white">
-            {/* Brand / Logo area */}
-            <div className="h-14 flex items-center px-4 border-b border-gray-200">
-                <span className="font-semibold text-gray-800">MyApp</span>
-            </div>
+        <aside className={`min-h-screen border-r border-gray-200 ${open ? "w-48" : "w-10"}`}>
 
-            {/* Nav links */}
-            <nav className="flex flex-col gap-1 p-3">
-                {navLinks.map((link) => {
-                    const isActive = pathname === link.href;
+            <button onClick={() => setOpen(!open)} className="p-3 text-sm whitespace-nowrap">
+                {open ? "✕" : "☰"}
+            </button>
 
-                    return (
+            {open && (
+                <nav className="flex flex-col">
+                    {navLinks.map((link) => (
                         <Link
                             key={link.href}
                             href={link.href}
-                            className={`px-3 py-2 rounded text-sm font-medium transition-colors
-                ${isActive
-                                    ? "bg-gray-100 text-gray-900"
-                                    : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                            className={`px-4 py-2 text-sm ${pathname === link.href
+                                    ? "font-semibold text-black"
+                                    : "text-gray-500"
                                 }`}
                         >
                             {link.label}
                         </Link>
-                    );
-                })}
-            </nav>
+                    ))}
+                </nav>
+            )}
+
         </aside>
     );
 }

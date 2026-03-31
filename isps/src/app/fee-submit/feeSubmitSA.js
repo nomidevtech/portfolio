@@ -131,6 +131,7 @@ export async function submit(_, formData) {
 
         const remainingFee = remaining_fee - payment;
         const feeStatus = remainingFee <= 0 ? "paid" : (remainingFee === amount_due ? "unpaid" : "partial");
+        const amount_paid = amount_due - remainingFee;
 
         const invoiceId = `${month}${year}-${record_public_id}${nanoid(8)}`;
 
@@ -138,7 +139,7 @@ export async function submit(_, formData) {
             UPDATE billing_transactions
             SET fee_status = ?, amount_paid = ?, remaining_fee = ?, invoice_id = ?
             WHERE public_id = ? AND username_snapshot = ? AND billing_month = ? AND billing_year = ?
-        `, [feeStatus, payment, remainingFee, invoiceId, record_public_id, username, month, year]);
+        `, [feeStatus, amount_paid, remainingFee, invoiceId, record_public_id, username, month, year]);
 
         return { ok: true, message: "Payment submitted", invoiceId, submitComplete: true };
 
