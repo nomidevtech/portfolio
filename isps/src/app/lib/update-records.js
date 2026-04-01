@@ -12,19 +12,19 @@ export async function updateRecords() {
 
         const result = await db.execute(
             `
-        SELECT users.id AS user_id,
-               users.public_id AS user_public_id,
-               users.admin_id,
-               users.username,
-               users.contact,
-               users.password,
-               plans.speed AS plan,
-               plans.rate AS fee
-        FROM users
-        LEFT JOIN user_plans ON users.id = user_plans.user_id
-        LEFT JOIN plans ON user_plans.plan_id = plans.id
-        WHERE users.admin_id = ?
-        `,
+                SELECT users.id AS user_id,
+                users.public_id AS user_public_id,
+                users.admin_id,
+                users.username,
+                users.contact,
+                users.password,
+                COALESCE(plans.speed, 2) AS plan,
+                COALESCE(plans.rate, 500) AS fee
+                FROM users
+                LEFT JOIN user_plans ON users.id = user_plans.user_id
+                LEFT JOIN plans ON user_plans.plan_id = plans.id
+                WHERE users.admin_id = ?
+                `,
             [adminId]
         );
 

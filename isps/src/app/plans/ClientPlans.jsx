@@ -28,8 +28,8 @@ export default function ClientPlans({ plans = [] }) {
 
             {mode === "add" && (
                 <Form action={handleAction}>
-                    <input type="number" name="speed" placeholder="speed" />
-                    <input type="number" name="rate" placeholder="rate" />
+                    <input type="number" name="speed" placeholder="0 Mbps" />
+                    <input type="number" name="rate" placeholder="0 Rs" />
                     <button type="submit" disabled={isPending}>
                         {isPending ? "Adding..." : "Add"}
                     </button>

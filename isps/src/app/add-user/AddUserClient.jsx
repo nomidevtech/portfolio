@@ -3,10 +3,11 @@
 import Form from "next/form";
 import { startTransition, useActionState } from "react";
 import { addUserServerAction } from "./addUserSA";
-import { checkUsernameServerAction } from "./checkUsernameSA";
+import { checkUsernameServerAction } from "../lib/checkUsernameSA";
+
 
 export default function AddUserClient({ plans = [] }) {
-    const initialState = { ok: null, message: "" };
+    const initialState = { ok: null, username: null, message: "" };
 
     const [state, action, isPending] = useActionState(addUserServerAction, initialState);
     const [stateUsername, actionUsername] = useActionState(checkUsernameServerAction, initialState);
@@ -34,7 +35,7 @@ export default function AddUserClient({ plans = [] }) {
                     <option value="" disabled>Select plan</option>
                     {plans.map((plan) => (
                         <option key={plan.public_id} value={plan.public_id}>
-                            {plan.speed} Mbps
+                            {plan.speed} Mbps {plan.fee} Rs
                         </option>
                     ))}
                 </select>

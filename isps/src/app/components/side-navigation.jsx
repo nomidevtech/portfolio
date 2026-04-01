@@ -8,6 +8,7 @@ const navLinks = [
     { label: "Dashboard", href: "/dashboard" },
     { label: "Collect Fees", href: "/fee-submit" },
     { label: "Add User", href: "/add-user" },
+    { label: "Edit User", href: "/edit-user" },
     { label: "Manage Plans", href: "/plans" },
     { label: "Settings", href: "/settings" },
 ];
@@ -30,8 +31,8 @@ export default function Sidebar() {
                             key={link.href}
                             href={link.href}
                             className={`px-4 py-2 text-sm ${pathname === link.href
-                                    ? "font-semibold text-black"
-                                    : "text-gray-500"
+                                ? "font-semibold text-black"
+                                : "text-gray-500"
                                 }`}
                         >
                             {link.label}

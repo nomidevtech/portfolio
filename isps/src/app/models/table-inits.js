@@ -47,7 +47,7 @@ export async function initPlansTable() {
             CREATE TABLE IF NOT EXISTS plans (
                 id INTEGER PRIMARY KEY,
                 public_id TEXT NOT NULL,
-                speed INTEGER UNIQUE,
+                speed INTEGER,
                 rate INTEGER 
             )
         `);
