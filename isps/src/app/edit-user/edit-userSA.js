@@ -99,7 +99,7 @@ export async function updateUser(_, formData) {
 
         const userPublicId = formData.get("user_public_id")?.toString().trim();
         const username = formData.get("username")?.toString().trim();
-        const newUsername = formData.get("new_username")?.toString().trim();
+        const newUsername = formData.get("new_username")?.toString().trim() || username;
         const password = formData.get("password")?.toString().trim() || null;
         const contactRaw = formData.get("contact")?.toString().trim();
         const contact = contactRaw ? Number(contactRaw) : 0;

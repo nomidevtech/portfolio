@@ -93,7 +93,7 @@ export default function ClientEditUser({ onReset, plans = [] }) {
             </Form>
         </>}
         {view === "submited" && stateUpdate.ok && stateUpdate.message && <p>{stateUpdate.message}</p>}
-        {!stateUpdate.ok && !stateUpdate.searchComplete && <p>{stateUpdate.message}</p>}
+        {!stateUpdate.ok && !stateUpdate.searchComplete && stateUpdate.message && <p>{stateUpdate.message}</p>}
         {view === "submited" && stateUpdate.ok && stateUpdate.searchComplete && <button onClick={onReset}>New Search</button>}
         {!stateDelete.ok && <p>{stateDelete.message}</p>}
         {view === "deleted" && stateDelete.ok && stateDelete.message && <>

@@ -130,7 +130,7 @@ export async function submit(_, formData) {
         const payment = paymentRaw ? Number(paymentRaw) : 0;
 
         if (!record_public_id || !username) return { ok: false, message: "Search term is broken" };
-        if (payment === 0) return { ok: false, message: "Payment cannot be zero" };
+        if (payment <= 0) return { ok: false, message: "Payment cannot be zero or negative" };
 
         const d = new Date();
         const month = d.getMonth() + 1;

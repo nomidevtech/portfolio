@@ -20,6 +20,22 @@ export async function plansServerAction(_, formData) {
     const speed = speedRaw ? Number(speedRaw) : null;
     const rate = rateRaw ? Number(rateRaw) : null;
 
+    if (planId && !speed && !rate) {
+        const result = await db.execute(
+            `DELETE FROM plans WHERE public_id = ? AND admin_id = ?`,
+            [planId, adminId]
+        );
+
+        if (result.rowsAffected === 0) {
+            return { ok: false, message: "Error deleting plan" };
+        }
+
+        return { ok: true, message: "Plan deleted successfully" };
+    }
+
+    if (!speed || speed <= 0) return { ok: false, message: "Speed must be greater than 0" };
+    if (!rate || rate <= 0) return { ok: false, message: "Rate must be greater than 0" };
+
     try {
 
         if (!planId && speed && rate) {
@@ -48,18 +64,7 @@ export async function plansServerAction(_, formData) {
             return { ok: true, message: "Plan updated successfully" };
         }
 
-        if (planId && !speed && !rate) {
-            const result = await db.execute(
-                `DELETE FROM plans WHERE public_id = ? AND admin_id = ?`,
-                [planId, adminId]
-            );
 
-            if (result.rowsAffected === 0) {
-                return { ok: false, message: "Error deleting plan" };
-            }
-
-            return { ok: true, message: "Plan deleted successfully" };
-        }
 
         return { ok: false, message: "Invalid request" };
 

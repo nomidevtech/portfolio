@@ -2,8 +2,10 @@
 
 import { cookies } from "next/headers";
 import { db } from "./turso";
+import { cache } from "react";
 
-export async function getUser() {
+
+export const getUser = cache(async function getUser() {
 
     try {
 
@@ -39,4 +41,4 @@ export async function getUser() {
         console.error(error);
         return null;
     }
-}
+})

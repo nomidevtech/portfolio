@@ -5,15 +5,16 @@ import { updateRecords } from "../lib/update-records";
 import ClientDashboard from "./ClientDashboard";
 
 export default async function Dashboard() {
+
+    const currentUser = await getUser();
+    if (!currentUser?.id) redirect("/login");
+
+    const adminId = currentUser.id;
+    const d = new Date();
+    const month = d.getMonth() + 1;
+    const year = d.getFullYear();
+    
     try {
-        const currentUser = await getUser();
-        if (!currentUser?.id) return redirect("/login");
-
-        const adminId = currentUser.id;
-        const d = new Date();
-        const month = d.getMonth() + 1;
-        const year = d.getFullYear();
-
         await updateRecords();
 
         const fetchStats = await db.execute(
@@ -61,7 +62,6 @@ export default async function Dashboard() {
         const monthsArr = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
         const yearsArr = fetchYears.rows.map(row => row.billing_year);
 
-        console.log(yearsArr);
 
         return (
             <ClientDashboard

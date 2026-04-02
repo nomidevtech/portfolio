@@ -5,11 +5,11 @@ import { initAdminsTable, initBilling_transactionsTable, initPlansTable, initSes
 
 export default async function SignUp() {
 
-    await initAdminsTable();
-    await initSessionsTable();
-    await initPlansTable();
-    await initUsersTable();
-    await initBilling_transactionsTable();
+    // await initAdminsTable();
+    // await initSessionsTable();
+    // await initPlansTable();
+    // await initUsersTable();
+    // await initBilling_transactionsTable();
 
 
     const currentUser = await getUser();

@@ -2,7 +2,7 @@
 
 import Form from "next/form";
 import { plansServerAction } from "./plansSA";
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
 export default function ClientPlans({ plans = [] }) {
@@ -13,10 +13,11 @@ export default function ClientPlans({ plans = [] }) {
     const [state, action, isPending] = useActionState(plansServerAction, initialState);
     const [mode, setMode] = useState("");
 
-    const handleAction = async (formData) => {
-        await action(formData);
-        router.refresh();
-    };
+    useEffect(() => {
+        if (state.ok === true) {
+            router.refresh();
+        }
+    }, [state]);
 
     return (
         <>
@@ -27,7 +28,7 @@ export default function ClientPlans({ plans = [] }) {
             <button onClick={() => setMode("delete")}>Delete Plan</button>
 
             {mode === "add" && (
-                <Form action={handleAction}>
+                <Form action={action}>
                     <input type="number" name="speed" placeholder="0 Mbps" />
                     <input type="number" name="rate" placeholder="0 Rs" />
                     <button type="submit" disabled={isPending}>
@@ -37,7 +38,7 @@ export default function ClientPlans({ plans = [] }) {
             )}
 
             {mode === "update" && (
-                <Form action={handleAction}>
+                <Form action={action}>
                     <select name="public_id">
                         <option value="">select plan</option>
                         {plans.map((plan) => (
@@ -57,7 +58,7 @@ export default function ClientPlans({ plans = [] }) {
             )}
 
             {mode === "delete" && (
-                <Form action={handleAction}>
+                <Form action={action}>
                     <select name="public_id">
                         <option value="">select plan</option>
                         {plans.map((plan) => (

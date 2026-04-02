@@ -11,7 +11,7 @@ export async function checkAdminNameServerAction(_, username) {
 
         if (result.rows[0].count !== 0) return { ok: false, message: 'Username already in use' };
 
-        return { ok: true, username, message: 'Username is available', username: username };
+        return { ok: true, username, message: 'Username is available', username };
 
     } catch (error) {
         console.error(error);
