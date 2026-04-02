@@ -104,7 +104,7 @@ export async function initBilling_transactionsTable() {
 
                     FOREIGN KEY (admin_id) REFERENCES admins(id) ON DELETE SET NULL,
                     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
-                    );`
+                    )`
         );
 
         return { ok: true, message: "billing_transactions table initialized" };
