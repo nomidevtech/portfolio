@@ -1,9 +1,15 @@
+import { redirect } from "next/navigation";
+import { getUser } from "../lib/getUser";
 import { db } from "../lib/turso";
 import { updateRecords } from "../lib/update-records";
 import ClientDashboard from "./ClientDashboard";
 
 export default async function Dashboard() {
-    const adminId = 1;
+
+    const currentUser = await getUser();
+    if (!currentUser?.id) return redirect("/login");
+
+    const adminId = currentUser.id;
     const d = new Date();
     const month = d.getMonth() + 1;
     const year = d.getFullYear();

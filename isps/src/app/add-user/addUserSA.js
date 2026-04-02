@@ -4,10 +4,15 @@ import { db } from "@/app/lib/turso";
 import { updateRecords } from "@/app/lib/update-records";
 import { initUsersTable } from "@/app/models/table-inits";
 import { nanoid } from "nanoid";
+import { getUser } from "../lib/getUser";
 
 export async function addUserServerAction(_, formData) {
+
+    const currentUser = await getUser();
+    if (!currentUser?.id) return { ok: false, message: "You must be logged in" };
+
     await initUsersTable();
-    await updateRecords();
+    //await updateRecords();
 
     try {
         const username = formData.get("username")?.toString().trim();
@@ -20,7 +25,7 @@ export async function addUserServerAction(_, formData) {
             return { ok: false, message: "Username and plan are required" };
         }
 
-        const adminId = 1;
+        const adminId = currentUser.id;
 
         const fetchPlanDetails = await db.execute(`SELECT id FROM plans WHERE public_id = ?`, [planPublicId]);
         if (fetchPlanDetails.rows.length === 0) {
@@ -32,21 +37,12 @@ export async function addUserServerAction(_, formData) {
 
 
         const result = await db.execute(
-            `INSERT INTO users (public_id, admin_id, username, password, contact) 
-             VALUES (?, ?, ?, ?, ?) RETURNING id`,
-            [nanoid(12), adminId, username, password, contact]
+            `INSERT INTO users (public_id, admin_id, username, password, contact, plan_id) 
+                VALUES (?, ?, ?, ?, ?, ?)`,
+            [nanoid(12), adminId, username, password, contact, planId]
         );
 
-        const userId = result.rows[0]?.id;
-
-        if (!userId) {
-            return { ok: false, message: "Error creating user profile" };
-        }
-
-        await db.execute(
-            `INSERT INTO user_plans (user_id, plan_id) VALUES (?, ?)`,
-            [userId, planId]
-        );
+        if (result.rowsAffected === 0) return { ok: false, message: "Error adding user" };
 
         return { ok: true, message: "User added successfully" };
     } catch (error) {

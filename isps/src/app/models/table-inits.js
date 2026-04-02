@@ -1,3 +1,5 @@
+import { redirect } from "next/navigation";
+import { getUser } from "../lib/getUser";
 import { db } from "../lib/turso";
 
 export async function initAdminsTable() {
@@ -23,15 +25,17 @@ export async function initUsersTable() {
     try {
         await db.execute(`
             CREATE TABLE IF NOT EXISTS users (
-                id INTEGER PRIMARY KEY,
-                public_id TEXT NOT NULL,
-                admin_id INTEGER NOT NULL,
-                username TEXT UNIQUE NOT NULL,
-                password TEXT DEFAULT NULL,
-                contact INTEGER DEFAULT 0,
-                FOREIGN KEY (admin_id) REFERENCES admins (id) ON DELETE CASCADE ON UPDATE CASCADE
-            )
-        `);
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            public_id TEXT NOT NULL,
+            admin_id INTEGER NOT NULL,
+            username TEXT UNIQUE NOT NULL,
+            password TEXT DEFAULT NULL,
+            contact INTEGER DEFAULT 0,
+            plan_id INTEGER,
+            FOREIGN KEY (admin_id) REFERENCES admins (id) ON DELETE CASCADE ON UPDATE CASCADE,
+            FOREIGN KEY (plan_id) REFERENCES plans (id) ON DELETE CASCADE ON UPDATE CASCADE
+            )`
+        );
 
         return { ok: true, message: "users table initialized" };
     } catch (error) {
@@ -42,13 +46,17 @@ export async function initUsersTable() {
 
 
 export async function initPlansTable() {
+
+
     try {
         await db.execute(`
             CREATE TABLE IF NOT EXISTS plans (
                 id INTEGER PRIMARY KEY,
                 public_id TEXT NOT NULL,
+                admin_id INTEGER NOT NULL,
                 speed INTEGER,
-                rate INTEGER 
+                rate INTEGER,
+                FOREIGN KEY (admin_id) REFERENCES admins (id) ON DELETE CASCADE ON UPDATE CASCADE
             )
         `);
 
@@ -57,7 +65,7 @@ export async function initPlansTable() {
         console.log(error);
         return { ok: false, message: "Error creating plans table" };
     }
-};
+}
 
 
 
@@ -120,5 +128,25 @@ export async function initBilling_transactionsTable() {
     } catch (error) {
         console.log(error);
         return { ok: false, message: "Error creating billing_transactions table" };
+    }
+};
+
+
+export async function initSessionsTable() {
+    try {
+        await db.execute(`
+            CREATE TABLE IF NOT EXISTS sessions (
+                id INTEGER PRIMARY KEY,
+                session_id TEXT NOT NULL UNIQUE,
+                admin_id INTEGER NOT NULL REFERENCES admins(id) ON DELETE CASCADE,
+                expires_at TEXT NOT NULL,
+                created_at TEXT NOT NULL DEFAULT (datetime('now'))
+            )
+        `);
+
+        return { ok: true, message: "sessions table initialized" };
+    } catch (error) {
+        console.log(error);
+        return { ok: false, message: "Error creating sessions table" };
     }
 };

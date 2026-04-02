@@ -1,8 +1,13 @@
 "use server";
 
+import { getUser } from "../lib/getUser";
 import { db } from "../lib/turso";
 
 export async function fetchStatsServerAction(_, formData) {
+
+    const currentUser = await getUser();
+    if (!currentUser?.id) return { ok: false, searchComplete: false, stats: {}, message: "You must be logged in" };
+
     const defaultStats = {
         numberOfUsers: 0,
         totalRevenue: 0,
@@ -29,7 +34,7 @@ export async function fetchStatsServerAction(_, formData) {
 
         const month = monthsObj.find(m => monthRaw?.startsWith(m[0]))?.[1] || null;
         const year = Number(yearRaw) || null;
-        const adminId = 1;
+        const adminId = currentUser.id;
 
         const fetchStats = await db.execute(
             `SELECT COUNT(*) AS total_users, SUM(amount_due) AS total_revenue, SUM(amount_paid) AS recovery, SUM(remaining_fee) AS pending 

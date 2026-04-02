@@ -9,12 +9,12 @@ export default function NavBar() {
                         <Link href="/">Home</Link>
                     </li>
                     <li>
-                        <Link href="/sign-up">Sign Up</Link>
+                        <Link href="/signup">Sign Up</Link>
                     </li>
                     <li>
                         <Link href="/login">Login</Link>
                     </li>
-                   
+
                 </ul>
             </nav>
         </>

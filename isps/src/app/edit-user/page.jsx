@@ -1,21 +1,23 @@
-"use client";
+import { redirect } from "next/navigation";
+import { getUser } from "../lib/getUser";
+import MiddleClient from "./MiddleClient";
+import { db } from "../lib/turso";
 
-import { useState } from "react";
-import ClientEditUser from "./ClientEditUser";
+export default async function EditUser() {
+
+    const currentUser = await getUser();
+    if (!currentUser?.id) redirect("/login");
 
 
-export default function EditUser() {
+    const fetchPlans = await db.execute(`SELECT public_id, speed, rate FROM plans WHERE admin_id = ?`, [currentUser.id]);
+    const plans = fetchPlans.rows.map(row => ({
+        public_id: row.public_id,
+        speed: Number(row.speed),
+        rate: Number(row.rate)
+    })) || [];
 
-    const [key, setKey] = useState(0);
-
-    const handleReset = () => {
-        setKey(prev => prev + 1);
-    };
 
     return (
-        <div key={key}>
-            <ClientEditUser onReset={handleReset} />
-        </div>
-    )
-
+        <MiddleClient plans={plans} />
+    );
 }

@@ -6,7 +6,7 @@ import { startTransition, useActionState, useEffect, useRef, useState } from "re
 import { fetchUserData, searchUser, updateUser } from "./edit-userSA";
 import { checkUsernameServerAction } from "../lib/checkUsernameSA";
 
-export default function ClientEditUser({ onReset }) {
+export default function ClientEditUser({ onReset, plans = [] }) {
 
     const [stateSearch, actionSearch, isPendingSearch] = useActionState(searchUser, { ok: null, searchComplete: false, arr: [], message: "" });
     const [stateDetails, actionDetails, isPendingDetails] = useActionState(fetchUserData, { ok: null, searchComplete: false, user: {}, message: "" });
@@ -30,7 +30,7 @@ export default function ClientEditUser({ onReset }) {
             startTransition(() => {
                 actionSearch(value);
             });
-        }, 1000);
+        }, 600);
     };
 
 
@@ -65,6 +65,16 @@ export default function ClientEditUser({ onReset }) {
                         if (val) startTransition(() => actionUsername(val));
                     }}
                 />
+                <p>Current Plan : {stateDetails.user.speed}Mbps {stateDetails.user.fee}Rs</p>
+                <input type="hidden" name="old_plan_public_id" value={stateDetails.user.plan_public_id} />
+                <select name="new_plan_public_id" defaultValue=''>
+                    <option value="" disabled>Change Plan</option>
+                    {plans.map((plan) => (
+                        <option key={plan.public_id} value={plan.public_id}>
+                            {plan.speed} Mbps {plan.rate} Rs
+                        </option>
+                    ))}
+                </select>
                 <input type="number" name="contact" defaultValue={stateDetails.user.contact} placeholder="contact" />
                 <input type="text" name="password" defaultValue={stateDetails.user.password} placeholder="password" />
                 <input type="hidden" name="user_public_id" value={stateDetails.user.public_id} readOnly />

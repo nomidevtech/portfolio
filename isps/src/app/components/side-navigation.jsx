@@ -11,6 +11,8 @@ const navLinks = [
     { label: "Edit User", href: "/edit-user" },
     { label: "Manage Plans", href: "/plans" },
     { label: "Settings", href: "/settings" },
+    { label: "Bulk Adding", href: "/bulk" },
+
 ];
 
 export default function Sidebar() {
