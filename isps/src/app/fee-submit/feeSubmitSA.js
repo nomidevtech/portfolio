@@ -4,17 +4,23 @@ import { db } from "@/app/lib/turso";
 import { updateRecords } from "@/app/lib/update-records";
 import { initBilling_transactionsTable } from "@/app/models/table-inits";
 import { nanoid } from "nanoid";
+import { getUser } from "../lib/getUser";
 
 export async function searchUser(_, searchTerm) {
+    const currentUser = await getUser();
+    if (!currentUser?.id) return { ok: false, searchComplete: false, arr: [], message: "You must be logged in" };
+
+    const adminId = currentUser.id;
+
     if (!searchTerm) return { ok: false, searchComplete: false, arr: [], message: "Search term is required" };
     try {
 
         const fetch = await db.execute(`
         SELECT public_id, username
         FROM users
-        WHERE username LIKE ?
+        WHERE admin_id = ? AND username LIKE ?
         LIMIT 5
-        `, [`%${searchTerm}%`]);
+        `, [adminId, `%${searchTerm}%`]);
 
         if (fetch.rows.length === 0) return { ok: false, searchComplete: true, arr: [], message: "No user found" };
 
@@ -35,6 +41,11 @@ export async function searchUser(_, searchTerm) {
 
 
 export async function fetchDetails(_, formData) {
+    const currentUser = await getUser();
+    if (!currentUser?.id) return { ok: false, searchComplete: false, arr: [], message: "You must be logged in" };
+
+    const adminId = currentUser.id;
+
     try {
         if (!formData) {
             return { ok: false, message: "Search term is broken" };
@@ -46,8 +57,8 @@ export async function fetchDetails(_, formData) {
         const username = formData.get("username");
 
         const fetchUserId = await db.execute(
-            "SELECT id FROM users WHERE public_id = ?",
-            [user_public_id]
+            "SELECT id FROM users WHERE admin_id = ? AND public_id = ?",
+            [adminId, user_public_id]
         );
 
         const userId = fetchUserId?.rows?.[0]?.id;
@@ -68,10 +79,11 @@ export async function fetchDetails(_, formData) {
             `SELECT ${columns}
              FROM billing_transactions
              WHERE user_id = ?
+             AND admin_id = ?
              AND username_snapshot = ?
              AND billing_month = ?
              AND billing_year = ?`,
-            [userId, username, month, year]
+            [userId, adminId, username, month, year]
         );
 
         const row = fetchCurrentMonthRecord?.rows?.[0];
@@ -106,6 +118,11 @@ export async function fetchDetails(_, formData) {
 
 
 export async function submit(_, formData) {
+    const currentUser = await getUser();
+    if (!currentUser?.id) return { ok: false, searchComplete: false, arr: [], message: "You must be logged in" };
+
+    const adminId = currentUser.id;
+
     try {
         const record_public_id = formData.get("record_public_id");
         const username = formData.get("username");
@@ -121,8 +138,8 @@ export async function submit(_, formData) {
 
         const fetchUserId = await db.execute(`
             SELECT amount_due, remaining_fee FROM billing_transactions
-            WHERE public_id = ? AND username_snapshot = ? AND billing_month = ? AND billing_year = ?
-        `, [record_public_id, username, month, year]);
+            WHERE public_id = ? AND admin_id = ? AND username_snapshot = ? AND billing_month = ? AND billing_year = ?
+        `, [record_public_id, adminId, username, month, year]);
 
         if (fetchUserId.rows.length === 0) return { ok: false, message: "update records in settings" };
 
@@ -138,8 +155,8 @@ export async function submit(_, formData) {
         const update = await db.execute(`
             UPDATE billing_transactions
             SET fee_status = ?, amount_paid = ?, remaining_fee = ?, invoice_id = ?
-            WHERE public_id = ? AND username_snapshot = ? AND billing_month = ? AND billing_year = ?
-        `, [feeStatus, amount_paid, remainingFee, invoiceId, record_public_id, username, month, year]);
+            WHERE public_id = ? AND admin_id = ? AND username_snapshot = ? AND billing_month = ? AND billing_year = ?
+        `, [feeStatus, amount_paid, remainingFee, invoiceId, record_public_id, adminId, username, month, year]);
 
         return { ok: true, message: "Payment submitted", invoiceId, submitComplete: true };
 

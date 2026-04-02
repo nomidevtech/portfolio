@@ -11,7 +11,7 @@ export async function addUserServerAction(_, formData) {
     const currentUser = await getUser();
     if (!currentUser?.id) return { ok: false, message: "You must be logged in" };
 
-    await initUsersTable();
+    //await initUsersTable();
     //await updateRecords();
 
     try {
@@ -27,7 +27,7 @@ export async function addUserServerAction(_, formData) {
 
         const adminId = currentUser.id;
 
-        const fetchPlanDetails = await db.execute(`SELECT id FROM plans WHERE public_id = ?`, [planPublicId]);
+        const fetchPlanDetails = await db.execute(`SELECT id FROM plans WHERE admin_id = ? AND public_id = ?`, [adminId, planPublicId]);
         if (fetchPlanDetails.rows.length === 0) {
             return { ok: false, message: "Select a valid plan" };
         }

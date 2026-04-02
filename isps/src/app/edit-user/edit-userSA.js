@@ -55,12 +55,13 @@ export async function fetchUserData(_, formData) {
 
         if (!userPublicId || !username) return { ok: false, message: "Search term is broken" };
 
-        const fetchUser = await db.execute(`SELECT * FROM users WHERE public_id = ? AND username = ?`, [userPublicId, username]);
+        const fetchUser = await db.execute(`SELECT * FROM users WHERE admin_id = ? AND public_id = ? AND username = ?`, [adminId, userPublicId, username]);
 
         if (fetchUser.rows.length === 0) return { ok: false, message: "User details conflict" };
 
         const user = fetchUser.rows[0];
         const plan_id = user.plan_id;
+
 
         const fetchPlan = await db.execute(`SELECT * FROM plans WHERE id = ? AND admin_id = ?`, [plan_id, adminId]);
 
@@ -103,9 +104,7 @@ export async function updateUser(_, formData) {
         const contactRaw = formData.get("contact")?.toString().trim();
         const contact = contactRaw ? Number(contactRaw) : 0;
         const oldPlanId = formData.get("old_plan_public_id")?.toString().trim();
-        const newPlanId = formData.get("new_plan_public_id")?.toString().trim();
-
-
+        const newPlanId = formData.get("new_plan_public_id")?.toString().trim() || oldPlanId;
 
         if (!userPublicId || !username) return { ok: false, message: "Search term is broken" };
 
