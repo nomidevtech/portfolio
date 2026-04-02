@@ -3,9 +3,14 @@ import Client from "./Client";
 import { logout } from "@/app/lib/logout";
 import { initSessionsTable } from "@/app/models/table-inits";
 import { cookies } from "next/headers";
+import { getUser } from "@/app/lib/getUser";
+import { redirect } from "next/navigation";
 
 
 export default async function Login() {
+
+    const currentUser = await getUser();
+    if (currentUser?.id) return redirect("/settings");
 
     const cookieStore = await cookies();
     const token = cookieStore.get('mub-session-token');

@@ -1,18 +1,16 @@
-import { redirect } from "next/navigation";
-import { getUser } from "../lib/getUser";
 import { db } from "../lib/turso";
 
 export async function initAdminsTable() {
     try {
         await db.execute(`
-            CREATE TABLE IF NOT EXISTS admins (
-                id INTEGER PRIMARY KEY,
-                public_id TEXT NOT NULL,
-                username TEXT UNIQUE NOT NULL,
-                email TEXT,
-                password TEXT 
-            )
-        `);
+                    CREATE TABLE IF NOT EXISTS admins (
+                    id INTEGER PRIMARY KEY,
+                    public_id TEXT NOT NULL,
+                    username TEXT UNIQUE NOT NULL,
+                    email TEXT,
+                    password TEXT 
+                    )
+                    `);
 
         return { ok: true, message: "Admins table initialized" };
     } catch (error) {
@@ -24,17 +22,17 @@ export async function initAdminsTable() {
 export async function initUsersTable() {
     try {
         await db.execute(`
-            CREATE TABLE IF NOT EXISTS users (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            public_id TEXT NOT NULL,
-            admin_id INTEGER NOT NULL,
-            username TEXT UNIQUE NOT NULL,
-            password TEXT DEFAULT NULL,
-            contact INTEGER DEFAULT 0,
-            plan_id INTEGER,
-            FOREIGN KEY (admin_id) REFERENCES admins (id) ON DELETE CASCADE ON UPDATE CASCADE,
-            FOREIGN KEY (plan_id) REFERENCES plans (id) ON DELETE CASCADE ON UPDATE CASCADE
-            )`
+                    CREATE TABLE IF NOT EXISTS users (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    public_id TEXT NOT NULL,
+                    admin_id INTEGER NOT NULL,
+                    username TEXT UNIQUE NOT NULL,
+                    password TEXT DEFAULT NULL,
+                    contact INTEGER DEFAULT 0,
+                    plan_id INTEGER,
+                    FOREIGN KEY (admin_id) REFERENCES admins (id) ON DELETE CASCADE ON UPDATE CASCADE,
+                    FOREIGN KEY (plan_id) REFERENCES plans (id) ON DELETE SET NULL
+                    )`
         );
 
         return { ok: true, message: "users table initialized" };
@@ -50,15 +48,15 @@ export async function initPlansTable() {
 
     try {
         await db.execute(`
-            CREATE TABLE IF NOT EXISTS plans (
-                id INTEGER PRIMARY KEY,
-                public_id TEXT NOT NULL,
-                admin_id INTEGER NOT NULL,
-                speed INTEGER,
-                rate INTEGER,
-                FOREIGN KEY (admin_id) REFERENCES admins (id) ON DELETE CASCADE ON UPDATE CASCADE
-            )
-        `);
+                    CREATE TABLE IF NOT EXISTS plans (
+                    id INTEGER PRIMARY KEY,
+                    public_id TEXT NOT NULL,
+                    admin_id INTEGER NOT NULL,
+                    speed INTEGER,
+                    rate INTEGER,
+                    FOREIGN KEY (admin_id) REFERENCES admins (id) ON DELETE CASCADE ON UPDATE CASCADE
+                    )
+                    `);
 
         return { ok: true, message: "plans table initialized" };
     } catch (error) {
@@ -69,59 +67,44 @@ export async function initPlansTable() {
 
 
 
-export async function initUserPlansTable() {
-    try {
-        await db.execute(`
-           CREATE TABLE IF NOT EXISTS user_plans (
-            user_id INTEGER PRIMARY KEY,
-            plan_id INTEGER NOT NULL,
-            FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE ON UPDATE CASCADE,
-            FOREIGN KEY (plan_id) REFERENCES plans (id) ON DELETE CASCADE ON UPDATE CASCADE
-            );
-        `);
 
-        return { ok: true, message: "user_plans table initialized" };
-    } catch (error) {
-        console.log(error);
-        return { ok: false, message: "Error creating user_plans table" };
-    }
-};
 
 
 
 export async function initBilling_transactionsTable() {
     try {
         await db.execute(`
-            CREATE TABLE IF NOT EXISTS billing_transactions (
-            id INTEGER PRIMARY KEY,
-            public_id TEXT,
+                    CREATE TABLE IF NOT EXISTS billing_transactions (
+                    id INTEGER PRIMARY KEY,
+                    public_id TEXT,
 
-            user_id INTEGER,   
-            admin_id INTEGER,
+                    user_id INTEGER,   
+                    admin_id INTEGER,
 
-            billing_month INTEGER,
-            billing_year INTEGER,
+                    billing_month INTEGER,
+                    billing_year INTEGER,
 
-            fee_status TEXT DEFAULT 'unpaid',
-            amount_due INTEGER DEFAULT 0,
-            amount_paid INTEGER DEFAULT 0,
-            remaining_fee INTEGER DEFAULT 0,
-            
-            plan_snapshot TEXT,
-            fee_snapshot TEXT,
-            username_snapshot TEXT,
-            contact_snapshot INTEGER DEFAULT 0,
-            password_snapshot TEXT DEFAULT NULL,
+                    fee_status TEXT DEFAULT 'unpaid',
+                    amount_due INTEGER DEFAULT 0,
+                    amount_paid INTEGER DEFAULT 0,
+                    remaining_fee INTEGER DEFAULT 0,
 
-            invoice_id TEXT UNIQUE DEFAULT NULL,
+                    plan_snapshot TEXT,
+                    fee_snapshot TEXT,
+                    username_snapshot TEXT,
+                    contact_snapshot INTEGER DEFAULT 0,
+                    password_snapshot TEXT DEFAULT NULL,
 
-            entry_date TEXT DEFAULT CURRENT_TIMESTAMP,
-            last_updated TEXT DEFAULT CURRENT_TIMESTAMP,
-           
-            UNIQUE(user_id, billing_month, billing_year),
+                    invoice_id TEXT UNIQUE DEFAULT NULL,
 
-            FOREIGN KEY (admin_id) REFERENCES admins(id) ON DELETE CASCADE ON UPDATE CASCADE
-            );`
+                    entry_date TEXT DEFAULT CURRENT_TIMESTAMP,
+                    last_updated TEXT DEFAULT CURRENT_TIMESTAMP,
+
+                    UNIQUE(user_id, billing_month, billing_year),
+
+                    FOREIGN KEY (admin_id) REFERENCES admins(id) ON DELETE SET NULL,
+                    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
+                    );`
         );
 
         return { ok: true, message: "billing_transactions table initialized" };
@@ -135,14 +118,14 @@ export async function initBilling_transactionsTable() {
 export async function initSessionsTable() {
     try {
         await db.execute(`
-            CREATE TABLE IF NOT EXISTS sessions (
-                id INTEGER PRIMARY KEY,
-                session_id TEXT NOT NULL UNIQUE,
-                admin_id INTEGER NOT NULL REFERENCES admins(id) ON DELETE CASCADE,
-                expires_at TEXT NOT NULL,
-                created_at TEXT NOT NULL DEFAULT (datetime('now'))
-            )
-        `);
+                    CREATE TABLE IF NOT EXISTS sessions (
+                    id INTEGER PRIMARY KEY,
+                    session_id TEXT NOT NULL UNIQUE,
+                    admin_id INTEGER NOT NULL REFERENCES admins(id) ON DELETE CASCADE,
+                    expires_at TEXT NOT NULL,
+                    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+                    )
+                    `);
 
         return { ok: true, message: "sessions table initialized" };
     } catch (error) {

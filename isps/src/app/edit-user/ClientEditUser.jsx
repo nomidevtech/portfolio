@@ -3,7 +3,7 @@
 import Form from "next/form";
 import { startTransition, useActionState, useEffect, useRef, useState } from "react";
 
-import { fetchUserData, searchUser, updateUser } from "./edit-userSA";
+import { fetchUserData, removeUser, searchUser, updateUser } from "./edit-userSA";
 import { checkUsernameServerAction } from "../lib/checkUsernameSA";
 
 export default function ClientEditUser({ onReset, plans = [] }) {
@@ -12,6 +12,7 @@ export default function ClientEditUser({ onReset, plans = [] }) {
     const [stateDetails, actionDetails, isPendingDetails] = useActionState(fetchUserData, { ok: null, searchComplete: false, user: {}, message: "" });
     const [stateUsername, actionUsername] = useActionState(checkUsernameServerAction, { ok: null, message: "" });
     const [stateUpdate, actionUpdate, isPendingUpdate] = useActionState(updateUser, { ok: null, message: "" });
+    const [stateDelete, actionDelete, isPendingDelete] = useActionState(removeUser, { ok: null, message: "" });
 
     const timerRef = useRef(null);
     const [view, setView] = useState("search");
@@ -20,7 +21,8 @@ export default function ClientEditUser({ onReset, plans = [] }) {
         if (stateSearch.ok && stateSearch.arr.length > 0) setView("search");
         if (stateDetails.ok && stateDetails.user) setView("details");
         if (stateUpdate.ok && stateUpdate.searchComplete) setView("submited");
-    }, [stateDetails, stateSearch, stateUpdate]);
+        if (stateDelete.ok) setView("deleted");
+    }, [stateDetails, stateSearch, stateUpdate, stateDelete]);
 
 
     const handleOnChange = (e) => {
@@ -83,11 +85,21 @@ export default function ClientEditUser({ onReset, plans = [] }) {
                     {isPendingDetails ? "Updating..." : "Update"}
                 </button>
                 <button onClick={onReset}>Reset</button>
+
+            </Form>
+            <Form action={actionDelete}>
+                <input type="hidden" name="user_public_id" value={stateDetails.user.public_id} readOnly />
+                <button type="submit">Delete</button>
             </Form>
         </>}
         {view === "submited" && stateUpdate.ok && stateUpdate.message && <p>{stateUpdate.message}</p>}
         {!stateUpdate.ok && !stateUpdate.searchComplete && <p>{stateUpdate.message}</p>}
         {view === "submited" && stateUpdate.ok && stateUpdate.searchComplete && <button onClick={onReset}>New Search</button>}
+        {!stateDelete.ok && <p>{stateDelete.message}</p>}
+        {view === "deleted" && stateDelete.ok && stateDelete.message && <>
+            <p>{stateDelete.message}</p>
+            <button onClick={onReset}>New Search</button>
+        </>}
 
 
     </>);

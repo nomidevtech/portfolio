@@ -1,17 +1,12 @@
-'use client'
-import { useState } from "react";
-import ChildFeeSubmit from "./Child";
+import { redirect } from "next/navigation";
+import { getUser } from "../lib/getUser";
+import MiddleClient from "./MiddleClient";
 
-export default function FeeSubmit() {
-    const [resetKey, setResetKey] = useState(0);
-
-    const handleReset = () => {
-        setResetKey(prev => prev + 1);
-    };
+export default async function FeeSubmit() {
+    const currentUser = await getUser();
+    if (!currentUser?.id) redirect("/login");
 
     return (
-        <div key={resetKey}>
-            <ChildFeeSubmit onReset={handleReset} />
-        </div>
+        <MiddleClient />
     );
 }

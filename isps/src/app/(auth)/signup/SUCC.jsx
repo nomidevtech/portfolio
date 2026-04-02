@@ -3,14 +3,14 @@
 import { startTransition, useActionState } from "react"
 import Form from "next/form"
 import { signuptServerAction } from "./signupSA"
-import { checkUsernameServerAction } from "@/app/lib/checkUsernameSA";
+import { checkAdminNameServerAction } from "@/app/lib/checkAdminNameSA";
 
 export default function SignUpClientComponent() {
 
     const initialState = { ok: null, message: "" };
 
     const [submitState, submitAction, submitPending] = useActionState(signuptServerAction, initialState);
-    const [usernameState, usernameAction, usernamePending] = useActionState(checkUsernameServerAction, null);
+    const [usernameState, usernameAction, usernamePending] = useActionState(checkAdminNameServerAction, null);
 
 
     return (

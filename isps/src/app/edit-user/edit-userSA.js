@@ -131,3 +131,37 @@ export async function updateUser(_, formData) {
         return { ok: false, searchComplete: false, message: "Database error." };
     }
 }
+
+
+
+
+
+
+
+export async function removeUser(_, formData) {
+    try {
+
+        const currentUser = await getUser();
+        if (!currentUser?.id) return { ok: false, message: "You must be logged in" };
+
+        const adminId = currentUser.id;
+
+        const userPublicId = formData.get("user_public_id")?.toString().trim();
+
+
+        if (!userPublicId) return { ok: false, message: "Search term is broken" };
+
+        const fetchUserId = await db.execute(`SELECT id FROM users WHERE public_id = ? AND admin_id = ?`, [userPublicId, adminId]);
+
+        if (fetchUserId.rows.length === 0) return { ok: false, message: "User details conflict" };
+
+        const userId = fetchUserId.rows[0].id;
+
+        await db.execute(`DELETE FROM users WHERE id = ? AND admin_id = ?`, [userId, adminId]);
+
+        return { ok: true, message: "User removed successfully" };
+    } catch (error) {
+        console.error(error);
+        return { ok: false, message: "Database error." };
+    }
+}
