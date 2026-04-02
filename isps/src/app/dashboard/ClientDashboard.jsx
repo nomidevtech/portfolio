@@ -1,135 +1,107 @@
-'use client';
+'use client'
 
-import { useActionState, useMemo } from "react";
+import { useActionState } from "react";
 import { fetchStatsServerAction } from "./fetchSA";
 import Form from "next/form";
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from "recharts";
 
-export default function ClientDashboard({ initialData, yearsArr = [], monthsArr = [] }) {
-  const [state, action, isPending] = useActionState(fetchStatsServerAction, initialData);
-  const { stats, message, ok } = state;
-
-  // Prepare data for the Donut Chart
-  const chartData = useMemo(() => {
-    if (!stats) return [];
-    return [
-      { name: "Paid", value: stats.paid, color: "#10b981" },    // Emerald-500
-      { name: "Partial", value: stats.partial, color: "#f59e0b" }, // Amber-500
-      { name: "Unpaid", value: stats.unpaid, color: "#ef4444" },  // Red-500
-    ];
-  }, [stats]);
-
-  return (
-    <div className="min-h-screen bg-slate-50 p-4 md:p-8 text-slate-900">
-      <div className="max-w-5xl mx-auto space-y-6">
-
-        {/* Header & Controls */}
-        <header className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
-          <h1 className="text-xl font-semibold mb-6">Revenue Dashboard</h1>
-
-          <Form action={action} className="flex flex-col sm:flex-row items-end gap-4">
-            <div className="w-full sm:w-auto flex-1 space-y-2">
-              <label className="text-xs font-medium text-slate-500 uppercase tracking-wider">Month</label>
-              <select
-                name="month"
-                defaultValue=""
-                required
-                className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
-              >
-                <option value="" disabled>Select month</option>
-                {monthsArr.map((month) => (
-                  <option key={month} value={month}>{month}</option>
-                ))}
-              </select>
-            </div>
-
-            <div className="w-full sm:w-auto flex-1 space-y-2">
-              <label className="text-xs font-medium text-slate-500 uppercase tracking-wider">Year</label>
-              <select
-                name="year"
-                defaultValue={2026}
-                required
-                className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
-              >
-                <option value="" disabled>Select year</option>
-                {yearsArr.map((year) => (
-                  <option key={year} value={year}>{year}</option>
-                ))}
-              </select>
-            </div>
-
-            <button
-              type="submit"
-              disabled={isPending}
-              className="w-full sm:w-auto bg-slate-900 hover:bg-slate-800 text-white font-medium px-8 py-2.5 rounded-lg disabled:opacity-50 transition-colors shadow-lg shadow-slate-200"
-            >
-              {isPending ? "Updating..." : "Generate Report"}
-            </button>
-          </Form>
-
-          {message && (
-            <p className={`mt-4 text-sm font-medium ${!ok ? "text-red-600" : "text-emerald-600"}`}>
-              {message}
-            </p>
-          )}
-        </header>
-
-        {/* Dashboard Content */}
-        {stats && (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-
-            {/* Stat Cards */}
-            <div className="lg:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <StatCard label="Total Users" value={stats.numberOfUsers} sub="Active Connections" />
-              <StatCard label="Total Revenue" value={`Rs. ${stats.totalRevenue}`} sub="Gross Billing" />
-              <StatCard label="Recovery" value={`Rs. ${stats.recovery}`} sub="Collected" isHighlight />
-              <StatCard label="Pending" value={`Rs. ${stats.pending}`} sub="Outstanding" />
-            </div>
-
-            {/* Donut Chart Card */}
-            <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm flex flex-col items-center justify-center min-h-[350px]">
-              <h3 className="text-sm font-semibold text-slate-500 uppercase mb-4">Payment Status</h3>
-              <div className="w-full h-64">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={chartData}
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={60}
-                      outerRadius={80}
-                      paddingAngle={5}
-                      dataKey="value"
-                    >
-                      {chartData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} stroke="none" />
-                      ))}
-                    </Pie>
-                    <Tooltip
-                      contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-                    />
-                    <Legend verticalAlign="bottom" height={36} />
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-
-          </div>
-        )}
-      </div>
-    </div>
-  );
+function StatCard({ label, value, accent }) {
+    return (
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">{label}</p>
+            <p className={`text-2xl font-bold ${accent || "text-gray-900"}`}>{value ?? "—"}</p>
+        </div>
+    );
 }
 
-function StatCard({ label, value, sub, isHighlight = false }) {
-  return (
-    <div className={`p-6 rounded-2xl border transition-all ${isHighlight
-        ? "bg-blue-50 border-blue-100 ring-1 ring-blue-200"
-        : "bg-white border-slate-200"
-      }`}>
-      <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">{label}</p>
-      <p className="text-2xl font-bold text-slate-900">{value}</p>
-      <p className="text-xs text-slate-400 mt-1">{sub}</p>
-    </div>
-  );
-}n
+function StatusBadge({ label, count, color }) {
+    const colors = {
+        green: "bg-green-50 text-green-700 border-green-200",
+        yellow: "bg-yellow-50 text-yellow-700 border-yellow-200",
+        red: "bg-red-50 text-red-700 border-red-200",
+    };
+    return (
+        <div className={`flex items-center justify-between px-4 py-3 rounded-xl border ${colors[color]}`}>
+            <span className="text-sm font-medium capitalize">{label}</span>
+            <span className="text-sm font-bold">{count ?? 0}</span>
+        </div>
+    );
+}
+
+export default function ClientDashboard({ initialData, yearsArr = [], monthsArr = [] }) {
+    const [state, action, isPending] = useActionState(fetchStatsServerAction, initialData);
+    const { stats, message } = state;
+
+    return (
+        <div className="max-w-lg mx-auto px-4 py-6">
+            <div className="mb-6">
+                <h1 className="text-xl font-bold text-gray-900">Dashboard</h1>
+                <p className="text-sm text-gray-500 mt-0.5">Monthly billing overview</p>
+            </div>
+
+            {/* Filter form */}
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 mb-6">
+                <Form action={action} className="flex gap-2.5">
+                    <select
+                        name="month"
+                        defaultValue=""
+                        required
+                        className="flex-1 border border-gray-200 rounded-xl px-3 py-2.5 text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent transition-all"
+                    >
+                        <option value="" disabled>Month</option>
+                        {monthsArr.map((month) => (
+                            <option key={month} value={month}>{month}</option>
+                        ))}
+                    </select>
+
+                    <select
+                        name="year"
+                        defaultValue={2026}
+                        required
+                        className="w-24 border border-gray-200 rounded-xl px-3 py-2.5 text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent transition-all"
+                    >
+                        <option value="" disabled>Year</option>
+                        {yearsArr.map((year) => (
+                            <option key={year} value={year}>{year}</option>
+                        ))}
+                    </select>
+
+                    <button
+                        type="submit"
+                        disabled={isPending}
+                        className="bg-gray-900 text-white rounded-xl px-4 py-2.5 text-sm font-semibold hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors whitespace-nowrap"
+                    >
+                        {isPending ? "…" : "Fetch"}
+                    </button>
+                </Form>
+            </div>
+
+            {message && (
+                <p className={`text-sm px-4 py-3 rounded-xl border mb-6 ${
+                    state.ok
+                        ? "text-green-700 bg-green-50 border-green-200"
+                        : "text-red-600 bg-red-50 border-red-200"
+                }`}>
+                    {message}
+                </p>
+            )}
+
+            {stats && (
+                <>
+                    <div className="grid grid-cols-2 gap-3 mb-4">
+                        <StatCard label="Total Users" value={stats.numberOfUsers} />
+                        <StatCard label="Total Revenue" value={`Rs ${stats.totalRevenue}`} />
+                        <StatCard label="Collected" value={`Rs ${stats.recovery}`} accent="text-green-600" />
+                        <StatCard label="Pending" value={`Rs ${stats.pending}`} accent="text-red-500" />
+                    </div>
+
+                    <div className="flex flex-col gap-2.5">
+                        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide px-1">Payment Status</p>
+                        <StatusBadge label="Paid" count={stats.paid} color="green" />
+                        <StatusBadge label="Partial" count={stats.partial} color="yellow" />
+                        <StatusBadge label="Unpaid" count={stats.unpaid} color="red" />
+                    </div>
+                </>
+            )}
+        </div>
+    );
+}
