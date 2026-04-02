@@ -6,65 +6,92 @@ import { signuptServerAction } from "./signupSA"
 import { checkAdminNameServerAction } from "@/app/lib/checkAdminNameSA";
 
 export default function SignUpClientComponent() {
-
     const initialState = { ok: null, message: "" };
-
     const [submitState, submitAction, submitPending] = useActionState(signuptServerAction, initialState);
     const [usernameState, usernameAction, usernamePending] = useActionState(checkAdminNameServerAction, null);
 
-
     return (
-        <div className="min-h-screen flex items-center justify-center bg-zinc-950 text-zinc-100">
-            <div className="w-full max-w-sm bg-zinc-900 rounded-xl shadow-xl border border-zinc-800 p-8">
-                <h1 className="text-xl font-semibold text-white mb-6">Create account</h1>
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4 py-12">
+            <div className="w-full max-w-sm">
+                <div className="text-center mb-8">
+                    <h1 className="text-2xl font-bold text-gray-900">Create account</h1>
+                    <p className="text-sm text-gray-500 mt-1">Set up your admin account</p>
+                </div>
 
-                {submitState?.message && (
-                    <p className="mb-4 text-sm text-red-400 bg-red-900/20 border border-red-900/50 rounded-lg px-4 py-2">
-                        {submitState.message}
-                    </p>
-                )}
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+                    <Form action={submitAction} className="flex flex-col gap-4">
 
-                <Form action={submitAction} className="flex flex-col gap-4">
+                        <div className="flex flex-col gap-1.5">
+                            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                                Username
+                            </label>
+                            <input
+                                name="username"
+                                type="text"
+                                placeholder="john_doe"
+                                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900 placeholder-gray-400 bg-white focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent transition-all"
+                                onBlur={(e) => startTransition(() => usernameAction(e.target.value))}
+                            />
+                            {usernamePending && (
+                                <p className="text-xs text-gray-400">Checking availability…</p>
+                            )}
+                            {usernameState?.message && (
+                                <p className={`text-sm px-3 py-2 rounded-xl border ${
+                                    usernameState.ok
+                                        ? "text-green-700 bg-green-50 border-green-200"
+                                        : "text-red-600 bg-red-50 border-red-200"
+                                }`}>
+                                    {usernameState.message}
+                                </p>
+                            )}
+                        </div>
 
+                        <div className="flex flex-col gap-1.5">
+                            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                                Password
+                            </label>
+                            <input
+                                name="password"
+                                type="password"
+                                placeholder="••••••••"
+                                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900 placeholder-gray-400 bg-white focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent transition-all"
+                            />
+                        </div>
 
-                    <input
-                        name="username"
-                        type="text"
-                        placeholder="john_doe"
-                        className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white placeholder-zinc-500 outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                        onBlur={(e) => startTransition(() => usernameAction(e.target.value))}
-                    />
-                    {usernamePending && (
-                        <p className="text-sm text-zinc-500">Checking username availability...</p>
-                    )}
+                        <div className="flex flex-col gap-1.5">
+                            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                                Confirm Password
+                            </label>
+                            <input
+                                name="confirmPassword"
+                                type="password"
+                                placeholder="••••••••"
+                                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900 placeholder-gray-400 bg-white focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent transition-all"
+                            />
+                        </div>
 
-                    {usernameState?.message && (
-                        <p className={`text-sm rounded-lg px-4 py-2 ${usernameState.ok ? 'text-emerald-400 bg-emerald-900/20 border border-emerald-900/50' : 'text-red-400 bg-red-900/20 border border-red-900/50'}`}>
-                            {usernameState.message}
-                        </p>
-                    )}
+                        {submitState?.message && (
+                            <p className="text-sm px-4 py-3 rounded-xl border text-red-600 bg-red-50 border-red-200">
+                                {submitState.message}
+                            </p>
+                        )}
 
-                    <input
-                        name="password"
-                        type="password"
-                        placeholder="Password"
-                        className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white placeholder-zinc-500 outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                    />
-                    <input
-                        name="confirmPassword"
-                        type="password"
-                        placeholder="Confirm password"
-                        className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white placeholder-zinc-500 outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                    />
+                        <button
+                            type="submit"
+                            disabled={submitPending}
+                            className="w-full bg-gray-900 text-white rounded-xl py-3 text-sm font-semibold hover:bg-gray-700 active:bg-gray-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors mt-1"
+                        >
+                            {submitPending ? "Creating account…" : "Create account"}
+                        </button>
+                    </Form>
+                </div>
 
-                    <button
-                        type="submit"
-                        disabled={submitPending}
-                        className="w-full bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg py-2 mt-2 transition-colors shadow-lg shadow-blue-900/20"
-                    >
-                        {submitPending ? 'Creating account...' : 'Sign up'}
-                    </button>
-                </Form>
+                <p className="text-sm text-gray-500 text-center mt-6">
+                    Already have an account?{" "}
+                    <a href="/login" className="font-semibold text-gray-900 hover:underline">
+                        Sign in
+                    </a>
+                </p>
             </div>
         </div>
     )
