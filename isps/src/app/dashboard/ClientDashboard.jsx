@@ -26,7 +26,7 @@ function StatusBadge({ label, count, color, users = [] }) {
 
     return (
         <div className={`rounded-xl border overflow-hidden ${styles.badge}`}>
-            {/* Header row — always visible */}
+            
             <button
                 type="button"
                 onClick={() => hasUsers && setOpen(prev => !prev)}
@@ -50,10 +50,10 @@ function StatusBadge({ label, count, color, users = [] }) {
                 </div>
             </button>
 
-            {/* Expandable user list */}
+            
             {open && hasUsers && (
                 <div className={`border-t ${styles.badge} divide-y divide-current/10`}>
-                    {/* Table header */}
+                    
                     <div className={`grid grid-cols-5 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wide opacity-60`}>
                         <span className="col-span-2">Username</span>
                         <span className="text-right">Due</span>
@@ -61,7 +61,7 @@ function StatusBadge({ label, count, color, users = [] }) {
                         <span className="text-right">Rem</span>
                     </div>
 
-                    {/* User rows */}
+                    
                     {users.map((user, i) => (
                         <div key={i} className={`grid grid-cols-5 px-3 py-2 text-[11px] ${styles.row}`}>
                             <span className="col-span-2 font-medium truncate pr-1">{user.username}</span>
@@ -80,8 +80,6 @@ export default function ClientDashboard({ initialData, yearsArr = [], monthsArr 
     const [state, action, isPending] = useActionState(fetchStatsServerAction, initialData);
     const { stats, message } = state;
 
-    // FIX: Only fall back to the initial page-load prop if no search has been performed yet.
-    // If a search was performed (state !== initialData) and returned no users, default to an empty object {}.
     const isInitialLoad = state === initialData;
     const users = state.usersByFeeStatus ?? (isInitialLoad ? usersByFeeStatus : {});
 
@@ -157,4 +155,4 @@ export default function ClientDashboard({ initialData, yearsArr = [], monthsArr 
             )}
         </div>
     );
-} // sdsdasdssd
+} 
