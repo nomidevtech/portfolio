@@ -38,7 +38,7 @@ export async function fetchStatsServerAction(_, formData) {
 
         const fetchStats = await db.execute(
             `SELECT COUNT(*) AS total_users, SUM(amount_due) AS total_revenue, SUM(amount_paid) AS recovery, SUM(remaining_fee) AS pending 
-             FROM billing_transactions WHERE admin_id = ? AND (billing_month = ? AND billing_year = ?)`,
+             FROM billing_transactions WHERE admin_id = ? AND (billing_month = ? AND billing_year = ? AND user_id IS NOT NULL)`,
             [adminId, month, year]
         );
 
@@ -71,7 +71,7 @@ export async function fetchStatsServerAction(_, formData) {
 
         const fetchStatus = await db.execute(
             `SELECT fee_status, COUNT(*) AS count FROM billing_transactions 
-             WHERE admin_id = ? AND (billing_month = ? AND billing_year = ?) GROUP BY fee_status`,
+             WHERE admin_id = ? AND user_id IS NOT NULL AND (billing_month = ? AND billing_year = ?) GROUP BY fee_status`,
             [adminId, month, year]
         );
 
