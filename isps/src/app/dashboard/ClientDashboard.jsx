@@ -80,9 +80,10 @@ export default function ClientDashboard({ initialData, yearsArr = [], monthsArr 
     const [state, action, isPending] = useActionState(fetchStatsServerAction, initialData);
     const { stats, message } = state;
 
-    // After a search, use users from the server action response.
-    // On first load (no search yet), fall back to the prop from page.jsx.
-    const users = state.usersByFeeStatus ?? usersByFeeStatus;
+    // FIX: Only fall back to the initial page-load prop if no search has been performed yet.
+    // If a search was performed (state !== initialData) and returned no users, default to an empty object {}.
+    const isInitialLoad = state === initialData;
+    const users = state.usersByFeeStatus ?? (isInitialLoad ? usersByFeeStatus : {});
 
     return (
         <div className="max-w-lg mx-auto px-4 py-6">
@@ -156,4 +157,4 @@ export default function ClientDashboard({ initialData, yearsArr = [], monthsArr 
             )}
         </div>
     );
-}
+} // sdsdasdssd
