@@ -54,20 +54,20 @@ function StatusBadge({ label, count, color, users = [] }) {
             {open && hasUsers && (
                 <div className={`border-t ${styles.badge} divide-y divide-current/10`}>
                     {/* Table header */}
-                    <div className={`grid grid-cols-5 px-4 py-1.5 text-xs font-semibold uppercase tracking-wide opacity-60`}>
+                    <div className={`grid grid-cols-5 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wide opacity-60`}>
                         <span className="col-span-2">Username</span>
                         <span className="text-right">Due</span>
                         <span className="text-right">Paid</span>
-                        <span className="text-right">Remaining</span>
+                        <span className="text-right">Rem</span>
                     </div>
 
                     {/* User rows */}
                     {users.map((user, i) => (
-                        <div key={i} className={`grid grid-cols-5 px-4 py-2.5 text-xs ${styles.row}`}>
-                            <span className="col-span-2 font-medium truncate">{user.username}</span>
-                            <span className="text-right opacity-80">Rs {user.amount_due}</span>
-                            <span className="text-right font-semibold">Rs {user.amount_paid}</span>
-                            <span className="text-right font-semibold">Rs {user.remaining_fee}</span>
+                        <div key={i} className={`grid grid-cols-5 px-3 py-2 text-[11px] ${styles.row}`}>
+                            <span className="col-span-2 font-medium truncate pr-1">{user.username}</span>
+                            <span className="text-right opacity-80 tabular-nums">{user.amount_due}</span>
+                            <span className="text-right font-semibold tabular-nums">{user.amount_paid}</span>
+                            <span className="text-right font-semibold tabular-nums">{user.remaining_fee}</span>
                         </div>
                     ))}
                 </div>
