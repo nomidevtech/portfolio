@@ -42,6 +42,29 @@ export async function fetchStatsServerAction(_, formData) {
             [adminId, month, year]
         );
 
+        const fetchUsers = await db.execute(
+            `SELECT username_snapshot AS username, amount_due, amount_paid, remaining_fee, fee_status FROM billing_transactions WHERE admin_id = ? AND user_id IS NOT NULL AND billing_month = ? AND billing_year = ?`,
+            [adminId, month, year]
+        );
+
+        const paidUsers = [];
+        const partialUsers = [];
+        const unpaidUsers = [];
+
+        if (fetchUsers.rows.length > 0) {
+            fetchUsers.rows.forEach(row => {
+                if (row.fee_status === "paid") paidUsers.push({ username: row.username, amount_due: row.amount_due, amount_paid: row.amount_paid, remaining_fee: row.remaining_fee });
+                if (row.fee_status === "partial") partialUsers.push({ username: row.username, amount_due: row.amount_due, amount_paid: row.amount_paid, remaining_fee: row.remaining_fee });
+                if (row.fee_status === "unpaid") unpaidUsers.push({ username: row.username, amount_due: row.amount_due, amount_paid: row.amount_paid, remaining_fee: row.remaining_fee });
+            });
+        }
+
+        const usersByFeeStatus = {
+            paid: paidUsers,
+            partial: partialUsers,
+            unpaid: unpaidUsers
+        };
+
         if (!fetchStats.rows.length || fetchStats.rows[0].total_users === 0) {
             return { ok: false, searchComplete: true, stats: defaultStats, message: "No records found for this period" };
         }
@@ -68,10 +91,19 @@ export async function fetchStatsServerAction(_, formData) {
             if (row.fee_status === "paid") stats.paid = row.count || 0;
         });
 
-        return { ok: true, searchComplete: true, stats, message: "" };
+        return { ok: true, searchComplete: true, stats, usersByFeeStatus, message: "" };
 
     } catch (error) {
         console.error("Action Error:", error);
         return { ok: false, searchComplete: false, stats: defaultStats, message: "Database error." };
     }
 }
+
+
+
+
+
+
+
+
+

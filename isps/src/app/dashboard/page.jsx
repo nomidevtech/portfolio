@@ -13,7 +13,7 @@ export default async function Dashboard() {
     const d = new Date();
     const month = d.getMonth() + 1;
     const year = d.getFullYear();
-    
+
     try {
         await updateRecords();
 
@@ -23,12 +23,38 @@ export default async function Dashboard() {
             [adminId, month, year]
         );
 
+
+
         const fetchStatus = await db.execute(
             `SELECT fee_status, COUNT(*) AS count FROM billing_transactions
             WHERE admin_id = ? AND user_id IS NOT NULL AND billing_month = ? AND billing_year = ?
             GROUP BY fee_status`,
             [adminId, month, year]
         );
+
+        const fetchUsers = await db.execute(
+            `SELECT username_snapshot AS username, amount_due, amount_paid, remaining_fee, fee_status FROM billing_transactions WHERE admin_id = ? AND user_id IS NOT NULL AND billing_month = ? AND billing_year = ?`,
+            [adminId, month, year]
+        );
+
+        const paidUsers = [];
+        const partialUsers = [];
+        const unpaidUsers = [];
+
+        if (fetchUsers.rows.length > 0) {
+            fetchUsers.rows.forEach(row => {
+                if (row.fee_status === "paid") paidUsers.push({ username: row.username, amount_due: row.amount_due, amount_paid: row.amount_paid, remaining_fee: row.remaining_fee });
+                if (row.fee_status === "partial") partialUsers.push({ username: row.username, amount_due: row.amount_due, amount_paid: row.amount_paid, remaining_fee: row.remaining_fee });
+                if (row.fee_status === "unpaid") unpaidUsers.push({ username: row.username, amount_due: row.amount_due, amount_paid: row.amount_paid, remaining_fee: row.remaining_fee });
+            });
+        }
+
+        const usersByFeeStatus = {
+            paid: paidUsers,
+            partial: partialUsers,
+            unpaid: unpaidUsers
+        };
+
 
         const fetchYears = await db.execute(
             `SELECT DISTINCT billing_year FROM billing_transactions 
@@ -68,6 +94,7 @@ export default async function Dashboard() {
                 initialData={initialData}
                 yearsArr={yearsArr}
                 monthsArr={monthsArr}
+                usersByFeeStatus={usersByFeeStatus}
             />
         );
 
