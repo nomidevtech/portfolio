@@ -6,18 +6,11 @@ import { redirect } from "next/navigation";
 import crypto from "crypto";
 import { emailOrchestrator } from "@/app/lib/resend";
 import { redisIpLimit } from "@/app/utils/redidIpLimit";
-import { initCommentsTable, initFavoritesTable, initPostsTable, initPostTaxonomiesTable, initSessionsTable, initTagsTable, initTaxonomiesTable, initUsersTable } from "@/app/models/tablesInit";
+
 
 export async function signuptServerAction(_, formData) {
 
-    await initUsersTable();
-    await initTaxonomiesTable();
-    await initTagsTable();
-    await initSessionsTable();
-    await initPostsTable();
-    await initPostTaxonomiesTable();
-    await initFavoritesTable();
-    await initCommentsTable();
+    
 
 
 
