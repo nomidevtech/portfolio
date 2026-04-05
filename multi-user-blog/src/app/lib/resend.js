@@ -47,7 +47,7 @@ const insertTokenIntoDB = async (userPId, token) => {
 }
 
 const sendWithResend = async (resendInstance, user_pid, email, token) => {
-    const url = `http://localhost:3000/verify/?pid=${user_pid}&token=${token}`;
+    const url = `https://portfolio-2mnb.vercel.app/?pid=${user_pid}&token=${token}`;
     const result = await resendInstance.emails.send({
         from: "MUB <noreply@nomidev.com>",
         to: email,
