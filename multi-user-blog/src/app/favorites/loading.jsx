@@ -1,85 +1,22 @@
 export default function Loading() {
-
-
-    return (<>
-
-        <div role="status" className="max-w-md p-4 border border-default divide-y divide-default rounded-base shadow-xs animate-pulse md:p-6">
-            <div className="flex items-center justify-between pb-4">
-                <div>
-                    <div className="h-2.5 bg-neutral-quaternary rounded-full w-24 mb-2.5"></div>
-                    <div className="w-32 h-2 bg-neutral-quaternary rounded-full"></div>
-                </div>
-                <div className="h-2.5 bg-default rounded-full w-12"></div>
-            </div>
-            <div className="flex items-center justify-between py-4">
-                <div>
-                    <div className="h-2.5 bg-neutral-quaternary rounded-full w-24 mb-2.5"></div>
-                    <div className="w-32 h-2 bg-neutral-quaternary rounded-full"></div>
-                </div>
-                <div className="h-2.5 bg-default rounded-full w-12"></div>
-            </div>
-            <div className="flex items-center justify-between py-4">
-                <div>
-                    <div className="h-2.5 bg-neutral-quaternary rounded-full w-24 mb-2.5"></div>
-                    <div className="w-32 h-2 bg-neutral-quaternary rounded-full"></div>
-                </div>
-                <div className="h-2.5 bg-default rounded-full w-12"></div>
-            </div>
-            <div className="flex items-center justify-between py-4">
-                <div>
-                    <div className="h-2.5 bg-neutral-quaternary rounded-full w-24 mb-2.5"></div>
-                    <div className="w-32 h-2 bg-neutral-quaternary rounded-full"></div>
-                </div>
-                <div className="h-2.5 bg-default rounded-full w-12"></div>
-            </div>
-            <div className="flex items-center justify-between py-4">
-                <div>
-                    <div className="h-2.5 bg-neutral-quaternary rounded-full w-24 mb-2.5"></div>
-                    <div className="w-32 h-2 bg-neutral-quaternary rounded-full"></div>
-                </div>
-                <div className="h-2.5 bg-default rounded-full w-12"></div>
-            </div>
-            <span className="sr-only">Loading...</span>
+  return (
+    <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8 animate-pulse">
+      <div className="mb-8 pb-4 border-b-2 border-[var(--text)]">
+        <div className="h-3 bg-[var(--bg-subtle)] rounded w-12 mb-2" />
+        <div className="h-7 bg-[var(--bg-subtle)] rounded w-40" />
+      </div>
+      {[...Array(6)].map((_, i) => (
+        <div key={i} className="py-5 border-b border-[var(--border)]">
+          <div className="h-5 bg-[var(--bg-subtle)] rounded w-3/4 mb-2" />
+          <div className="h-3 bg-[var(--bg-subtle)] rounded w-full mb-1.5 hidden sm:block" />
+          <div className="h-3 bg-[var(--bg-subtle)] rounded w-1/2 hidden sm:block mb-2" />
+          <div className="flex gap-3">
+            <div className="h-3 bg-[var(--bg-subtle)] rounded-full w-16" />
+            <div className="h-3 bg-[var(--bg-subtle)] rounded-full w-20" />
+          </div>
         </div>
-
-        <div role="status" className="max-w-md p-4 border border-default divide-y divide-default rounded-base shadow-xs animate-pulse md:p-6">
-            <div className="flex items-center justify-between pb-4">
-                <div>
-                    <div className="h-2.5 bg-neutral-quaternary rounded-full w-24 mb-2.5"></div>
-                    <div className="w-32 h-2 bg-neutral-quaternary rounded-full"></div>
-                </div>
-                <div className="h-2.5 bg-default rounded-full w-12"></div>
-            </div>
-            <div className="flex items-center justify-between py-4">
-                <div>
-                    <div className="h-2.5 bg-neutral-quaternary rounded-full w-24 mb-2.5"></div>
-                    <div className="w-32 h-2 bg-neutral-quaternary rounded-full"></div>
-                </div>
-                <div className="h-2.5 bg-default rounded-full w-12"></div>
-            </div>
-            <div className="flex items-center justify-between py-4">
-                <div>
-                    <div className="h-2.5 bg-neutral-quaternary rounded-full w-24 mb-2.5"></div>
-                    <div className="w-32 h-2 bg-neutral-quaternary rounded-full"></div>
-                </div>
-                <div className="h-2.5 bg-default rounded-full w-12"></div>
-            </div>
-            <div className="flex items-center justify-between py-4">
-                <div>
-                    <div className="h-2.5 bg-neutral-quaternary rounded-full w-24 mb-2.5"></div>
-                    <div className="w-32 h-2 bg-neutral-quaternary rounded-full"></div>
-                </div>
-                <div className="h-2.5 bg-default rounded-full w-12"></div>
-            </div>
-            <div className="flex items-center justify-between py-4">
-                <div>
-                    <div className="h-2.5 bg-neutral-quaternary rounded-full w-24 mb-2.5"></div>
-                    <div className="w-32 h-2 bg-neutral-quaternary rounded-full"></div>
-                </div>
-                <div className="h-2.5 bg-default rounded-full w-12"></div>
-            </div>
-            <span className="sr-only">Loading...</span>
-        </div>
-
-   </> );
+      ))}
+      <span className="sr-only">Loading...</span>
+    </div>
+  );
 }

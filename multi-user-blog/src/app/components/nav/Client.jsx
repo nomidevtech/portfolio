@@ -1,90 +1,77 @@
 "use client";
-
 import { useState } from "react";
 import Link from "next/link";
 import Form from "next/form";
 import { logout } from "@/app/lib/logout";
-
-const itemStyle = {
-    display: "block",
-    padding: "8px 16px",
-    textDecoration: "none",
-    color: "#e2e8f0",
-};
+import ThemeToggle from "@/app/components/ThemeToggle";
 
 export default function NavBarClient({ serializedUser }) {
-    const [isOpen, setIsOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
+  const user = JSON.parse(serializedUser);
 
-    const user = JSON.parse(serializedUser);
+  return (
+    <nav className="border-b border-[var(--border)] bg-[var(--bg)]">
+      {/* Top bar */}
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 flex items-center justify-between h-14">
+        <Link href="/" className="font-bold text-xl tracking-tight text-[var(--text)] hover:text-[var(--accent)] transition-colors font-serif">
+          MyApp
+        </Link>
 
-    return (
-        <nav style={{
-            display: "flex",
-            justifyContent: "space-between",
-            padding: "12px 24px",
-            borderBottom: "1px solid #334155",
-            background: "#0f172a",
-            color: "#e2e8f0",
-        }}>
+        <div className="flex items-center gap-3">
+          <Link href="/blog" className="text-sm text-[var(--text-muted)] hover:text-[var(--text)] transition-colors hidden sm:block">
+            Blog
+          </Link>
 
-            <Link href="/" style={{ color: "#e2e8f0", textDecoration: "none" }}>MyApp</Link>
+          <ThemeToggle />
 
-            <div>
-                {!user ? (
-                    <Link href="/login" style={{ color: "#e2e8f0", textDecoration: "none" }}>Login</Link>
-                ) : (
-                    <div style={{ position: "relative" }}>
+          {!user ? (
+            <Link href="/login" className="text-sm font-semibold text-[var(--bg)] bg-[var(--text)] px-4 py-1.5 rounded-full hover:opacity-80 transition-opacity">
+              Login
+            </Link>
+          ) : (
+            <div className="relative">
+              <button
+                onClick={() => setIsOpen(!isOpen)}
+                className="flex items-center gap-2 text-sm text-[var(--text-muted)] hover:text-[var(--text)] transition-colors cursor-pointer"
+              >
+                <span className="w-7 h-7 rounded-full bg-[var(--accent)] flex items-center justify-center text-xs font-bold text-white uppercase">
+                  {user.name?.[0] || "U"}
+                </span>
+                <svg className={`w-3 h-3 transition-transform ${isOpen ? "rotate-180" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
 
-                        <button
-                            onClick={() => setIsOpen(!isOpen)}
-                            style={{ cursor: "pointer", background: "none", border: "none", color: "#e2e8f0", fontSize: "14px" }}
-                        >
-                            {user.name} {isOpen ? "▲" : "▼"}
-                        </button>
-
-                        {isOpen && (
-                            <div style={{
-                                position: "absolute",
-                                right: 0,
-                                top: "100%",
-                                background: "#1e293b",
-                                border: "1px solid #334155",
-                                borderRadius: "6px",
-                                padding: "8px 0",
-                                minWidth: "200px",
-                                zIndex: 10,
-                            }}>
-                                {/* User info block — name, username, email */}
-                                <div style={{ padding: "8px 16px" }}>
-                                    <p style={{ margin: 0, fontWeight: "bold", color: "#f1f5f9" }}>{user.name}</p>
-                                    <p style={{ margin: 0, fontSize: "12px", color: "#94a3b8" }}>@{user.username}</p>
-                                    <p style={{ margin: 0, fontSize: "12px", color: "#94a3b8" }}>{user.email}</p>
-                                </div>
-
-                                <hr style={{ margin: "8px 0", borderColor: "#334155" }} />
-
-                                <Link href="/settings" style={itemStyle}>Settings</Link>
-                                <Link href="/add-post" style={itemStyle}>Add Post</Link>
-                                <Link href="/my-posts" style={itemStyle}>My Posts</Link>
-                                <Link href="/favorites" style={itemStyle}>Favorites</Link>
-
-                                <hr style={{ margin: "8px 0", borderColor: "#334155" }} />
-
-                                <Form action={logout}>
-                                    <button
-                                        type="submit"
-                                        style={{ ...itemStyle, background: "none", border: "none", cursor: "pointer", width: "100%", textAlign: "left", color: "#f87171" }}
-                                    >
-                                        Logout
-                                    </button>
-                                </Form>
-                            </div>
-                        )}
-
+              {isOpen && (
+                <>
+                  <div className="fixed inset-0 z-10" onClick={() => setIsOpen(false)} />
+                  <div className="absolute right-0 top-full mt-2 w-52 bg-[var(--bg)] border border-[var(--border)] rounded-xl shadow-lg z-20 overflow-hidden">
+                    <div className="px-4 py-3 border-b border-[var(--border)]">
+                      <p className="text-sm font-semibold text-[var(--text)]">{user.name}</p>
+                      <p className="text-xs text-[var(--text-faint)]">@{user.username}</p>
                     </div>
-                )}
+                    <div className="py-1">
+                      {[["Add Post","/add-post"],["My Posts","/my-posts"],["Favorites","/favorites"],["Settings","/settings"]].map(([label, href]) => (
+                        <Link key={href} href={href} onClick={() => setIsOpen(false)}
+                          className="block px-4 py-2 text-sm text-[var(--text-muted)] hover:bg-[var(--bg-subtle)] hover:text-[var(--text)] transition-colors">
+                          {label}
+                        </Link>
+                      ))}
+                    </div>
+                    <div className="border-t border-[var(--border)] py-1">
+                      <Form action={logout}>
+                        <button type="submit" className="w-full text-left px-4 py-2 text-sm text-red-500 hover:bg-[var(--bg-subtle)] transition-colors cursor-pointer">
+                          Logout
+                        </button>
+                      </Form>
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
-
-        </nav>
-    );
+          )}
+        </div>
+      </div>
+    </nav>
+  );
 }

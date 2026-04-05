@@ -1,20 +1,15 @@
 export default function Loading() {
-
-
-    return (<>
-
-
-<div role="status" className="max-w-sm animate-pulse">
-    <div className="h-2.5 bg-neutral-quaternary rounded-full w-48 mb-4"></div>
-    <div className="h-2 bg-neutral-quaternary rounded-full max-w-[360px] mb-2.5"></div>
-    <div className="h-2 bg-neutral-quaternary rounded-full mb-2.5"></div>
-    <div className="h-2 bg-neutral-quaternary rounded-full max-w-[330px] mb-2.5"></div>
-    <div className="h-2 bg-neutral-quaternary rounded-full max-w-[300px] mb-2.5"></div>
-    <div className="h-2 bg-neutral-quaternary rounded-full max-w-[360px]"></div>
-    <span className="sr-only">Loading...</span>
-</div>
-
-
-
-    </>);
+  return (
+    <div className="max-w-2xl mx-auto px-4 sm:px-6 py-8 animate-pulse">
+      <div className="h-7 bg-[var(--bg-subtle)] rounded w-32 mb-8" />
+      <div className="space-y-4">
+        <div className="h-10 bg-[var(--bg-subtle)] rounded-lg" />
+        <div className="h-20 bg-[var(--bg-subtle)] rounded-lg" />
+        <div className="h-10 bg-[var(--bg-subtle)] rounded-lg" />
+        <div className="h-10 bg-[var(--bg-subtle)] rounded-lg" />
+        <div className="h-32 bg-[var(--bg-subtle)] rounded-lg" />
+        <div className="h-10 bg-[var(--bg-subtle)] rounded-lg w-32" />
+      </div>
+    </div>
+  );
 }

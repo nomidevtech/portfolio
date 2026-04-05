@@ -1,20 +1,17 @@
 export default function Loading() {
-
-
-    return (<>
-
-
-<div role="status" className="max-w-sm animate-pulse">
-    <div className="h-2.5 bg-neutral-quaternary rounded-full w-48 mb-4"></div>
-    <div className="h-2 bg-neutral-quaternary rounded-full max-w-[360px] mb-2.5"></div>
-    <div className="h-2 bg-neutral-quaternary rounded-full mb-2.5"></div>
-    <div className="h-2 bg-neutral-quaternary rounded-full max-w-[330px] mb-2.5"></div>
-    <div className="h-2 bg-neutral-quaternary rounded-full max-w-[300px] mb-2.5"></div>
-    <div className="h-2 bg-neutral-quaternary rounded-full max-w-[360px]"></div>
-    <span className="sr-only">Loading...</span>
-</div>
-
-
-
-    </>);
+  return (
+    <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8 animate-pulse">
+      <div className="h-4 bg-[var(--bg-subtle)] rounded w-20 mb-4" />
+      <div className="h-10 bg-[var(--bg-subtle)] rounded w-4/5 mb-2" />
+      <div className="h-10 bg-[var(--bg-subtle)] rounded w-3/5 mb-5" />
+      <div className="flex gap-4 mb-8">
+        <div className="h-3 bg-[var(--bg-subtle)] rounded-full w-24" />
+        <div className="h-3 bg-[var(--bg-subtle)] rounded-full w-28" />
+      </div>
+      <div className="space-y-3 mb-8">
+        {[...Array(6)].map((_, i) => <div key={i} className="h-4 bg-[var(--bg-subtle)] rounded" />)}
+      </div>
+      <span className="sr-only">Loading...</span>
+    </div>
+  );
 }

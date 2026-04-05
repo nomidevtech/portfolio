@@ -1,77 +1,45 @@
 import Link from "next/link";
 import { getUser } from "../lib/getUser";
 import { db } from "../lib/turso";
-import DeleteButton from "../components/DeleteBTN";
-import AddTofavorites from "../components/AddToFavorites";
-
+import PostCard from "../components/PostCard";
 
 export default async function MyPosts() {
-
   const currentUser = await getUser();
-  if (!currentUser?.id) return <p>You must <a href="/login">login</a></p>
-
+  if (!currentUser?.id) return (
+    <div className="max-w-3xl mx-auto px-4 py-16">
+      <p className="font-sans text-[var(--text-muted)]">You must <Link href="/login" className="underline underline-offset-4 hover:text-[var(--accent)] transition-colors">login</Link> to view your posts.</p>
+    </div>
+  );
   const fetchPosts = await db.execute(`
-    SELECT 
-    posts.*,
-    taxonomies.name as taxonomy,
-    GROUP_CONCAT(DISTINCT tags.name) as tags,
-    users.name as author,
-    users.public_id as author_public_id
-    FROM posts
-    LEFT JOIN post_taxonomies ON posts.id = post_taxonomies.post_id
+    SELECT posts.*, taxonomies.name as taxonomy, GROUP_CONCAT(DISTINCT tags.name) as tags,
+    users.username as author, users.public_id as author_public_id
+    FROM posts LEFT JOIN post_taxonomies ON posts.id = post_taxonomies.post_id
     LEFT JOIN taxonomies ON post_taxonomies.taxonomy_id = taxonomies.id
     LEFT JOIN post_tags ON posts.id = post_tags.post_id
     LEFT JOIN tags ON post_tags.tag_id = tags.id
     LEFT JOIN users ON posts.user_id = users.id
-    WHERE posts.user_id = ?
-    GROUP BY posts.id
-    `, [currentUser?.id]);
-
-  if (fetchPosts?.rows?.length === 0) return <p>You have no posts. Add one <a href="/add-post">here</a></p>
-
+    WHERE posts.user_id = ? GROUP BY posts.id
+  `, [currentUser?.id]);
+  if (!fetchPosts?.rows?.length) return (
+    <div className="max-w-3xl mx-auto px-4 py-16 text-center">
+      <p className="font-sans text-[var(--text-muted)] mb-4">You have not written any posts yet.</p>
+      <Link href="/add-post" className="font-sans font-semibold bg-[var(--text)] text-[var(--bg)] px-5 py-2 rounded-full text-sm hover:opacity-80 transition-opacity">Write your first post</Link>
+    </div>
+  );
   const posts = fetchPosts.rows;
-
-  const fetchFavs = await db.execute(`
-      SELECT post_id FROM favorites WHERE user_id = ? 
-    `, [currentUser.id]);
-
-  let favsByCurrentUser = [];
-
-  if (fetchFavs.rows?.length > 0) {
-    favsByCurrentUser = fetchFavs.rows.map((row) => row.post_id);
-  };
-
-
-  for (const post of posts) {
-    post.isFavorited = favsByCurrentUser.includes(post.id);
-  }
-
-
+  const fetchFavs = await db.execute("SELECT post_id FROM favorites WHERE user_id = ?", [currentUser.id]);
+  const favIds = fetchFavs.rows?.length > 0 ? fetchFavs.rows.map(r => r.post_id) : [];
+  for (const p of posts) p.isFavorited = favIds.includes(p.id);
   return (
-    <div>
-      <h1>My Posts</h1>
-      <ul>
-        {posts.map((post, idx) => (
-          <div key={idx} className="border-2 m-4">
-            <li key={post.id}>
-              <h2>{post.title}</h2>
-              <p>{post.excerpt}</p>
-              {post.tags && <p>tags:{post.tags?.split(',')?.map((tag, idx) => <Link key={idx} href={`/tags?value=${tag.trim()}`}>{tag}</Link>)}</p>}
-              {post.taxonomy && <Link href={`/taxonomies?value=${post.taxonomy}`}>{post.taxonomy}</Link>}
-              {post.author && <Link href={`/authors?value=${post.author}`}>by:{post.author}</Link>}
-              <p>{post.created_at}</p>
-              <Link href={`/post/${post.slug}/${post.public_id}`}>Read more</Link>
-            </li>
-            {post.user_id === currentUser?.id && (
-              <div>
-                <Link href={`/edit?value=${post.public_id}`}>Edit</Link>
-                <DeleteButton publicId={post.public_id} />
-              </div>
-            )}
-            {currentUser?.id && <AddTofavorites ppid={post.public_id} isFavorited={post.isFavorited} />}
-          </div>
-        ))}
-      </ul>
-    </div >
-  )
+    <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8">
+      <div className="flex items-center justify-between mb-8 pb-4 border-b-2 border-[var(--text)]">
+        <div>
+          <h1 className="text-2xl font-bold text-[var(--text)]">My Posts</h1>
+          <p className="font-sans text-sm text-[var(--text-faint)] mt-0.5">{posts.length} article{posts.length !== 1 ? "s" : ""}</p>
+        </div>
+        <Link href="/add-post" className="font-sans font-semibold bg-[var(--text)] text-[var(--bg)] px-5 py-2 rounded-full text-sm hover:opacity-80 transition-opacity">+ New Post</Link>
+      </div>
+      {posts.map((post, i) => <PostCard key={i} post={post} currentUser={currentUser} />)}
+    </div>
+  );
 }
