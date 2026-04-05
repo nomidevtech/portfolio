@@ -6,14 +6,14 @@ import { initCommentsTable, initFavoritesTable, initPostsTable, initPostTaxonomi
 
 export default async function SignUp() {
 
-    await initUsersTable();
-    await initTaxonomiesTable();
-    await initTagsTable();
-    await initSessionsTable();
-    await initPostsTable();
-    await initPostTaxonomiesTable();
-    await initFavoritesTable();
-    await initCommentsTable();
+    // await initUsersTable();
+    // await initTaxonomiesTable();
+    // await initTagsTable();
+    // await initSessionsTable();
+    // await initPostsTable();
+    // await initPostTaxonomiesTable();
+    // await initFavoritesTable();
+    // await initCommentsTable();
 
     const currentUser = await getUser();
     if (currentUser?.id) return redirect("/settings");
