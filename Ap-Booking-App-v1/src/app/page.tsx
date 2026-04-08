@@ -1,7 +1,7 @@
-
+import Link from "next/link";
 
 export default function Home() {
   return (
-    <div>asdasdsd</div>
+    <Link href="/client1">Client-1</Link>
   );
 }
