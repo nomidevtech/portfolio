@@ -1,13 +1,23 @@
 "use server";
 
+import { db } from "../lib/turso";
+
 export async function initSlotTalbe() {
   try {
 
-    const 
+    await db.execute(`
+      CREATE TABLE IF NOT EXISTS slots (
+        id INTEGER PRIMARY KEY,
+        base_slot TEXT,
+        booking_slots TEXT
+      )
+      `)
 
-    
+    return { ok: true, message: "slots table created" }
+
+
   } catch (error) {
-    console.error(error);
-    throw error;
+    console.log(error);
+    return { ok: false, message: error.message }
   }
 }

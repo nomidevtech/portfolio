@@ -5,7 +5,7 @@ import { initSlotTalbe } from "../models/initiTables";
 import { db } from "../lib/turso";
 import { redirect } from "next/navigation";
 
-export async function serverAction1(formData) {
+export async function serverAction2(formData) {
     try {
         let startHr = Number(formData.get("startHr"));
         let startMin = Number(formData.get("startMin"));
