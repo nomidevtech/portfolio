@@ -6,7 +6,9 @@ export default async function Client2() {
     const fetch = await db.execute(`SELECT * FROM slots;`);
     const baseSlotsRaw = fetch.rows[0];
 
-    const baseSlot = JSON.parse(baseSlotsRaw.base_slot);
+    if (!baseSlotsRaw) return <p>You have to make a shedule first.</p>
+
+    const baseSlot = JSON.parse(baseSlotsRaw?.base_slot);
 
     const buffer = 10;
     const rootCanal = 90;

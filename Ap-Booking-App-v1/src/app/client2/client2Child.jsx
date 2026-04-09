@@ -9,7 +9,7 @@ export function Client2Child({ baseSlot = [], buffer = 0, rootCanal = 0, cavity 
 
     let slots = [];
 
-    let patientTreatment = generalCheck; // hardcoded for now
+    let patientTreatment = cavity; // hardcoded for now
 
     for (const segment of baseSlot) {
         let newStart = segment.start;

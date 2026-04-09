@@ -1,80 +1,123 @@
 "use server";
 
-
-import { initSlotTalbe } from "../models/initiTables";
 import { db } from "../lib/turso";
 import { redirect } from "next/navigation";
 
 export async function serverAction2(formData) {
     try {
-        let startHr = Number(formData.get("startHr"));
-        let startMin = Number(formData.get("startMin"));
-        let startMeridiem = formData.get("startMeridiem");
+        // -----------------------------
+        // STEP 1: Read incoming data
+        // -----------------------------
+        const name = formData.get("name");
+        const email = formData.get("email");
+        const phone = formData.get("phone");
 
-        let endHr = Number(formData.get("endHr"));
-        let endMin = Number(formData.get("endMin"));
-        let endMeridiem = formData.get("endMeridiem");
+        const treatment = "general checkup"; // hardcoded for now
+        const bookingSlot = JSON.parse(formData.get("slot"));
 
-        let breakStartHr = Number(formData.get("breakStartHr"));
-        let breakStartMin = Number(formData.get("breakStartMin"));
-        let breakStartMeridiem = formData.get("breakStartMeridiem");
+        console.log("BOOKING SLOT:", bookingSlot);
 
-        let breakEndHr = Number(formData.get("breakEndHr"));
-        let breakEndMin = Number(formData.get("breakEndMin"));
-        let breakEndMeridiem = formData.get("breakEndMeridiem");
+        // -----------------------------
+        // STEP 2: Fetch base slots
+        // -----------------------------
+        const res = await db.execute(`SELECT * FROM slots;`);
+        const row = res.rows[0];
 
-        if (startMeridiem === "PM" && startHr !== 12) startHr += 12;
-        if (startMeridiem === "AM" && startHr === 12) startHr = 0;
+        let baseSlots = JSON.parse(row.base_slot);
 
-        if (endMeridiem === "PM" && endHr !== 12) endHr += 12;
-        if (endMeridiem === "AM" && endHr === 12) endHr = 0;
+        console.log("BEFORE:", baseSlots);
 
-        if (breakStartMeridiem === "PM" && breakStartHr !== 12) breakStartHr += 12;
-        if (breakStartMeridiem === "AM" && breakStartHr === 12) breakStartHr = 0;
+        // -----------------------------
+        // STEP 3: Apply buffer
+        // -----------------------------
+        const buffer = 10;
 
-        if (breakEndMeridiem === "PM" && breakEndHr !== 12) breakEndHr += 12;
-        if (breakEndMeridiem === "AM" && breakEndHr === 12) breakEndHr = 0;
+        const effectiveBooking = {
+            start: bookingSlot.start,
+            end: bookingSlot.end + buffer
+        };
 
-        let startInMinutes = (startHr * 60) + startMin;
-        let endInMinutes = (endHr * 60) + endMin;
-        let breakStartInMinutes = (breakStartHr * 60) + breakStartMin;
-        let breakEndInMinutes = (breakEndHr * 60) + breakEndMin;
+        console.log("EFFECTIVE BOOKING:", effectiveBooking);
 
-        console.log("startInMinutes", startInMinutes);
-        console.log("endInMinutes", endInMinutes);
-        console.log("breakStartInMinutes", breakStartInMinutes);
-        console.log("breakEndInMinutes", breakEndInMinutes);
+        // -----------------------------
+        // STEP 4: Build new base slots
+        // -----------------------------
+        let newBaseSlots = [];
 
+        for (const segment of baseSlots) {
 
-        const baseSlot = [
-            {
-                start: startInMinutes,
-                end: breakStartInMinutes
-            },
-            {
-                start: breakEndInMinutes,
-                end: endInMinutes
+            console.log("SEGMENT:", segment);
+
+            const overlap =
+                effectiveBooking.start < segment.end &&
+                effectiveBooking.end > segment.start;
+
+            console.log("OVERLAP:", overlap);
+
+            if (!overlap) {
+                newBaseSlots.push(segment);
+                continue;
             }
-        ];
 
+            // -------- LEFT PART --------
+            if (effectiveBooking.start > segment.start) {
+                const left = {
+                    start: segment.start,
+                    end: effectiveBooking.start
+                };
 
+                console.log("LEFT PUSH:", left);
+                newBaseSlots.push(left);
+            }
 
-        console.log("baseSlot", baseSlot);
+            // -------- RIGHT PART --------
+            if (effectiveBooking.end < segment.end) {
+                const right = {
+                    start: effectiveBooking.end,
+                    end: segment.end
+                };
 
-        await initSlotTalbe();
+                console.log("RIGHT PUSH:", right);
+                newBaseSlots.push(right);
+            }
+        }
+
+        console.log("AFTER:", newBaseSlots);
+
+        // -----------------------------
+        // STEP 5: Save booking
+        // -----------------------------
+        const patient = {
+            name,
+            email,
+            phone,
+            treatment,
+            bookingSlot
+        };
 
         await db.execute(
-            `INSERT INTO slots (base_slot) VALUES(?)`,
-            [JSON.stringify(baseSlot)]
+            `INSERT INTO slots (booking_slots) VALUES (?)`,
+            [JSON.stringify(patient)]
         );
 
-
-
-
+        // -----------------------------
+        // STEP 6: Update base slots
+        // -----------------------------
+        await db.execute(
+            `UPDATE slots SET base_slot = ?`,
+            [JSON.stringify(newBaseSlots)]
+        );
 
     } catch (error) {
         console.log(error);
-        return { ok: false, message: "something went wrong during slot creation" }
+        return {
+            ok: false,
+            message: "something went wrong during booking"
+        };
     }
-    redirect('/client2');
+
+    // -----------------------------
+    // STEP 7: Refresh UI
+    // -----------------------------
+    redirect("/client2");
 }
