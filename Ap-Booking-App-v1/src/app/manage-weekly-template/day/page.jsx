@@ -24,7 +24,7 @@ export default async function EditDaySlots({ searchParams }) {
     let defaultBreakEndMin = "00";
     let defaultBreakEndMeridiem = "PM";
 
-    const fetchRecord = await db.execute(`SELECT * FROM slotPerDay WHERE day = ?`, [day]);
+    const fetchRecord = await db.execute(`SELECT * FROM weekly_template WHERE day = ?`, [day]);
     if (fetchRecord.rows.length > 0) {
 
         const record = fetchRecord.rows[0];

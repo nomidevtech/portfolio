@@ -17,7 +17,7 @@ export function minutesToMeridiem(totalMinutes = 0, fullString = false) {
         full: `${hrsStr}:${minsStr} ${meridiem}`,
         hrs: hrsStr,
         mins: minsStr,
-        meridiem: meridiem
+        meridiem
     };
 
     return fullString ? time.full : time;
