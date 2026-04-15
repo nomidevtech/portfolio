@@ -2,18 +2,31 @@
 
 import { db } from "../lib/turso";
 
-export async function initSlotTalbe() {
+export async function initBookingsTalbe() {
   try {
 
     await db.execute(`
-      CREATE TABLE IF NOT EXISTS slots (
-        id INTEGER PRIMARY KEY,
-        base_slot TEXT,
-        booking_slots TEXT
-      )
-      `)
+          CREATE TABLE IF NOT EXISTS bookings (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          public_id TEXT,
+          patient_name TEXT,
+          patient_email TEXT,
+          patient_phone TEXT,
+          treatment_type TEXT,
+          treatment_start INTEGER,
+          treatment_end INTEGER,
+          date INTEGER,
+          month_name TEXT,
+          month_number INTEGER,
+          day_name TEXT,
+          day_number INTEGER,
+          booking_registered_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          status TEXT DEFAULT 'pending'
+          )`
+    );
 
-    return { ok: true, message: "slots table created" }
+
+    return { ok: true, message: "bookings table created" }
 
 
   } catch (error) {
@@ -33,7 +46,7 @@ export async function initWeeklyTempelateTalbe() {
         id INTEGER PRIMARY KEY,
         public_id TEXT,
         day TEXT UNIQUE,
-        day_number INTEGER DEFAULT 1,
+        day_number INTEGER UNIQUE DEFAULT 1,
         start_time INTEGER DEFAULT 540,
         end_time INTEGER DEFAULT 1020,
         break_start INTEGER DEFAULT 720,
