@@ -2,9 +2,8 @@
 
 import { db } from "../lib/turso";
 
-export async function initBookingsTalbe() {
+export async function initBookingsTable() {
   try {
-
     await db.execute(`
           CREATE TABLE IF NOT EXISTS bookings (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -25,9 +24,7 @@ export async function initBookingsTalbe() {
           )`
     );
 
-
     return { ok: true, message: "bookings table created" }
-
 
   } catch (error) {
     console.log(error);
@@ -35,12 +32,8 @@ export async function initBookingsTalbe() {
   }
 };
 
-
-
-
-export async function initWeeklyTempelateTalbe() {
+export async function initWeeklyTemplateTable() {
   try {
-
     await db.execute(`
         CREATE TABLE IF NOT EXISTS weekly_template (
         id INTEGER PRIMARY KEY,

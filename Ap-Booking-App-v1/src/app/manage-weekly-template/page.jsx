@@ -1,12 +1,13 @@
 import Link from "next/link";
 import { db } from "../lib/turso";
 import { minutesToMeridiem } from "../utils/minutes-to-meridiem";
-import { initWeeklyTempelateTalbe } from "../models/initiTables";
+import { initBookingsTable, initWeeklyTemplateTable } from "../models/initiTables";
 
 
 export default async function SessionManagment() {
 
-    await initWeeklyTempelateTalbe();
+    await initWeeklyTemplateTable();
+    await initBookingsTable();
 
     const fetchRecord = await db.execute(`SELECT day, start_time AS start, end_time AS end, break_start AS breakStart, break_end AS breakEnd, buffer_minutes AS buffer FROM weekly_template;`);
 
@@ -26,15 +27,7 @@ export default async function SessionManagment() {
             }));
     }
 
-
-    console.log(currentSlots);
-
-
     const daysWithoutSlots = days.filter((day) => !currentSlots.find((slot) => slot.day === day));
-    console.log(daysWithoutSlots);
-
-
-
 
     return (<>
         <h2>Generate Slots</h2>
@@ -56,9 +49,5 @@ export default async function SessionManagment() {
                 </div>
             ))}
         </div>
-
-
     </>);
 }
-
-

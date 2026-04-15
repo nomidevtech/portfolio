@@ -1,12 +1,13 @@
 import { db } from "../lib/turso";
+import { initBookingsTable, initWeeklyTemplateTable } from "../models/initiTables";
 import ClientBooking from "./ClientBooking";
 
 export default async function Booking() {
+    await initWeeklyTemplateTable();
+    await initBookingsTable();
 
-    const fetchWeeklyTemplate = await db.execute(`SELECT * FROM weekly_template;`);
+    const fetchWeeklyTemplate = await db.execute(`SELECT * FROM weekly_template`);
     const weeklyTemplate = fetchWeeklyTemplate.rows;
-
-
 
     const daysCode = [
         { day: "Sunday", code: 0 },
@@ -19,22 +20,11 @@ export default async function Booking() {
     ];
 
     const monthsCode = [
-        { month: "January", code: 0 },
-        { month: "February", code: 1 },
-        { month: "March", code: 2 },
-        { month: "April", code: 3 },
-        { month: "May", code: 4 },
-        { month: "June", code: 5 },
-        { month: "July", code: 6 },
-        { month: "August", code: 7 },
-        { month: "September", code: 8 },
-        { month: "October", code: 9 },
-        { month: "November", code: 10 },
-        { month: "December", code: 11 }
+        { month: "January", code: 0 }, { month: "February", code: 1 }, { month: "March", code: 2 },
+        { month: "April", code: 3 }, { month: "May", code: 4 }, { month: "June", code: 5 },
+        { month: "July", code: 6 }, { month: "August", code: 7 }, { month: "September", code: 8 },
+        { month: "October", code: 9 }, { month: "November", code: 10 }, { month: "December", code: 11 }
     ];
-
-
-
 
     const d = new Date();
     const currentDate = d.getDate();
@@ -44,25 +34,13 @@ export default async function Booking() {
     const currentYear = d.getFullYear();
     const currentMonthNumberOfDays = new Date(currentYear, nextMonth, 0).getDate();
 
-
-
-
-
-
     const fetchCurrentMonthBooking = await db.execute(`SELECT date, month_name AS month, treatment_start AS start, treatment_end AS end FROM bookings WHERE month_name = ?`, [currentMonthName]);
     const currentMonthBookings = fetchCurrentMonthBooking.rows;
 
-    console.log("currentMonthBookings======================>", currentMonthBookings);
-
-
-
-
-
-
     const currentMonthSlots = [];
-    let freeVirtualSlots = [];
 
     for (let i = currentDate; i <= currentMonthNumberOfDays; i++) {
+        let freeVirtualSlots = [];
 
         const dayNumAtPeriod = new Date(currentYear, currentMonth, i).getDay();
         const dayAtPeriod = daysCode.find(fn => fn.code === dayNumAtPeriod).day;
@@ -74,82 +52,70 @@ export default async function Booking() {
             if (booking.date === i) {
                 bookingsAtPeriod.push({ start: booking.start, end: booking.end });
             }
-        };
-
-        console.log("bookingsAtPeriod======================>", bookingsAtPeriod);
+        }
 
         const leftSlot = { start: templateAtPeriod?.start_time, end: templateAtPeriod?.break_start };
         const rightSlot = { start: templateAtPeriod?.break_end, end: templateAtPeriod?.end_time };
 
-
-
         if (templateAtPeriod) {
-
-            const baseSlots = [leftSlot, rightSlot]
-                .filter(slot => slot.start != null && slot.end != null);
+            const baseSlots = [leftSlot, rightSlot].filter(slot => slot.start != null && slot.end != null);
+            freeVirtualSlots = [...baseSlots];
 
             const sortedBookings = bookingsAtPeriod.sort((a, b) => a.start - b.start);
 
+            if (sortedBookings.length > 0) {
+                freeVirtualSlots = [];
+                for (const baseSlot of baseSlots) {
+                    let segments = [baseSlot];
 
-            for (const baseSlot of baseSlots) {
+                    for (const booking of sortedBookings) {
+                        let newSegments = [];
+                        const buffer = templateAtPeriod.buffer_minutes;
+                        const bufferedStart = booking.start - buffer;
+                        const bufferedEnd = booking.end + buffer;
 
-                let segments = [baseSlot]; // initial state
+                        for (const segment of segments) {
+                            // NO OVERLAP
+                            if (bufferedEnd <= segment.start || bufferedStart >= segment.end) {
+                                newSegments.push(segment);
+                                continue;
+                            }
 
-                for (const booking of sortedBookings) {
+                            // LEFT PART
+                            if (bufferedStart > segment.start) {
+                                newSegments.push({
+                                    start: segment.start,
+                                    end: bufferedStart
+                                });
+                            }
 
-                    let newSegments = [];
-
-                    for (const segment of segments) {
-
-                        // NO OVERLAP
-                        if (booking.end <= segment.start || booking.start >= segment.end) {
-                            newSegments.push(segment);
-                            continue;
+                            // RIGHT PART
+                            if (bufferedEnd < segment.end) {
+                                newSegments.push({
+                                    start: bufferedEnd,
+                                    end: segment.end
+                                });
+                            }
                         }
-
-                        // LEFT PART
-                        if (booking.start > segment.start) {
-                            newSegments.push({
-                                start: segment.start,
-                                end: booking.start
-                            });
-                        }
-
-                        // RIGHT PART
-                        if (booking.end < segment.end) {
-                            newSegments.push({
-                                start: booking.end,
-                                end: segment.end
-                            });
-                        }
+                        segments = newSegments;
                     }
-
-                    // CRITICAL: update state
-                    segments = newSegments;
-                    freeVirtualSlots = newSegments;
-
+                    freeVirtualSlots.push(...segments);
                 }
-
-
             }
-        }
 
-
-
-
-        if (templateAtPeriod) {
             currentMonthSlots.push({
                 status: "active",
                 date: i,
                 monthName: currentMonthName,
-                day: templateAtPeriod?.day,
-                day_number: templateAtPeriod?.day_number,
-                start_time: templateAtPeriod?.start_time,
-                end_time: templateAtPeriod?.end_time,
-                break_start: templateAtPeriod?.break_start,
-                break_end: templateAtPeriod?.break_end,
-                buffer_minutes: templateAtPeriod?.buffer_minutes,
-                virtualSlotsBase: [{ start: templateAtPeriod?.start_time, end: templateAtPeriod?.break_start }, { start: templateAtPeriod?.break_end, end: templateAtPeriod?.end_time }],
+                month_number: currentMonth,
+                day: templateAtPeriod.day,
+                day_number: templateAtPeriod.day_number,
+                start_time: templateAtPeriod.start_time,
+                end_time: templateAtPeriod.end_time,
+                break_start: templateAtPeriod.break_start,
+                break_end: templateAtPeriod.break_end,
+                buffer_minutes: templateAtPeriod.buffer_minutes,
+                virtualSlotsBase: baseSlots,
                 freeVirtualSlots
             });
         } else {
@@ -167,21 +133,8 @@ export default async function Booking() {
                 virtualSlotsBase: [],
                 freeVirtualSlots: []
             });
-        };
-    };
-
-
-
-
-
-    console.log("freeVirtualSlots======================>", freeVirtualSlots);
-    // console.log(weeklyTemplate);
-    // console.log(currentDate);
-    // console.log(currentMonth);
-    // console.log(currentYear);
-    // console.log(currentMonthNumberOfDays);
-    //console.dir(currentMonthSlots, { depth: null });
-
+        }
+    }
 
     return (<>
         <ClientBooking currentMonthSlots={currentMonthSlots} monthName={currentMonthName} />

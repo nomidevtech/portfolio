@@ -8,11 +8,9 @@ import { bookingServerAction } from "./bookingSA";
 export default function ClientBooking({ currentMonthSlots, monthName }) {
 
     let treatmentTime = 30;
-    let treamentType = "treatmentPlaceholder";
+    let treatmentType = "treatmentPlaceholder";
 
     const [userSlot, setUserSlot] = useState(null);
-
-
 
     const enrichedSlots = currentMonthSlots.map(daySegment => {
         if (daySegment.status === "inactive") {
@@ -20,7 +18,7 @@ export default function ClientBooking({ currentMonthSlots, monthName }) {
         }
 
         const slots = [];
-        for (const slotSegment of daySegment.freeVirtualSlots.lenght > 0 ? daySegment.freeVirtualSlots : daySegment.virtualSlotsBase) {
+        for (const slotSegment of daySegment.freeVirtualSlots) {
             let cursor = slotSegment.start;
             while (cursor + treatmentTime <= slotSegment.end) {
                 slots.push({ start: cursor, end: cursor + treatmentTime });
@@ -29,10 +27,6 @@ export default function ClientBooking({ currentMonthSlots, monthName }) {
         }
         return { ...daySegment, virtualSlotsForTreatment: slots };
     });
-
-    //console.dir(enrichedSlots, { depth: null });
-
-
 
     return (<>
         {!userSlot && <>
@@ -47,11 +41,10 @@ export default function ClientBooking({ currentMonthSlots, monthName }) {
                         <button onClick={() => setUserSlot({ baseSlot: daySegment, selectedSlot: slot })} className="p-2 m-2 border-2" key={slot.start}>{minutesToMeridiem(slot.start, true)} - {minutesToMeridiem(slot.end, true)}
                         </button>)
                     )}
-
                 </div>
             ))}
         </>}
-        {userSlot && <button onClick={() => setUserSlot(null)} >Chose another slot</button>}
+        {userSlot && <button onClick={() => setUserSlot(null)} >Choose another slot</button>}
         {userSlot &&
             <>
                 <Form action={bookingServerAction}>
@@ -59,13 +52,9 @@ export default function ClientBooking({ currentMonthSlots, monthName }) {
                     <input type="text" name="full_name" placeholder="Full Name" />
                     <input type="text" name="phone" placeholder="Phone" />
                     <input type="text" name="email" placeholder="Email" />
-                    <input type="hidden" name="treatment" value={treamentType} />
+                    <input type="hidden" name="treatment" value={treatmentType} />
                     <button type="submit">Submit</button>
                 </Form>
             </>}
-
-
-
-
     </>);
 }
