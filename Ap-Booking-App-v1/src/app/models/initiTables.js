@@ -38,17 +38,53 @@ export async function initWeeklyTemplateTable() {
         CREATE TABLE IF NOT EXISTS weekly_template (
         id INTEGER PRIMARY KEY,
         public_id TEXT,
-        day TEXT UNIQUE,
-        day_number INTEGER UNIQUE DEFAULT 1,
+        status INTEGER DEFAULT 1,
+        doctor_id INTEGER,
+        day TEXT,
+        day_number INTEGER DEFAULT 1,
+        month_name TEXT DEFAULT 'January',
+        month_number INTEGER DEFAULT 1,
+        year INTEGER DEFAULT 2025,
+        date INTEGER DEFAULT 1,
         start_time INTEGER DEFAULT 540,
         end_time INTEGER DEFAULT 1020,
         break_start INTEGER DEFAULT 720,
         break_end INTEGER DEFAULT 780,
-        buffer_minutes INTEGER DEFAULT 10
+        buffer_minutes INTEGER DEFAULT 10,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE (date, month_number, year),
+        FOREIGN KEY (doctor_id) REFERENCES doctors(id) ON DELETE CASCADE
         )`
     );
 
+
+
     return { ok: true, message: "weekly_template table created" }
+  } catch (error) {
+    console.log(error);
+    return { ok: false, message: error.message }
+  }
+};
+
+
+
+export async function initDoctorsTable() {
+  try {
+    await db.execute(`
+        CREATE TABLE IF NOT EXISTS doctors (
+        id INTEGER PRIMARY KEY,
+        public_id TEXT,
+        department TEXT,
+        name TEXT,
+        title TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )`
+    );
+
+
+
+    return { ok: true, message: "doctors table created" }
   } catch (error) {
     console.log(error);
     return { ok: false, message: error.message }

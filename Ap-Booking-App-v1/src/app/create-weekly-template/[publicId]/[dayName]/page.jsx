@@ -1,10 +1,8 @@
 import Form from "next/form";
-import { dayServerAction } from "../daySA";
-import { db } from "../../lib/turso";
-import { minutesToMeridiem } from "../../utils/minutes-to-meridiem";
+import { dayServerAction } from "./daySA";
 
-export default async function EditDaySlots({ searchParams }) {
-    const { d: day, edit = "false" } = await searchParams;
+export default async function EditDaySlots({ params }) {
+    const { dayName, publicId } = await params;
 
     let defaultBuffer = 10;
 
@@ -24,29 +22,7 @@ export default async function EditDaySlots({ searchParams }) {
     let defaultBreakEndMin = "00";
     let defaultBreakEndMeridiem = "PM";
 
-    const fetchRecord = await db.execute(`SELECT * FROM weekly_template WHERE day = ?`, [day]);
-    if (fetchRecord.rows.length > 0) {
 
-        const record = fetchRecord.rows[0];
-
-        defaultStartHr = minutesToMeridiem(record.start_time, false).hrs;
-        defaultStartMin = minutesToMeridiem(record.start_time, false).mins;
-        defaultStartMeridiem = minutesToMeridiem(record.start_time, false).meridiem;
-
-        defaultEndHr = minutesToMeridiem(record.end_time, false).hrs;
-        defaultEndMin = minutesToMeridiem(record.end_time, false).mins;
-        defaultEndMeridiem = minutesToMeridiem(record.end_time, false).meridiem;
-
-        defaultBreakStartHr = minutesToMeridiem(record.break_start, false).hrs;
-        defaultBreakStartMin = minutesToMeridiem(record.break_start, false).mins;
-        defaultBreakStartMeridiem = minutesToMeridiem(record.break_start, false).meridiem;
-
-        defaultBreakEndHr = minutesToMeridiem(record.break_end, false).hrs;
-        defaultBreakEndMin = minutesToMeridiem(record.break_end, false).mins;
-        defaultBreakEndMeridiem = minutesToMeridiem(record.break_end, false).meridiem;
-
-        defaultBuffer = record.buffer_minutes;
-    };
 
 
 
@@ -64,11 +40,13 @@ export default async function EditDaySlots({ searchParams }) {
 
     const meridiem = ["AM", "PM"];
 
+
+
     return (<>
-        {edit === "false" && day && <>Configure: {day}</>}
-        {edit === "true" && day && <>Edit: {day}</>}
+        <h2>{dayName}</h2>
         <Form action={dayServerAction} className="space-y-6 p-6 bg-gray-50 dark:bg-gray-900 rounded-md">
-            <input type="hidden" name="day" value={day} />
+            <input type="hidden" name="doctorPublicId" value={publicId} />
+            <input type="hidden" name="day" value={dayName} />
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
                 Buffer in minutes
             </label>
