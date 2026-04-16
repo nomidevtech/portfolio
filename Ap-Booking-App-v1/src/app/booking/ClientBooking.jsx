@@ -30,7 +30,7 @@ export default function ClientBooking({ currentMonthSlots, monthName }) {
 
     return (<>
         {!userSlot && <>
-            <div>{monthName} Slots</div>
+            <div>{monthName?? "dummy month"} Slots</div>
             {enrichedSlots.map((daySegment, index) => (
                 <div key={daySegment.day_number + index}>
                     <div className={daySegment.status === "inactive" ? "text-red-900" : " text-green-400"} >
