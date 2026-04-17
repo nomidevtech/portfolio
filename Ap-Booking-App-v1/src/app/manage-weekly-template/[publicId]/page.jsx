@@ -68,7 +68,7 @@ export default async function ManageWeeklyTemplate({ params }) {
                     </div>
                 )}
 
-            <Client templatesSer={JSON.stringify(templatesForClient)} publicId={publicId} bookings={bookingsArr} />
+            <Client templates={templatesForClient} publicId={publicId} bookings={bookingsArr} />
         </>
     );
 }

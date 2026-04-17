@@ -10,8 +10,8 @@ import { toggleTemplateStatusServerAction } from "./deactivateSA";
 
 
 
-export default function Client({ templatesSer, publicId, bookings }) {
-    const templates = JSON.parse(templatesSer);
+export default function Client({ templates, publicId, bookings }) {
+    
 
     const router = useRouter();
 

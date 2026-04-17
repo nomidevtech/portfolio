@@ -8,6 +8,8 @@ export async function initBookingsTable() {
           CREATE TABLE IF NOT EXISTS bookings (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
           public_id TEXT,
+          doctor_id INTEGER,
+          doctor_name TEXT,
           patient_name TEXT,
           patient_email TEXT,
           patient_phone TEXT,
@@ -20,7 +22,8 @@ export async function initBookingsTable() {
           day_name TEXT,
           day_number INTEGER,
           booking_registered_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-          status TEXT DEFAULT 'pending'
+          status TEXT DEFAULT 'pending',
+          FOREIGN KEY (doctor_id) REFERENCES doctors(id) ON DELETE SET NULL
           )`
     );
 
