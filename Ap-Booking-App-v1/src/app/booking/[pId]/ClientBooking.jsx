@@ -1,9 +1,9 @@
 'use client';
 
 import { useState } from "react";
-import { minutesToMeridiem } from "../utils/minutes-to-meridiem";
+import { minutesToMeridiem } from "../../utils/minutes-to-meridiem";
 import Form from "next/form";
-import { bookingServerAction } from "./bookingSA";
+import { bookingServerAction } from "../bookingSA";
 
 export default function ClientBooking({ currentMonthSlots, monthName }) {
 
@@ -12,11 +12,9 @@ export default function ClientBooking({ currentMonthSlots, monthName }) {
 
     const [userSlot, setUserSlot] = useState(null);
 
-    const enrichedSlots = currentMonthSlots.map(daySegment => {
-        if (daySegment.status === "inactive") {
-            return { ...daySegment, virtualSlotsForTreatment: [] };
-        }
 
+
+    const enrichedSlots = currentMonthSlots.map(daySegment => {
         const slots = [];
         for (const slotSegment of daySegment.freeVirtualSlots) {
             let cursor = slotSegment.start;
@@ -28,14 +26,15 @@ export default function ClientBooking({ currentMonthSlots, monthName }) {
         return { ...daySegment, virtualSlotsForTreatment: slots };
     });
 
+    console.dir(enrichedSlots, { depth: null });
+
     return (<>
         {!userSlot && <>
-            <div>{monthName?? "dummy month"} Slots</div>
+            <div>{monthName ?? "dummy month"} Slots</div>
             {enrichedSlots.map((daySegment, index) => (
-                <div key={daySegment.day_number + index}>
-                    <div className={daySegment.status === "inactive" ? "text-red-900" : " text-green-400"} >
-                        {daySegment.day} {daySegment.monthName} {daySegment.date > 9 ? String(daySegment.date) : "0" + daySegment.date}
-                        {daySegment.status === "inactive" && <span className="text-red-900 mx-2">: No Slots Available</span>}
+                <div key={daySegment.public_id + index}>
+                    <div className=" text-green-400">
+                        {daySegment.day[0].toUpperCase() + daySegment.day.slice(1)} {daySegment.monthName}-{daySegment.date > 9 ? String(daySegment.date) : "0" + daySegment.date}-{daySegment.year}
                     </div>
                     {daySegment.virtualSlotsForTreatment.map(slot => (
                         <button onClick={() => setUserSlot({ baseSlot: daySegment, selectedSlot: slot })} className="p-2 m-2 border-2" key={slot.start}>{minutesToMeridiem(slot.start, true)} - {minutesToMeridiem(slot.end, true)}

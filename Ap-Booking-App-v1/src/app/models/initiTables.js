@@ -19,6 +19,7 @@ export async function initBookingsTable() {
           date INTEGER,
           month_name TEXT,
           month_number INTEGER,
+          year INTEGER,
           day_name TEXT,
           day_number INTEGER,
           booking_registered_at DATETIME DEFAULT CURRENT_TIMESTAMP,

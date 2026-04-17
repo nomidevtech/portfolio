@@ -11,7 +11,14 @@ import { toggleTemplateStatusServerAction } from "./deactivateSA";
 
 
 export default function Client({ templates, publicId, bookings }) {
-    
+
+    //console.log("templates", templates);
+
+    const allDaysFromDb = templates.map((template) => template.day);
+    const uniqueDays = [...new Set(allDaysFromDb)];
+
+
+    console.log("uniqueDays", uniqueDays);
 
     const router = useRouter();
 
@@ -23,15 +30,26 @@ export default function Client({ templates, publicId, bookings }) {
 
     return (
         <>
-            {templates.map((template) => (
-                <TemplateItem
-                    key={template.public_id}
-                    template={template}
-                    bookings={bookings}
-                    publicId={publicId}
-                    handleDeactivate={handleDeactivate}
-                />
-            ))}
+            {
+                uniqueDays.map((day) => (
+                    <div key={day}>
+                        <h2>{day[0].toUpperCase() + day.slice(1)}</h2>
+                        <div className="flex flex-row flex-wrap">
+                            {templates
+                                .filter((template) => template.day === day)
+                                .map((template) => (
+                                    <TemplateItem
+                                        key={template.public_id}
+                                        template={template}
+                                        bookings={bookings}
+                                        handleDeactivate={handleDeactivate}
+                                    />
+                                ))}
+                        </div>
+                    </div>
+                ))}
+
+
         </>
     );
 }
@@ -40,7 +58,7 @@ export default function Client({ templates, publicId, bookings }) {
 
 
 
-function TemplateItem({ template, bookings, publicId, handleDeactivate }) {
+function TemplateItem({ template, bookings, handleDeactivate }) {
 
     const [state, action, inPending] = useActionState(toggleTemplateStatusServerAction, { ok: false, message: "" });
     const [deactivate, setDeactivate] = useState(false);

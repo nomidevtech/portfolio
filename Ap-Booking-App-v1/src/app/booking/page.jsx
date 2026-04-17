@@ -1,19 +1,33 @@
-import { getSlots } from "../lib/getSlots";
-
-import { initBookingsTable, initWeeklyTemplateTable } from "../models/initiTables";
-import ClientBooking from "./ClientBooking";
-
-export default async function Booking() {
-    await initWeeklyTemplateTable();
-    await initBookingsTable();
-
-    const d = new Date();
-    const result = await getSlots(d);
-    const currentMonthSlots = result.currentMonthSlots;
-    const currentMonthName = result.currentMonthName;
+import Link from "next/link";
+import { db } from "../lib/turso";
 
 
-    return (<>
-        <ClientBooking currentMonthSlots={currentMonthSlots} monthName={currentMonthName} />
-    </>);
+export default async function Bookings() {
+
+    const fetchDoctors = await db.execute("SELECT * FROM doctors");
+    const doctorsArr = fetchDoctors?.rows || [];
+    const departments = [...new Set(doctorsArr.map(r => r.department))];
+
+    return (
+        <div>
+            {departments.map((department) => (
+                <div key={department}>
+                    <h2>Department:{department}</h2>
+                    {doctorsArr
+                        .filter((doc) => doc.department === department)
+                        .map((fn) => (
+                            <div className="border-2" key={fn.public_id}>
+                                <Link
+                                    href={`/booking/${fn.public_id}`}
+                                    key={fn.public_id}
+                                >
+                                    👉  {fn.name}
+                                </Link>
+                            </div>
+                        ))
+                    }
+                </div>
+            ))}
+        </div>
+    );
 }
