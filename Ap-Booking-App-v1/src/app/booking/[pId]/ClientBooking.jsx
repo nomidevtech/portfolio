@@ -1,16 +1,20 @@
 'use client';
 
-import { useState } from "react";
+import { useActionState, useState } from "react";
 import { minutesToMeridiem } from "../../utils/minutes-to-meridiem";
 import Form from "next/form";
 import { bookingServerAction } from "./bookingSA";
 
 export default function ClientBooking({ currentMonthSlots, monthName, doctorPublicId }) {
 
+    const [state, action, inPending] = useActionState(bookingServerAction, { ok: false, message: "" });
+
     let treatmentTime = 10;
     let treatmentType = "treatmentPlaceholder";
 
     const [userSlot, setUserSlot] = useState(null);
+
+    console.log("userSlot", userSlot);
 
 
 
@@ -37,16 +41,28 @@ export default function ClientBooking({ currentMonthSlots, monthName, doctorPubl
                         {daySegment.day[0].toUpperCase() + daySegment.day.slice(1)} {daySegment.monthName}-{daySegment.date > 9 ? String(daySegment.date) : "0" + daySegment.date}-{daySegment.year}
                     </div>
                     {daySegment.virtualSlotsForTreatment.map(slot => (
-                        <button onClick={() => setUserSlot({ baseSlot: daySegment, selectedSlot: slot })} className="p-2 m-2 border-2" key={slot.start}>{minutesToMeridiem(slot.start, true)} - {minutesToMeridiem(slot.end, true)}
+                        <button onClick={() =>
+                            setUserSlot({
+                                baseSlot: {
+                                    monthName: daySegment.monthName,
+                                    month_number: daySegment.month_number,
+                                    date: daySegment.date,
+                                    day: daySegment.day,
+                                    day_number: daySegment.day_number,
+                                    year: daySegment.year,
+                                },
+                                selectedSlot: slot
+                            })} className="p-2 m-2 border-2" key={slot.start}>{minutesToMeridiem(slot.start, true)} - {minutesToMeridiem(slot.end, true)}
                         </button>)
                     )}
                 </div>
             ))}
         </>}
         {userSlot && <button onClick={() => setUserSlot(null)} >Choose another slot</button>}
-        {userSlot &&
+        {
+            userSlot &&
             <>
-                <Form action={bookingServerAction}>
+                <Form action={action}>
                     <input type="hidden" name="doctorPublicId" value={doctorPublicId} />
                     <input type="hidden" name="slot" value={JSON.stringify(userSlot)} />
                     <input type="text" name="full_name" placeholder="Full Name" />
@@ -55,6 +71,7 @@ export default function ClientBooking({ currentMonthSlots, monthName, doctorPubl
                     <input type="hidden" name="treatment" value={treatmentType} />
                     <button type="submit">Submit</button>
                 </Form>
-            </>}
+            </>
+        }
     </>);
 }
