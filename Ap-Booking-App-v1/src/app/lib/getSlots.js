@@ -44,16 +44,16 @@ export const getSlots = async (dateObj, doctorId) => {
 
         const dayNumAtPeriod = new Date(currentYear, currentMonth, i).getDay();
 
-        const templateAtPeriod = weeklyTemplate.find(fn => fn.day_number === dayNumAtPeriod);
+        const templateAtPeriod = weeklyTemplate.find(fn => fn.date === i && fn.day_number === dayNumAtPeriod);
+        if (!templateAtPeriod) continue; // imp check to skip empty days starting next iteration
+
 
         const bookingsAtPeriod = [];
         for (const booking of currentMonthBookings) {
             if (booking.date === i) {
                 bookingsAtPeriod.push({ start: booking.start, end: booking.end });
             }
-        }
-
-        if (!templateAtPeriod) continue; // imp check to skip empty days starting next iteration
+        };
 
         const leftSlot = { start: templateAtPeriod.start_time, end: templateAtPeriod.break_start };
         const rightSlot = { start: templateAtPeriod.break_end, end: templateAtPeriod.end_time };
@@ -61,7 +61,7 @@ export const getSlots = async (dateObj, doctorId) => {
         freeVirtualSlots = [...baseSlots];
 
         const sortedBookings = bookingsAtPeriod.sort((a, b) => a.start - b.start);
-        
+
 
         if (sortedBookings.length > 0) {
             freeVirtualSlots = [];
@@ -122,7 +122,7 @@ export const getSlots = async (dateObj, doctorId) => {
         });
 
     }
-    //console.log("currentMonthSlots", currentMonthSlots);
+    //console.dir(currentMonthSlots, { depth: null });
     return currentMonthSlots;
 
 
