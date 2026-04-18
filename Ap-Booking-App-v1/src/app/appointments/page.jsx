@@ -2,10 +2,10 @@ import acquireDoctorsData from "../lib/acquireDocData";
 import ShowDocsByDep from "../components/ShowDocsByDep";
 
 
-export default async function ManageWeeklyTemplates() {
+export default async function Appointments() {
 
     const { doctorsArr, departments } = await acquireDoctorsData();
-    const linkSegment = "/manage-weekly-template/";
+    const linkSegment = "/appointments/";
 
 
 

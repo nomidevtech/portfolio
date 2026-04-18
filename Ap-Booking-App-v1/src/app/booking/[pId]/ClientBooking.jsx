@@ -3,11 +3,11 @@
 import { useState } from "react";
 import { minutesToMeridiem } from "../../utils/minutes-to-meridiem";
 import Form from "next/form";
-import { bookingServerAction } from "../bookingSA";
+import { bookingServerAction } from "./bookingSA";
 
-export default function ClientBooking({ currentMonthSlots, monthName }) {
+export default function ClientBooking({ currentMonthSlots, monthName, doctorPublicId }) {
 
-    let treatmentTime = 30;
+    let treatmentTime = 10;
     let treatmentType = "treatmentPlaceholder";
 
     const [userSlot, setUserSlot] = useState(null);
@@ -26,7 +26,7 @@ export default function ClientBooking({ currentMonthSlots, monthName }) {
         return { ...daySegment, virtualSlotsForTreatment: slots };
     });
 
-    console.dir(enrichedSlots, { depth: null });
+    //console.dir(enrichedSlots, { depth: null });
 
     return (<>
         {!userSlot && <>
@@ -47,6 +47,7 @@ export default function ClientBooking({ currentMonthSlots, monthName }) {
         {userSlot &&
             <>
                 <Form action={bookingServerAction}>
+                    <input type="hidden" name="doctorPublicId" value={doctorPublicId} />
                     <input type="hidden" name="slot" value={JSON.stringify(userSlot)} />
                     <input type="text" name="full_name" placeholder="Full Name" />
                     <input type="text" name="phone" placeholder="Phone" />

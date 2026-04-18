@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { initBookingsTable } from "../../models/initiTables";
 import ClientBooking from "./ClientBooking";
 import { db } from "../../lib/turso";
 import { getSlots } from "../../lib/getSlots";
@@ -31,6 +30,6 @@ export default async function Slots({ params }) {
 
 
     return (<>
-        <ClientBooking currentMonthSlots={result} monthName={currentMonthName} />
+        <ClientBooking currentMonthSlots={result} monthName={currentMonthName} doctorPublicId={pId} />
     </>);
 }

@@ -6,6 +6,7 @@ export default function Home() {
     <Link href="/manage-weekly-template">Manage Weekly Template</Link>
     <Link href="/booking">Booking</Link>
     <Link href="/add-doctor">Add Doctor</Link>
-    
+    <Link href="/appointments">Appointments</Link>
+
   </>);
 }

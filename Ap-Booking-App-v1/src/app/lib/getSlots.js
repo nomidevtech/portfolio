@@ -61,6 +61,7 @@ export const getSlots = async (dateObj, doctorId) => {
         freeVirtualSlots = [...baseSlots];
 
         const sortedBookings = bookingsAtPeriod.sort((a, b) => a.start - b.start);
+        
 
         if (sortedBookings.length > 0) {
             freeVirtualSlots = [];
