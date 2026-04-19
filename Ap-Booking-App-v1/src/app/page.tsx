@@ -1,6 +1,11 @@
 import Link from "next/link";
+import { initBookingsTable, initDoctorsTable, initWeeklyTemplateTable } from "./models/initiTables";
 
-export default function Home() {
+export default async function Home() {
+
+  await initBookingsTable();
+  await initDoctorsTable();
+  await initWeeklyTemplateTable();
 
   return (<>
     <Link href="/manage-weekly-template">Manage Weekly Template</Link>

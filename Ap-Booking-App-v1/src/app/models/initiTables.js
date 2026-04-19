@@ -57,7 +57,7 @@ export async function initWeeklyTemplateTable() {
         buffer_minutes INTEGER DEFAULT 10,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        UNIQUE (date, month_number, year),
+        UNIQUE (doctor_id, date, month_number, year),
         FOREIGN KEY (doctor_id) REFERENCES doctors(id) ON DELETE CASCADE
         )`
     );

@@ -123,7 +123,7 @@ export async function dayServerAction(formData) {
         return { ok: false, message: "Database operation failed" };
     }
 
-    redirect(`/create-weekly-template/${docPubId}`);
+    redirect(`/manage-weekly-template/${docPubId}`);
 }
 
 

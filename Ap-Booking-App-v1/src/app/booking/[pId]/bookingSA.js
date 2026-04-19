@@ -5,7 +5,7 @@ import { db } from "../../lib/turso";
 import { initBookingsTable } from "../../models/initiTables";
 import { redirect } from "next/navigation";
 
-export async function bookingServerAction(_, formData) {
+export async function bookingServerAction(formData) {
     try {
         const doctorPublicId = formData.get("doctorPublicId");
         const name = formData.get("full_name");

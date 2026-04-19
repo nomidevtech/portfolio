@@ -1,13 +1,12 @@
 'use client';
 
-import { useActionState, useState } from "react";
 import { minutesToMeridiem } from "../../utils/minutes-to-meridiem";
 import Form from "next/form";
 import { bookingServerAction } from "./bookingSA";
+import { useState } from "react";
 
 export default function ClientBooking({ currentMonthSlots, monthName, doctorPublicId }) {
 
-    const [state, action, inPending] = useActionState(bookingServerAction, { ok: false, message: "" });
 
     let treatmentTime = 10;
     let treatmentType = "treatmentPlaceholder";
@@ -30,7 +29,6 @@ export default function ClientBooking({ currentMonthSlots, monthName, doctorPubl
         return { ...daySegment, virtualSlotsForTreatment: slots };
     });
 
-    //console.dir(enrichedSlots, { depth: null });
 
     return (<>
         {!userSlot && <>
@@ -62,7 +60,7 @@ export default function ClientBooking({ currentMonthSlots, monthName, doctorPubl
         {
             userSlot &&
             <>
-                <Form action={action}>
+                <Form action={bookingServerAction}>
                     <input type="hidden" name="doctorPublicId" value={doctorPublicId} />
                     <input type="hidden" name="slot" value={JSON.stringify(userSlot)} />
                     <input type="text" name="full_name" placeholder="Full Name" />
