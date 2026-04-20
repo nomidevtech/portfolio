@@ -11,6 +11,8 @@ export default function ClientAppointments({ dateKeysFromParent = [], docArrFrom
 
     const [fullCache, setFullCache] = useState(null);
 
+    const d = new Date();
+
     async function handleAllBookings() {
 
         if (fullCache) {
@@ -18,7 +20,8 @@ export default function ClientAppointments({ dateKeysFromParent = [], docArrFrom
             setDocArr(fullCache.docArrSafe);
             return;
         }
-        const res = await fetchAllBookings();
+
+        const res = await fetchAllBookings(d, "allall");
         setFullCache(res);
         setDateKeys(res.dateKeys);
         setDocArr(res.docArrSafe);

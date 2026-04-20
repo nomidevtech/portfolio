@@ -6,48 +6,55 @@ import { useRouter } from 'next/navigation'
 import { useActionState, useEffect, useState } from "react";
 import { minutesToMeridiem } from "../../utils/minutes-to-meridiem";
 import { toggleTemplateStatusServerAction } from "./deactivateSA";
+import { createNextMonthSlots } from "../../lib/createNextMonthSlots";
 
 
 
 
 export default function Client({ templates, publicId, bookings }) {
 
-    //console.log("templates", templates);
+    const router = useRouter();
 
     const allDaysFromDb = templates.map((template) => template.day);
     const uniqueDays = [...new Set(allDaysFromDb)];
 
 
-    console.log("uniqueDays", uniqueDays);
-
-    const router = useRouter();
-
-    const handleDeactivate = () => {
+    const handleNextMonthSlots = async () => {
+        const res = await createNextMonthSlots(publicId);
         router.refresh();
     }
+
+    const handleDeactivate = () => router.refresh();
+
 
     if (templates.length === 0) return <p>No templates found.</p>;
 
     return (
         <>
-            {
-                uniqueDays.map((day) => (
-                    <div key={day}>
-                        <h2>{day[0].toUpperCase() + day.slice(1)}</h2>
-                        <div className="flex flex-row flex-wrap">
-                            {templates
-                                .filter((template) => template.day === day)
-                                .map((template) => (
-                                    <TemplateItem
-                                        key={template.public_id}
-                                        template={template}
-                                        bookings={bookings}
-                                        handleDeactivate={handleDeactivate}
-                                    />
-                                ))}
-                        </div>
+            {templates.length > 0 && <>
+                <p>Create Slots For Next Month Using Current Setup </p>
+                <button onClick={handleNextMonthSlots}>Create ⬅</button>
+            </>}
+
+            {uniqueDays.map((day) => (
+                <div key={day}>
+                    <h2>{day[0].toUpperCase() + day.slice(1)}</h2>
+                    <div className="flex flex-row flex-wrap">
+                        {templates
+                            .filter((template) => template.day === day)
+                            .map((template) => (
+                                <TemplateItem
+                                    key={template.public_id}
+                                    template={template}
+                                    bookings={bookings}
+                                    handleDeactivate={handleDeactivate}
+                                />
+                            ))}
                     </div>
-                ))}
+                </div>
+            ))}
+
+
 
 
         </>

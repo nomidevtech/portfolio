@@ -23,18 +23,22 @@ export async function cancelManyBookingsServerAction(prevState, formData) {
         return { ok: false, message: "Failed to cancel bookings." };
     }
 }
-export async function fetchAllBookings() {
+export async function fetchAllBookings(dateObj = new Date(), searchValue = "") {
 
     try {
-        const d = new Date();
+        const d = dateObj;
         const currentDate = d.getDate();
         const currentMonthNumber = d.getMonth();
         const currentYear = d.getFullYear();
+        let seachString = null;
+        if (searchValue === "all") seachString = ` AND b.status = 'verified' OR b.status = 'pending'`;
+        if (searchValue === "cancelled") seachString = ` AND b.status = 'cancelled'`;
+        if (searchValue !== "all" || searchValue !== "cancelled") seachString = ` AND b.status = 'verified' OR b.status = 'pending'`;
 
         const fetchDocsWithBookings = await db.execute(`
         SELECT d.public_id AS doctor_public_id, d.department, d.name, d.title, d.created_at AS doctor_created_at, b.public_id AS booking_public_id, b.doctor_name, b.patient_name, b.patient_email, b.patient_phone, b.treatment_type, b.treatment_start, b.treatment_end, b.date, b.month_name, b.month_number, b.year, b.day_name, b.day_number, b.booking_registered_at, b.status
         FROM doctors d
-        INNER JOIN bookings b ON b.doctor_id = d.id WHERE b.date >= ? AND b.month_number = ? AND b.year = ?
+        INNER JOIN bookings b ON b.doctor_id = d.id WHERE b.date >= ? AND b.month_number = ? AND b.year = ? ${seachString}
         ORDER BY b.year ASC, b.month_number ASC, b.date ASC, b.treatment_start ASC 
     `, [currentDate, currentMonthNumber, currentYear]);
 

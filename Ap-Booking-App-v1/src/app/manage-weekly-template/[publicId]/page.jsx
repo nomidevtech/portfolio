@@ -9,6 +9,7 @@ export default async function ManageWeeklyTemplate({ params }) {
 
     const d = new Date();
     const currentMonthNumber = d.getMonth();
+    const year = d.getFullYear();
 
     const fetchDocId = await db.execute("SELECT id FROM doctors WHERE public_id = ?", [publicId]);
 
@@ -16,7 +17,7 @@ export default async function ManageWeeklyTemplate({ params }) {
 
     const doctorId = fetchDocId.rows[0].id;
 
-    const fetchTemplates = await db.execute(`SELECT * FROM weekly_template WHERE doctor_id = ? AND month_number = ?`, [doctorId, currentMonthNumber]);
+    const fetchTemplates = await db.execute(`SELECT * FROM weekly_template WHERE doctor_id = ? AND month_number = ? AND year = ?`, [doctorId, currentMonthNumber, year]);
     const templates = fetchTemplates.rows;
     const allDaysFromDb = fetchTemplates.rows?.map(row => row.day);
     const uniqueDaysFromDb = [...new Set(allDaysFromDb)];
