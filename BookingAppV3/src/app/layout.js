@@ -1,6 +1,5 @@
 import NavBar from "./components/Nav";
 import "./globals.css";
-import TempRun from "./temp/page";
 
 
 export const metadata = {
@@ -10,14 +9,11 @@ export const metadata = {
 
 export default function RootLayout({ children }) {
 
-
-
   return (
     <html lang="en" >
       <body>
         <NavBar />
         {children}
-        <TempRun />
       </body>
     </html>
   );

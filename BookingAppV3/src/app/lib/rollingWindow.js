@@ -6,20 +6,11 @@ import { getDayName } from "../utils/getDateData";
 import { db } from "./turso";
 
 export async function rollingWindow(win = 31) {
-
-    await initSlotsTable();
-
     try {
         const adminId = 1;
 
         const fetchAllTemplates = await db.execute(`SELECT * FROM weekly_templates WHERE admin_id = ?`, [adminId])
         if (fetchAllTemplates.rows.length === 0) return null;
-
-        //console.log(fetchAllTemplates.rows)
-
-
-
-
 
         const slotsArr = [];
 
@@ -86,29 +77,8 @@ export async function rollingWindow(win = 31) {
             values
         );
 
-
-
-
-        //console.log(slotsArrSorted);
-
-
-
-        console.log(slotsArrSorted);
-
-
-
-
-
-
-
-
-
-
-
-
-
     } catch (error) {
         console.error(error);
-        throw error;
+        return null;
     }
 }
