@@ -10,9 +10,9 @@ import { redirect } from "next/navigation";
 
 
 export async function createTemplateServerAction(formData) {
-
+    
     const docPubId = formData.get("doctorPublicId");
-
+    
     try {
         const adminId = 1; // harcoded for now
 
@@ -39,7 +39,7 @@ export async function createTemplateServerAction(formData) {
 
 
 
-        await db.execute(`INSERT INTO weekly_templates (public_id, admin_id, doctor_id, day_number, start_time, end_time, break_start, break_end, buffer_minutes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`, [
+        await db.execute(`INSERT INTO weekly_templates (public_id, admin_id, doctor_id, day_number, start_time, end_time, break_start, break_end) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`, [
             nanoid(12),
             adminId,
             doctor.id,
@@ -48,7 +48,6 @@ export async function createTemplateServerAction(formData) {
             endInMinutes,
             breakStartInMinutes,
             breakEndInMinutes,
-            buffer
         ]);
 
 

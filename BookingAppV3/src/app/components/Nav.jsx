@@ -8,6 +8,8 @@ export default function NavBar() {
                 <Link href="/add-doctor"><li>Add Doctor</li></Link>
                 <Link href="/add-treatment"><li>Add Treatment</li></Link>
                 <Link href="/create-template"><li> Create Template</li></Link>
+                <Link href="/edit-template"><li> Edit Template</li></Link>
+                <Link href="/generated-slots"><li> Generated Slots</li></Link>
             </ul>
         </nav>
     </>);

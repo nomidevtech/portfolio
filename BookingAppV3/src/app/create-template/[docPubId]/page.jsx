@@ -2,6 +2,8 @@ import Form from "next/form";
 import { db } from "@/app/lib/turso";
 import { createTemplateServerAction } from "./SA";
 import { getDayName } from "@/app/utils/getDateData";
+import { minutesToMeridiem } from "@/app/utils/minutes-to-meridiem";
+import Link from "next/link";
 
 
 export default async function DoctorCreateTemplate({ params }) {
@@ -12,7 +14,19 @@ export default async function DoctorCreateTemplate({ params }) {
 
     const { name, id } = fetchDoctor.rows[0];
 
-    const fetchExisTemplates = await db.execute(`SELECT day_number FROM weekly_templates WHERE doctor_id = ?`, [id]);
+    const fetchExisTemplates = await db.execute(`SELECT * FROM weekly_templates WHERE doctor_id = ?`, [id]);
+
+    let currentTemplates = fetchExisTemplates.rows.length > 0 ? fetchExisTemplates.rows : [];
+
+    console.log(currentTemplates)
+
+    currentTemplates = currentTemplates?.sort((a, b) => a.day_number - b.day_number);
+
+
+
+
+
+
     const existDays = fetchExisTemplates.rows.map(fn => (
         getDayName(fn.day_number)
     ));
@@ -37,14 +51,6 @@ export default async function DoctorCreateTemplate({ params }) {
 
     let days = nonTemplateDays.length === 0 ? allDays : nonTemplateDays;
 
-
-
-
-
-
-
-
-
     const dummyHrs = [];
     for (let i = 1; i <= 12; i++) {
         if (i < 10) dummyHrs.push("0" + i);
@@ -62,7 +68,24 @@ export default async function DoctorCreateTemplate({ params }) {
 
 
     return (<>
-        <h1>Dr. {name[0].toUpperCase() + name.slice(1)}'s Templates</h1>
+        <div>
+            <h2>{`Dr. ${name[0].toUpperCase() + name.slice(1)}'s Current Templates`}</h2>
+            <h2> Department: {fetchDoctor.rows[0].department}</h2>
+            {currentTemplates.length > 0 && <>
+                {currentTemplates.map(temp => (
+                    <div key={temp.public_id} className="border-2 border-amber-50" >
+                        <p>Template Day: {getDayName(temp.day_number)}</p>
+                        <p>Clinic Time: {minutesToMeridiem(temp.start_time, true)} - {minutesToMeridiem(temp.end_time, true)}</p>
+                        <p>Break Duration: {minutesToMeridiem(temp.break_start, true)} - {minutesToMeridiem(temp.break_end, true)}</p>
+                        <p>Buffer: {temp.buffer_minutes} minutes</p>
+                        <Link href={`/edit-template/${docPubId}/${temp.public_id}`}>Edit⬅</Link>
+                    </div>
+                ))}
+            </>}
+        </div>
+
+
+        <h1>Create New Template for Dr. {name[0].toUpperCase() + name.slice(1)}</h1>
         <Form action={createTemplateServerAction} className="space-y-6 p-6 bg-gray-50 dark:bg-gray-900 rounded-md">
             <input type="hidden" name="doctorPublicId" value={docPubId} />
             <select type="hidden" name="day" >

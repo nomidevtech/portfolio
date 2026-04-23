@@ -11,7 +11,7 @@ export default function RootLayout({ children }) {
 
   return (
     <html lang="en" >
-      <body>
+      <body className="mb-46">
         <NavBar />
         {children}
       </body>
