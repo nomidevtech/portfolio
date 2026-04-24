@@ -84,6 +84,8 @@ export async function initSlotsTable() {
                 break_end INTEGER,
                 buffer_minutes INTEGER,
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                full_date_at_period TEXT,
+
 
                 UNIQUE(admin_id, doctor_id, month_number, year, date_number) ON CONFLICT REPLACE,
 

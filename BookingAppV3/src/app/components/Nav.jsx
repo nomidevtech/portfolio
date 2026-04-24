@@ -9,7 +9,7 @@ export default function NavBar() {
                 <Link href="/add-treatment"><li>Add Treatment</li></Link>
                 <Link href="/create-template"><li> Create Template</li></Link>
                 <Link href="/edit-template"><li> Edit Template</li></Link>
-                <Link href="/generated-slots"><li> Generated Slots</li></Link>
+                <Link href="/manage-generated-slots"><li> Manage Generated Slots</li></Link>
             </ul>
         </nav>
     </>);

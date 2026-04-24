@@ -6,6 +6,7 @@ import { getDayName } from "../utils/getDateData";
 import { db } from "./turso";
 
 export async function rollingWindow(win = 31) {
+    await initSlotsTable();
     try {
         const adminId = 1;
 
@@ -23,8 +24,9 @@ export async function rollingWindow(win = 31) {
             const dateAtPeriod = current.getDate();
             const monthAtPeriod = current.getMonth();
             const yearAtPeriod = current.getFullYear();
-
             const dayNumAtPeriod = current.getDay();
+
+            const fullDateAtPeriodInIso = current.toISOString();
 
             const tempelateAtPediod = fetchAllTemplates.rows.filter(fn => fn.day_number === dayNumAtPeriod);
 
@@ -34,7 +36,8 @@ export async function rollingWindow(win = 31) {
                 month_number: monthAtPeriod,
                 year: yearAtPeriod,
                 slot_public_id: nanoid(12),
-                status: "active"
+                status: "active",
+                full_date_at_period: fullDateAtPeriodInIso,
             }));
 
             slotsArr.push(...flatenTemplate);
@@ -46,9 +49,9 @@ export async function rollingWindow(win = 31) {
             a.date_number - b.date_number
         );
 
-        const columns = `public_id, status, admin_id, doctor_id, day_number, month_number, year, date_number, start_time, end_time, break_start, break_end, buffer_minutes`;
+        const columns = `public_id, status, admin_id, doctor_id, day_number, month_number, year, date_number, start_time, end_time, break_start, break_end, buffer_minutes, full_date_at_period`;
 
-        const placeHolder = slotsArrSorted.map(() => `(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ? )`).join(", ");
+        const placeHolder = slotsArrSorted.map(() => `(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ? )`).join(", ");
         const values = slotsArrSorted.flatMap(slot => [
             slot.slot_public_id,
             slot.status,
@@ -63,17 +66,13 @@ export async function rollingWindow(win = 31) {
             slot.break_start,
             slot.break_end,
             slot.buffer_minutes,
+            slot.full_date_at_period,
         ]);
 
         await db.execute(
             `INSERT INTO slots (${columns}) VALUES ${placeHolder}
                     ON CONFLICT (admin_id, doctor_id, month_number, year, date_number)
-                    DO UPDATE SET
-                    start_time = excluded.start_time,
-                    end_time = excluded.end_time,
-                    break_start = excluded.break_start,
-                    break_end = excluded.break_end,
-                    buffer_minutes = excluded.buffer_minutes`,
+                    DO NOTHING`,
             values
         );
 
