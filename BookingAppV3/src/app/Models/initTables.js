@@ -34,7 +34,31 @@ export async function initTreatmentTable() {
         console.error(error);
         throw error;
     }
-}
+};
+
+
+export async function initDoctorTreatmentsTable() {
+    try {
+        await db.execute(`
+            CREATE TABLE IF NOT EXISTS doctor_treatments (
+                public_id TEXT NOT NULL UNIQUE,
+                admin_id INTEGER NOT NULL,
+                doctor_id INTEGER NOT NULL,
+                treatment_id INTEGER NOT NULL,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                
+                PRIMARY KEY (admin_id, doctor_id, treatment_id),
+                
+                FOREIGN KEY (admin_id) REFERENCES admins (id) ON DELETE CASCADE,
+                FOREIGN KEY (doctor_id) REFERENCES doctors (id) ON DELETE CASCADE,
+                FOREIGN KEY (treatment_id) REFERENCES treatments (id) ON DELETE CASCADE
+            )
+        `);
+    } catch (error) {
+        console.error("Failed to initialize doctor_treatments table:", error);
+        throw error;
+    }
+};
 
 
 
@@ -118,3 +142,38 @@ export async function initAdminTable() {
         throw error;
     }
 }
+
+
+
+
+export async function initBookingsTable() {
+    try {
+        await db.execute(`
+          CREATE TABLE IF NOT EXISTS bookings (
+          id INTEGER PRIMARY KEY,
+          public_id TEXT,
+          doctor_id INTEGER,
+          doctor_name TEXT,
+          patient_name TEXT,
+          patient_email TEXT,
+          patient_phone TEXT,
+          treatment_start INTEGER,
+          treatment_end INTEGER,
+          day_number INTEGER,
+          date_number INTEGER,
+          month_number INTEGER,
+          year INTEGER,
+          status TEXT DEFAULT 'pending',
+          booking_registered_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (doctor_id) REFERENCES doctors(id) ON DELETE SET NULL,
+          FOREIGN KEY (treatment_id) REFERENCES treatments(id) ON DELETE SET NULL
+          )`
+        );
+
+        return { ok: true, message: "bookings table created" }
+
+    } catch (error) {
+        console.log(error);
+        return { ok: false, message: error.message }
+    }
+};
