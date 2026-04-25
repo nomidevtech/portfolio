@@ -5,7 +5,6 @@ import { db } from "../lib/turso";
 import { nanoid } from "nanoid";
 
 export async function addDoctorServerAction(formData) {
-    const new_doc_pub_id = nanoid(12);
     try {
         const adminId = 1; // hardcoded for now
         const name = formData.get("name");
@@ -26,11 +25,11 @@ export async function addDoctorServerAction(formData) {
         if (!doctorId) return null;
 
 
-        await db.execute(`INSERT INTO doctor_treatments (public_id, admin_id, doctor_id, treatment_id) VALUES (?, ?, ?, ?)`, [new_doc_pub_id, adminId, doctorId, fetchTreamnetId.rows[0].id]);
+        await db.execute(`INSERT INTO doctor_treatments (public_id, admin_id, doctor_id, treatment_id) VALUES (?, ?, ?, ?)`, [nanoid(12), adminId, doctorId, fetchTreamnetId.rows[0].id]);
 
     } catch (error) {
         console.error(error);
         return null;
     }
-    redirect(`/edit-doctor/${new_doc_pub_id}`);
+    redirect("/add-doctor");
 }

@@ -2,6 +2,7 @@ import Form from "next/form";
 import { db } from "../lib/turso";
 import { initDoctorTreatmentsTable, initDoctorTable, initTreatmentTable } from "../Models/initTables";
 import { addDoctorServerAction } from "./SA";
+import Link from "next/link";
 
 export default async function AddDoctor() {
     await initDoctorTable();
@@ -16,6 +17,9 @@ export default async function AddDoctor() {
     const fetchTreatments = await db.execute(`SELECT name, duration FROM treatments`);
     const treatments = fetchTreatments?.rows.map(fn => fn.name[0].toUpperCase() + fn.name.slice(1).toLowerCase() + " - " + fn.duration + "min");
 
+    const fetchAllDoctors = await db.execute(`SELECT * FROM doctors`);
+    const allDoctors = fetchAllDoctors.rows;
+
 
     return (<>
         <Form action={addDoctorServerAction}>
@@ -29,5 +33,13 @@ export default async function AddDoctor() {
             </select>
             <input type="submit" value="Submit" />
         </Form>
+        {allDoctors?.length > 0 && <>
+            <details>
+                <summary>Current Doctors</summary>
+                {allDoctors?.map((doctor, idx) => <div key={doctor.public_id} className="border-2"> <p >Name: Dr. {doctor.name[0].toUpperCase() + doctor.name.slice(1)} - Department: {doctor.department[0].toUpperCase() + doctor.department.slice(1)}</p>
+                    <Link href={`/edit-doctor/${doctor.public_id}`}>Edit⬅</Link>
+                </div>)}
+            </details>
+        </>}
     </>);
 }
