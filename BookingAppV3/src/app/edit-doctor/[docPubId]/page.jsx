@@ -1,6 +1,7 @@
 import { db } from "@/app/lib/turso";
 import { addDoctorTreatment, deleteDoctor, editDoctorServerAction, removeDoctorTreatment } from "./sa";
 import Form from "next/form";
+import Link from "next/link";
 
 export default async function EditDoctor({ params }) {
     const { docPubId } = await params;
@@ -18,8 +19,7 @@ export default async function EditDoctor({ params }) {
     const doctorId = fetchDoctor.rows[0].id;
 
     const fetchDepartments = await db.execute(`SELECT department FROM doctors WHERE admin_id = ?`, [adminId]);
-    let departments = fetchDepartments?.rows;
-    departments = departments.map(dep => dep.department[0].toUpperCase() + dep.department.slice(1).toLowerCase());
+    let departments = fetchDepartments?.rows.map(dep => dep.department[0].toUpperCase() + dep.department.slice(1).toLowerCase());
     departments = [...new Set(departments)];
 
     const fetchTreatments = await db.execute(`SELECT name, duration FROM treatments WHERE admin_id = ?`, [adminId]);
@@ -42,6 +42,8 @@ export default async function EditDoctor({ params }) {
     const treatmentsArr = doctorData.treatments
         ? doctorData.treatments.split(',').map(t => t[0].toUpperCase() + t.slice(1))
         : [];
+
+    const qualifications = doctorData.qualifications ? JSON.parse(doctorData.qualifications) : [];
 
     return (
         <>
@@ -74,12 +76,14 @@ export default async function EditDoctor({ params }) {
                 <datalist id="departments">
                     {departments?.map((dep, idx) => <option key={idx} value={dep} />)}
                 </datalist>
+                <input type="text" name="qualification" placeholder="Qualifications" defaultValue={qualifications.join(", ")} />
                 <input type="submit" value="Submit" />
             </Form>
 
             <div>
                 <p>Name: {doctorData.doctor_name[0].toUpperCase() + doctorData.doctor_name.slice(1)}</p>
                 <p>Department: {doctorData.department[0].toUpperCase() + doctorData.department.slice(1)}</p>
+                <p>Qualifications: {qualifications.join(", ").toUpperCase() || "None"}</p>
                 <p>Treatments: {doctorData.treatments || 'None'}</p>
             </div>
 

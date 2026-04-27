@@ -24,6 +24,7 @@ export default async function AddDoctor() {
     return (<>
         <Form action={addDoctorServerAction}>
             <input type="text" name="name" placeholder="Name" />
+            <input type="text" name="qualification" placeholder="Qualifications: MD, Surgeon" />
             <input list="departments" name="department" placeholder="Department" />
             <datalist id="departments">
                 {departments?.map((dep, idx) => <option key={idx} value={dep} />)}
@@ -33,13 +34,20 @@ export default async function AddDoctor() {
             </select>
             <input type="submit" value="Submit" />
         </Form>
-        {allDoctors?.length > 0 && <>
+        {allDoctors?.length > 0 && (
             <details>
                 <summary>Current Doctors</summary>
-                {allDoctors?.map((doctor, idx) => <div key={doctor.public_id} className="border-2"> <p >Name: Dr. {doctor.name[0].toUpperCase() + doctor.name.slice(1)} - Department: {doctor.department[0].toUpperCase() + doctor.department.slice(1)}</p>
-                    <Link href={`/edit-doctor/${doctor.public_id}`}>Edit⬅</Link>
-                </div>)}
+                {allDoctors.map((doctor) => (
+                    <div key={doctor.public_id} className="border-2">
+                        <p>
+                            Name: Dr. {doctor.name.charAt(0).toUpperCase() + doctor.name.slice(1)} -
+                            Qualifications: {JSON.parse(doctor.qualifications || "[]").join(", ").toUpperCase()} -
+                            Department: {doctor.department.charAt(0).toUpperCase() + doctor.department.slice(1)}
+                        </p>
+                        <Link href={`/edit-doctor/${doctor.public_id}`}>Edit⬅</Link>
+                    </div>
+                ))}
             </details>
-        </>}
+        )}
     </>);
 }

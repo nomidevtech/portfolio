@@ -3,33 +3,56 @@
 import { redirect } from "next/navigation";
 import { db } from "../lib/turso";
 import { nanoid } from "nanoid";
+import { initDoctorTable } from "../Models/initTables";
 
 export async function addDoctorServerAction(formData) {
-    try {
-        const adminId = 1; // hardcoded for now
-        const name = formData.get("name");
-        const department = formData.get("department");
+    let success = false;
 
-        const treatmentString = formData.get("treatment");
+    try {
+        await initDoctorTable();
+
+        const adminId = 1;
+        const name = formData.get("name")?.toString() || "";
+        const department = formData.get("department")?.toString() || "";
+        const treatmentString = formData.get("treatment")?.toString() || "";
+
         const treamentArr = treatmentString.split(' - ');
-        const treamentName = treamentArr[0]?.trim().replace(/\s/g, "").toLowerCase();
+        const treatmentName = treamentArr[0]?.trim().replace(/\s/g, "").toLowerCase();
         const treatmentDuration = Number(treamentArr[1]?.split("min")[0]?.trim());
 
-        const fetchTreamnetId = await db.execute(`SELECT id FROM treatments WHERE name = ? AND duration = ?`, [treamentName, treatmentDuration]);
+        const qualification = formData.get("qualification")
+            ?.toString()
+            .split(/[ ,]+/)
+            .filter(Boolean)
+            .map(q => q.trim().toLowerCase());
 
-        if (fetchTreamnetId?.rows.length === 0) return null;
+        const fetchTreatment = await db.execute(
+            `SELECT id FROM treatments WHERE name = ? AND duration = ?`,
+            [treatmentName, treatmentDuration]
+        );
 
-        const result = await db.execute(`INSERT INTO doctors (admin_id, name, department, public_id) VALUES (?, ?, ?, ?) RETURNING id`, [adminId, name.toLowerCase(), department.toLowerCase(), nanoid(12)]);
+        if (fetchTreatment.rows.length === 0) return null;
 
-        const doctorId = result.rows[0].id;
+        const result = await db.execute(
+            `INSERT INTO doctors (admin_id, name, department, public_id, qualifications) VALUES (?, ?, ?, ?, ?) RETURNING id`,
+            [adminId, name.toLowerCase(), department.toLowerCase(), nanoid(12), JSON.stringify(qualification)]
+        );
+
+        const doctorId = result.rows[0]?.id;
         if (!doctorId) return null;
 
+        await db.execute(
+            `INSERT INTO doctor_treatments (public_id, admin_id, doctor_id, treatment_id) VALUES (?, ?, ?, ?)`,
+            [nanoid(12), adminId, doctorId, fetchTreatment.rows[0].id]
+        );
 
-        await db.execute(`INSERT INTO doctor_treatments (public_id, admin_id, doctor_id, treatment_id) VALUES (?, ?, ?, ?)`, [nanoid(12), adminId, doctorId, fetchTreamnetId.rows[0].id]);
-
+        success = true;
     } catch (error) {
         console.error(error);
         return null;
     }
-    redirect("/add-doctor");
+
+    if (success) {
+        redirect("/add-doctor");
+    }
 }

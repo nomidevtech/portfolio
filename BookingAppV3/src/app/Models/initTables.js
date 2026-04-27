@@ -8,6 +8,7 @@ export async function initDoctorTable() {
                 public_id TEXT,
                 admin_id INTEGER,
                 name TEXT,
+                qualifications TEXT,
                 department TEXT,
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP
             )
