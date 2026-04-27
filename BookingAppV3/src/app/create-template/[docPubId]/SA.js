@@ -10,14 +10,14 @@ import { redirect } from "next/navigation";
 
 
 export async function createTemplateServerAction(formData) {
-    
+
     const docPubId = formData.get("doctorPublicId");
-    
+
     try {
         const adminId = 1; // harcoded for now
 
-        const fetchDoctor = await db.execute(`SELECT * FROM doctors WHERE public_id = ?`, [docPubId]);
-        // if (fetchDoctor.rows === 0) throw new Error("doctor not found");
+        const fetchDoctor = await db.execute(`SELECT * FROM doctors WHERE admin_id = ? AND public_id = ?`, [adminId, docPubId]);
+        if (fetchDoctor.rows.length === 0) throw new Error("doctor not found");
 
         const doctor = fetchDoctor.rows[0];
 
@@ -35,11 +35,11 @@ export async function createTemplateServerAction(formData) {
         const breakEndInMinutes =
             getMinutes(formData.get("breakEndHr"), formData.get("breakEndMin"), formData.get("breakEndMeridiem"));
 
+        if (startInMinutes === null || endInMinutes === null || breakStartInMinutes === null || breakEndInMinutes === null || isNaN(buffer)) throw new Error("Invalid input");
 
 
 
-
-        await db.execute(`INSERT INTO weekly_templates (public_id, admin_id, doctor_id, day_number, start_time, end_time, break_start, break_end) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`, [
+        await db.execute(`INSERT INTO weekly_templates (public_id, admin_id, doctor_id, day_number, start_time, end_time, break_start, break_end, buffer_minutes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`, [
             nanoid(12),
             adminId,
             doctor.id,
@@ -48,6 +48,7 @@ export async function createTemplateServerAction(formData) {
             endInMinutes,
             breakStartInMinutes,
             breakEndInMinutes,
+            buffer
         ]);
 
 
@@ -70,4 +71,3 @@ export async function createTemplateServerAction(formData) {
     }
     redirect(`/create-template/${docPubId}`)
 }
-
