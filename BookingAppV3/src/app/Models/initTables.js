@@ -150,31 +150,43 @@ export async function initAdminTable() {
 export async function initBookingsTable() {
     try {
         await db.execute(`
-          CREATE TABLE IF NOT EXISTS bookings (
-          id INTEGER PRIMARY KEY,
-          public_id TEXT,
-          doctor_id INTEGER,
-          doctor_name TEXT,
-          patient_name TEXT,
-          patient_email TEXT,
-          patient_phone TEXT,
-          treatment_start INTEGER,
-          treatment_end INTEGER,
-          day_number INTEGER,
-          date_number INTEGER,
-          month_number INTEGER,
-          year INTEGER,
-          status TEXT DEFAULT 'pending',
-          booking_registered_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-          FOREIGN KEY (doctor_id) REFERENCES doctors(id) ON DELETE SET NULL,
-          FOREIGN KEY (treatment_id) REFERENCES treatments(id) ON DELETE SET NULL
-          )`
-        );
+            CREATE TABLE IF NOT EXISTS bookings (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                public_id TEXT NOT NULL UNIQUE,
+                doctor_id INTEGER NOT NULL,
+                doctor_name TEXT,
+                patient_name TEXT,
+                patient_email TEXT,
+                patient_phone TEXT,
+                treatment_start INTEGER,
+                treatment_end INTEGER,
+                day_number INTEGER,
+                date_number INTEGER,
+                month_number INTEGER,
+                year INTEGER,
+                treatment_id INTEGER,
+                status TEXT DEFAULT 'pending',
+                booking_registered_at DATETIME DEFAULT CURRENT_TIMESTAMP,
 
-        return { ok: true, message: "bookings table created" }
+                FOREIGN KEY (doctor_id) REFERENCES doctors(id) ON DELETE NO ACTION,
+                FOREIGN KEY (treatment_id) REFERENCES treatments(id) ON DELETE NO ACTION,
+                
+                UNIQUE(
+                    doctor_id, 
+                    day_number, 
+                    date_number, 
+                    month_number, 
+                    year, 
+                    treatment_start, 
+                    treatment_end
+                ) ON CONFLICT IGNORE
+            )
+        `);
+
+        return { ok: true, message: "bookings table created" };
 
     } catch (error) {
-        console.log(error);
-        return { ok: false, message: error.message }
+        console.error("Database Init Error:", error);
+        return { ok: false, message: error instanceof Error ? error.message : String(error) };
     }
-};
+}

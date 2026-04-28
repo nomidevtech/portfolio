@@ -1,9 +1,10 @@
 import Link from "next/link";
 import { db } from "../lib/turso";
 import { rollingWindow } from "../lib/rollingWindow";
+import { initBookingsTable } from "../Models/initTables";
 
 export default async function Bookings() {
-
+    
     const adminId = 1;
     await rollingWindow();
 

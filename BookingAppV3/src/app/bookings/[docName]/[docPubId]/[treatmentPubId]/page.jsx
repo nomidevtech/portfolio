@@ -1,8 +1,11 @@
 import { rollingWindow } from "@/app/lib/rollingWindow";
 import { db } from "@/app/lib/turso";
 import { initBookingsTable } from "@/app/Models/initTables";
+import { getDayName, getMonthName } from "@/app/utils/getDateData";
+import ClientBookASlot from "./Client";
 
 export default async function DoctorBookings({ params }) {
+
 
     const { docName, docPubId, treatmentPubId } = await params;
     const adminId = 1;
@@ -28,7 +31,7 @@ export default async function DoctorBookings({ params }) {
     if (fetchRecord.rows.length === 0) return <p>Broken Link. Please try again.</p>;
     if (fetchSlots.rows.length === 0) return <p>No slots available.</p>;
 
-    let allVirtualSlots = fetchSlots.rows;
+    const allVirtualSlots = fetchSlots.rows || [];
 
     for (const slot of allVirtualSlots) {
         slot.baseWindows = [
@@ -76,20 +79,43 @@ export default async function DoctorBookings({ params }) {
 
 
 
-
-
-
-
-
-    console.dir(allVirtualSlots, { depth: null });
+    //console.dir(allVirtualSlots, { depth: null });
     // console.dir(fetchBookings.rows, { depth: null });
+    // console.log(fetchSlots.rows);
+    // await initBookingsTable();
+    // await rollingWindow();
 
 
-    //console.log(fetchSlots.rows);
-    await initBookingsTable();
-    await rollingWindow();
 
     return (<>
-        <div>{docName}{docPubId}</div>
+        <div className="p-6">
+            {allVirtualSlots.map((slot, index1) => (
+                <div key={slot.public_id} className="border-2 ">
+                    <p>{getDayName(slot.day_number)} {slot.date_number > 9 ? slot.date_number : `0${slot.date_number}`} {getMonthName(slot.month_number)} {slot.year}</p>
+                    <p>Dr. {fetchDoctor.rows[0].name[0].toUpperCase() + fetchDoctor.rows[0].name.slice(1)} {JSON.parse(fetchDoctor.rows[0].qualifications).join(', ').toUpperCase()}</p>
+                    <p>Slots for ( {fetchTreatment.rows[0].name.split("_").map(fn => fn[0].toUpperCase() + fn.slice(1)).join(" ")} )</p>
+                    <p>Slot Duration: {fetchTreatment.rows[0].duration < 10 ? `0${fetchTreatment.rows[0].duration}` : fetchTreatment.rows[0].duration}min</p>
+                    <details>
+                        <summary>Available Slots</summary>
+                        {slot.freeVirtualSlots.length > 0 ? slot.freeVirtualSlots.map((freeSlot, index2) => (
+                            <div key={slot.public_id + index1 + index2} className="border-2">
+                                <ClientBookASlot
+                                    subSlot={freeSlot}
+                                    docPubId={docPubId}
+                                    day_number={slot.day_number}
+                                    date_number={slot.date_number}
+                                    month_number={slot.month_number}
+                                    year={slot.year}
+                                    treatmentPubId={treatmentPubId}
+                                    treatment_start={freeSlot.start}
+                                    treatment_end={freeSlot.end}
+                                />
+                            </div>
+                        )) : <p>No available slots for this day.</p>}
+                    </details>
+                </div >
+            ))
+            }
+        </div>
     </>);
 }
