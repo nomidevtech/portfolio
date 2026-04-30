@@ -1,14 +1,18 @@
 import Form from "next/form";
 import { db } from "../lib/turso";
-import { initDoctorTreatmentsTable, initDoctorTable, initTreatmentTable, initBookingsTable } from "../Models/initTables";
+import { initDoctorTreatmentsTable, initDoctorTable, initTreatmentTable, initBookingsTable, initWeeklyTemplatesTable, initSlotsTable } from "../Models/initTables";
 import { addDoctorServerAction } from "./SA";
 import Link from "next/link";
 
 export default async function AddDoctor() {
     await initBookingsTable();
+    await initTreatmentTable();
     await initDoctorTable();
     await initTreatmentTable();
     await initDoctorTreatmentsTable();
+    await initWeeklyTemplatesTable();
+    await initSlotsTable();
+    
 
     const fetchDepartments = await db.execute(`SELECT department FROM doctors`);
     let departments = fetchDepartments?.rows;

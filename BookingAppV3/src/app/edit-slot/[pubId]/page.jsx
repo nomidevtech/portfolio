@@ -3,8 +3,12 @@ import { getDayName, getMonthName } from "@/app/utils/getDateData";
 import { minutesToMeridiem } from "@/app/utils/minutes-to-meridiem";
 import Form from "next/form";
 import { editSlotServerAction } from "./sa";
+import { rollingWindow } from "@/app/lib/rollingWindow";
 
 export default async function EditSlot({ params }) {
+
+    await rollingWindow();
+
     const { pubId } = await params;
     const adminId = 1;
 

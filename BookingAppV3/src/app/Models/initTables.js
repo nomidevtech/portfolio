@@ -43,9 +43,9 @@ export async function initDoctorTreatmentsTable() {
         await db.execute(`
             CREATE TABLE IF NOT EXISTS doctor_treatments (
                 public_id TEXT NOT NULL UNIQUE,
-                admin_id INTEGER NOT NULL,
-                doctor_id INTEGER NOT NULL,
-                treatment_id INTEGER NOT NULL,
+                admin_id INTEGER,
+                doctor_id INTEGER,
+                treatment_id INTEGER,
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                 
                 PRIMARY KEY (admin_id, doctor_id, treatment_id),
@@ -151,10 +151,10 @@ export async function initBookingsTable() {
     try {
         await db.execute(`
             CREATE TABLE IF NOT EXISTS bookings (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                public_id TEXT NOT NULL UNIQUE,
-                admin_id INTEGER NOT NULL,
-                doctor_id INTEGER NOT NULL,
+                id INTEGER PRIMARY KEY,
+                public_id TEXT UNIQUE,
+                admin_id INTEGER,
+                doctor_id INTEGER,
                 doctor_name TEXT,
                 patient_name TEXT,
                 patient_email TEXT,
@@ -173,9 +173,9 @@ export async function initBookingsTable() {
                 cancel_token_created_at DEFAULT NULL,
                 booking_registered_at DATETIME DEFAULT CURRENT_TIMESTAMP,
 
-                FOREIGN KEY (doctor_id) REFERENCES doctors(id) ON DELETE NO ACTION,
-                FOREIGN KEY (treatment_id) REFERENCES treatments(id) ON DELETE NO ACTION,
-                FOREIGN KEY (admin_id) REFERENCES admins(id) ON DELETE NO ACTION,
+                FOREIGN KEY (doctor_id) REFERENCES doctors(id) ON DELETE SET NULL,
+                FOREIGN KEY (treatment_id) REFERENCES treatments(id) ON DELETE SET NULL,
+                FOREIGN KEY (admin_id) REFERENCES admins(id) ON DELETE SET NULL,
                 
                 UNIQUE(
                     doctor_id, 

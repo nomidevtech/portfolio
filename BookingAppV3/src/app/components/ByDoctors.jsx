@@ -13,7 +13,7 @@ export default async function ByDoctors({ fetchedDoctors = [], navString = "" })
     return (<>
         {departments.length > 0 && departments.map(dep => (
             <div key={dep} className="border-2 border-amber-950 my-4">
-                <h2>{dep}</h2>
+                <h2>{dep.split(" ").map(fn => fn[0].toUpperCase() + fn.slice(1)).join(" ")}</h2>
                 {doctors.filter(doc => doc.department === dep).map(doc => (
                     <Link key={doc.public_id} href={`/${navString}/${doc.public_id}`} >{doc.name[0].toUpperCase() + doc.name.slice(1)}</Link>
                 ))}

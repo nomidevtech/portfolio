@@ -70,7 +70,7 @@ export default async function DoctorCreateTemplate({ params }) {
     return (<>
         <div>
             <h2>{`Dr. ${name[0].toUpperCase() + name.slice(1)}'s Current Templates`}</h2>
-            <h2> Department: {fetchDoctor.rows[0].department}</h2>
+            <h2> Department: {fetchDoctor.rows[0].department.split(" ").map(fn => fn[0].toUpperCase() + fn.slice(1)).join(" ")}</h2>
             {currentTemplates.length > 0 && <>
                 {currentTemplates.map(temp => (
                     <div key={temp.public_id} className="border-2 border-amber-50" >
