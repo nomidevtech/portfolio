@@ -17,7 +17,7 @@ export default async function VerifyEmail({ params }) {
         const verified = await compare(emailToken, fetch.rows[0].email_token_hash);
         if (!verified) return <p>Broken link. Email not found.</p>;
 
-        await db.execute(`UPDATE bookings SET email_token_hash = NULL, status = 'verified', email_token_created_at = CURRENT_TIMESTAMP WHERE public_id = ?`, [bookingPubId]);
+        await db.execute(`UPDATE bookings SET email_token_hash = NULL, status = 'verified', email_token_created_at = CURRENT_TIMESTAMP WHERE public_id = ? AND admin_id = ?`, [bookingPubId, adminId]);
 
     } catch (error) {
         console.error(error);
