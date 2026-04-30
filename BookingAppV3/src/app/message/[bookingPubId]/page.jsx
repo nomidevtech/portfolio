@@ -23,7 +23,7 @@ export default async function Message({ params }) {
 
     if (booking.status === "verified" && !booking.cancel_token_hash) {
 
-        const cancel_token = crypto.randomBytes(16).toString("hex") + booking.patient_name + booking.patient_email;
+        const cancel_token = crypto.randomBytes(32).toString("hex");
         const hashed = await hash(cancel_token);
 
         await db.execute(`UPDATE bookings SET cancel_token_hash = ?, cancel_token_created_at = CURRENT_TIMESTAMP WHERE admin_id = ? AND public_id = ?`, [hashed, adminId, bookingPubId]);
