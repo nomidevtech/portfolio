@@ -46,7 +46,7 @@ export async function reserveSlot(_, formData) {
 
         const [fetchRecord, fetchBookings] = await Promise.all([
             db.execute(`SELECT * FROM doctor_treatments WHERE doctor_id = ? AND treatment_id = ? AND admin_id = ?`, [docId, treatmentId, adminId]),
-            db.execute(`SELECT * FROM bookings WHERE doctor_id = ? AND treatment_id = ? AND date_number = ? AND month_number = ? AND year = ?`, [docId, treatmentId, date_number, month_number, year])
+            db.execute(`SELECT * FROM bookings WHERE admin_id = ? AND doctor_id = ? AND treatment_id = ? AND date_number = ? AND month_number = ? AND year = ?`, [adminId, docId, treatmentId, date_number, month_number, year])
         ]);
 
         if (fetchRecord.rows.length === 0) throw new Error("Invalid doctor-treatment combination.");
@@ -59,7 +59,7 @@ export async function reserveSlot(_, formData) {
             }
         };
 
-        const res = await db.execute(`INSERT INTO bookings (public_id, doctor_name, doctor_id, treatment_id, day_number, date_number, month_number, year, treatment_start, treatment_end) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING public_id `, [nanoid(12), docName, docId, treatmentId, day_number, date_number, month_number, year, treatment_start, treatment_end]);
+        const res = await db.execute(`INSERT INTO bookings (admin_id, public_id, doctor_name, doctor_id, treatment_id, day_number, date_number, month_number, year, treatment_start, treatment_end) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING public_id `, [adminId, nanoid(12), docName, docId, treatmentId, day_number, date_number, month_number, year, treatment_start, treatment_end]);
 
         if (res.rows.length === 0) throw new Error("Slot already reserved by someone.");
 

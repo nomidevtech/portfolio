@@ -25,7 +25,7 @@ export default async function DoctorBookings({ params }) {
     const [fetchRecord, fetchSlots, fetchBookings] = await Promise.all([
         db.execute(`SELECT * FROM doctor_treatments WHERE doctor_id = ? AND treatment_id = ? AND admin_id = ?`, [docId, treatmentId, adminId]),
         db.execute(`SELECT * FROM slots WHERE admin_id = ? AND doctor_id = ? AND full_date_at_period > DATE('now') ORDER BY full_date_at_period`, [adminId, docId]),
-        db.execute(`SELECT * FROM bookings WHERE doctor_id = ?`, [docId])
+        db.execute(`SELECT * FROM bookings WHERE admin_id = ? AND doctor_id = ?`, [adminId, docId])
     ]);
 
     if (fetchRecord.rows.length === 0) return <p>Broken Link. Please try again.</p>;

@@ -1,10 +1,11 @@
 import Form from "next/form";
 import { db } from "../lib/turso";
-import { initDoctorTreatmentsTable, initDoctorTable, initTreatmentTable } from "../Models/initTables";
+import { initDoctorTreatmentsTable, initDoctorTable, initTreatmentTable, initBookingsTable } from "../Models/initTables";
 import { addDoctorServerAction } from "./SA";
 import Link from "next/link";
 
 export default async function AddDoctor() {
+    await initBookingsTable();
     await initDoctorTable();
     await initTreatmentTable();
     await initDoctorTreatmentsTable();
