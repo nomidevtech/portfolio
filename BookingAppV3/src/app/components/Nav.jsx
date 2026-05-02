@@ -12,6 +12,8 @@ export default function NavBar() {
                 <Link href="/edit-template"><li> Edit Template</li></Link>
                 <Link href="/manage-generated-slots"><li> Manage Generated Slots</li></Link>
                 <Link href="/bookings"><li> Book A Slot</li></Link>
+                <Link href="/signup"><li> Sign Up</li></Link>
+                <Link href="/login"><li>Login</li></Link>
             </ul>
         </nav>
     </>);

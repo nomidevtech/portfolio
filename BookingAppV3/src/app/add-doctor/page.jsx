@@ -12,7 +12,7 @@ export default async function AddDoctor() {
     await initDoctorTreatmentsTable();
     await initWeeklyTemplatesTable();
     await initSlotsTable();
-    
+
 
     const fetchDepartments = await db.execute(`SELECT department FROM doctors`);
     let departments = fetchDepartments?.rows;
@@ -29,6 +29,8 @@ export default async function AddDoctor() {
     return (<>
         <Form action={addDoctorServerAction}>
             <input type="text" name="name" placeholder="Name" />
+            <input type="text" name="username" placeholder="userame" />
+            <input type="password" name="password" placeholder="Password" />
             <input type="text" name="qualification" placeholder="Qualifications: MD, Surgeon" />
             <input list="departments" name="department" placeholder="Department" />
             <datalist id="departments">

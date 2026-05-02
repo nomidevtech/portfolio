@@ -10,6 +10,9 @@ export async function initDoctorTable() {
                 name TEXT,
                 qualifications TEXT,
                 department TEXT,
+                username TEXT UNIQUE,
+                password TEXT,
+                status TEXT DEFAULT 'active',
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP
             )
         `);
@@ -132,9 +135,16 @@ export async function initAdminTable() {
             CREATE TABLE IF NOT EXISTS admins (
                 id INTEGER PRIMARY KEY,
                 public_id TEXT,
-                name TEXT,
-                email TEXT,
+                admin_name TEXT,
+                admin_email TEXT UNIQUE,
+                admin_username TEXT UNIQUE,
+                clinic_name TEXT,
+                clinic_phone TEXT,
+                clinic_address TEXT,
                 password TEXT,
+                email_token_hash TEXT,
+                status TEXT DEFAULT 'unverified',
+                email_token_created_at DEFAULT NULL,
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP
             )
         `);
@@ -194,5 +204,53 @@ export async function initBookingsTable() {
     } catch (error) {
         console.error("Database Init Error:", error);
         return { ok: false, message: error instanceof Error ? error.message : String(error) };
+    }
+};
+
+
+
+
+
+export async function initUsersTable() {
+    try {
+        await db.execute(`
+            CREATE TABLE IF NOT EXISTS users (
+                id INTEGER PRIMARY KEY,
+                public_id TEXT,
+                admin_id INTEGER,
+                doctor_id INTEGER,
+                role TEXT,
+                username TEXT UNIQUE,
+                password TEXT,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                
+                FOREIGN KEY (admin_id) REFERENCES admins (id) ON DELETE CASCADE,
+                FOREIGN KEY (doctor_id) REFERENCES doctors (id) ON DELETE CASCADE
+            )
+        `);
+    } catch (error) {
+        console.error(error);
+        throw error;
+    }
+}
+
+
+
+
+export async function initSessionsTable() {
+    try {
+        await db.execute(`
+            CREATE TABLE IF NOT EXISTS sessions (
+                id INTEGER PRIMARY KEY,
+                session_id TEXT,
+                user_id INTEGER,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                expires_at DATETIME,
+                FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
+            )
+        `);
+    } catch (error) {
+        console.error(error);
+        throw error;
     }
 }
