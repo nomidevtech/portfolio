@@ -3,6 +3,8 @@ import { db } from "../lib/turso";
 import { initDoctorTreatmentsTable, initDoctorTable, initTreatmentTable, initBookingsTable, initWeeklyTemplatesTable, initSlotsTable } from "../Models/initTables";
 import { addDoctorServerAction } from "./SA";
 import Link from "next/link";
+import { getUserPlus } from "../lib/getUser";
+import { redirect } from "next/navigation";
 
 export default async function AddDoctor() {
     await initBookingsTable();
@@ -13,16 +15,20 @@ export default async function AddDoctor() {
     await initWeeklyTemplatesTable();
     await initSlotsTable();
 
+    const currentUser = await getUserPlus();
+    if (!currentUser || currentUser.role !== "admin" || !currentUser.admin_id) redirect("/login");
+    const adminId = currentUser.admin_id;
 
-    const fetchDepartments = await db.execute(`SELECT department FROM doctors`);
+
+    const fetchDepartments = await db.execute(`SELECT department FROM doctors WHERE admin_id = ?`, [adminId]);
     let departments = fetchDepartments?.rows;
     departments = departments.map(dep => dep.department[0].toUpperCase() + dep.department.slice(1).toLowerCase());
     departments = [...new Set(departments)];
 
-    const fetchTreatments = await db.execute(`SELECT name, duration FROM treatments`);
+    const fetchTreatments = await db.execute(`SELECT name, duration FROM treatments WHERE admin_id = ?`, [adminId]);
     const treatments = fetchTreatments?.rows.map(fn => fn.name[0].toUpperCase() + fn.name.slice(1).toLowerCase() + " - " + fn.duration + "min");
 
-    const fetchAllDoctors = await db.execute(`SELECT * FROM doctors`);
+    const fetchAllDoctors = await db.execute(`SELECT * FROM doctors WHERE admin_id = ?`, [adminId]);
     const allDoctors = fetchAllDoctors.rows;
 
 

@@ -1,12 +1,17 @@
 "use server";
 
+import { getUserPlus } from "@/app/lib/getUser";
 import { db } from "@/app/lib/turso";
 import { nanoid } from "nanoid";
 import { redirect } from "next/navigation";
 
-const adminId = 1;
+async function verify() {
+    const currentUser = await getUserPlus();
+    if (!currentUser || currentUser.role !== "admin" || !currentUser.admin_id) redirect("/login");
+    return currentUser.admin_id;
+}
 
-async function getDoctorId(doctorPubId) {
+async function getDoctorId(doctorPubId, adminId) {
     if (!doctorPubId) return null;
     const result = await db.execute(
         `SELECT id FROM doctors WHERE public_id = ? AND admin_id = ?`,
@@ -16,7 +21,7 @@ async function getDoctorId(doctorPubId) {
     return result.rows[0].id;
 }
 
-async function getTreatmentId(treatmentStr) {
+async function getTreatmentId(treatmentStr, adminId) {
     if (!treatmentStr) return null;
     const parts = treatmentStr.split(" - ");
     if (parts.length !== 2) return null;
@@ -32,6 +37,11 @@ async function getTreatmentId(treatmentStr) {
 }
 
 export async function editDoctorServerAction(formData) {
+
+    const adminId = await verify();
+    if (!adminId) return null;
+
+
     const doctorPubId = formData?.get("doctor_pubId");
     const name = formData?.get("name");
     const department = formData?.get("department");
@@ -40,7 +50,7 @@ export async function editDoctorServerAction(formData) {
     if (!doctorPubId || !name || !department) return null;
 
     try {
-        const doctorId = await getDoctorId(doctorPubId);
+        const doctorId = await getDoctorId(doctorPubId, adminId);
         if (!doctorId) return null;
 
         await db.execute(
@@ -55,12 +65,16 @@ export async function editDoctorServerAction(formData) {
 }
 
 export async function removeDoctorTreatment(formData) {
+
+    const adminId = await verify();
+    if (!adminId) return null;
+
     const doctorPubId = formData?.get("doctor_pubId");
     const treatmentStr = formData?.get("remove_treatment");
     if (!doctorPubId || !treatmentStr) return null;
     try {
-        const doctorId = await getDoctorId(doctorPubId);
-        const treatmentId = await getTreatmentId(treatmentStr);
+        const doctorId = await getDoctorId(doctorPubId, adminId);
+        const treatmentId = await getTreatmentId(treatmentStr, adminId);
         if (!doctorId || !treatmentId) return null;
         await db.execute(
             `DELETE FROM doctor_treatments WHERE doctor_id = ? AND treatment_id = ? AND admin_id = ?`,
@@ -74,12 +88,16 @@ export async function removeDoctorTreatment(formData) {
 }
 
 export async function addDoctorTreatment(formData) {
+
+    const adminId = await verify();
+    if (!adminId) return null;
+
     const doctorPubId = formData?.get("doctor_pubId");
     const treatmentStr = formData?.get("treatment");
     if (!doctorPubId || !treatmentStr) return null;
     try {
-        const doctorId = await getDoctorId(doctorPubId);
-        const treatmentId = await getTreatmentId(treatmentStr);
+        const doctorId = await getDoctorId(doctorPubId, adminId);
+        const treatmentId = await getTreatmentId(treatmentStr, adminId);
         if (!doctorId || !treatmentId) return null;
         await db.execute(
             `INSERT OR IGNORE INTO doctor_treatments (public_id, admin_id, doctor_id, treatment_id) VALUES (?, ?, ?, ?)`,
@@ -93,10 +111,14 @@ export async function addDoctorTreatment(formData) {
 }
 
 export async function deleteDoctor(formData) {
+
+    const adminId = await verify();
+    if (!adminId) return null;
+
     const doctorPubId = formData?.get("doctor_pubId");
     if (!doctorPubId) return null;
     try {
-        const doctorId = await getDoctorId(doctorPubId);
+        const doctorId = await getDoctorId(doctorPubId, adminId);
         if (!doctorId) return null;
         await db.execute(`DELETE FROM doctors WHERE id = ? AND admin_id = ?`, [doctorId, adminId]);
     } catch (error) {

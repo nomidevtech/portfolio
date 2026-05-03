@@ -4,10 +4,14 @@ import { redirect } from "next/navigation";
 import { db } from "../lib/turso";
 import { nanoid } from "nanoid";
 import { initTreatmentTable } from "../Models/initTables";
+import { getUserPlus } from "../lib/getUser";
 
 export async function addTreatmentServerAction(formData) {
     try {
-        const adminId = 1; // hardcoded for now
+        const currentUser = await getUserPlus();
+        if (!currentUser || currentUser.role !== "admin" || !currentUser.admin_id) redirect("/login");
+        const adminId = currentUser.admin_id;
+
         const name = formData.get("name")?.toLowerCase().replace(/\s/g, "_");
         const duration = Number(formData.get("duration")) || 0;
 

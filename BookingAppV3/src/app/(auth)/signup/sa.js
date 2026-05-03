@@ -22,6 +22,8 @@ export async function signupServerAction(_, formData) {
 
     const public_id = nanoid(12);
 
+    const hashedPassword = await hash(password);
+
 
     if (password !== confirm_password) {
         return { ok: false, message: "Passwords do not match" };
@@ -42,10 +44,10 @@ export async function signupServerAction(_, formData) {
                 clinic_name,
                 clinic_phone,
                 clinic_address,
-                password, // Note: In production, hash this password before storing
+                hashedPassword
             ]);
 
-        const hashedPassword = await hash(password);
+
 
         await db.execute(
             `INSERT INTO users ( public_id, admin_id, role, username, password ) VALUES (?, ?, ?, ?, ?)`, [nanoid(12),

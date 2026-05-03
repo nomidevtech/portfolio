@@ -4,11 +4,17 @@ import { db } from "../lib/turso";
 import { getDayName, getMonthName } from "../utils/getDateData";
 import { minutesToMeridiem } from "../utils/minutes-to-meridiem";
 import { ToggleSlotButton } from "./Client";
+import { getUserPlus } from "../lib/getUser";
 
 export default async function GeneratedSlots() {
-    await rollingWindow();
 
-    const adminId = 1;
+
+    const currentUser = await getUserPlus();
+    if (!currentUser || currentUser.role !== "admin" || !currentUser.admin_id) redirect("/login");
+    const adminId = currentUser.admin_id;
+
+    await rollingWindow(31, adminId);
+
 
     const fetch = await db.execute(
         `SELECT * FROM slots WHERE admin_id = ? AND full_date_at_period > DATE('now') ORDER BY full_date_at_period`,

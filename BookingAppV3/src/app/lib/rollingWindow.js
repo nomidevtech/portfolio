@@ -4,11 +4,12 @@ import { nanoid } from "nanoid";
 import { initSlotsTable } from "../Models/initTables";
 import { getDayName } from "../utils/getDateData";
 import { db } from "./turso";
+import { getUserPlus } from "./getUser";
 
-export async function rollingWindow(win = 31) {
+export async function rollingWindow(win = 31, adminId = null) {
     await initSlotsTable();
     try {
-        const adminId = 1;
+
 
         const fetchAllTemplates = await db.execute(`SELECT * FROM weekly_templates WHERE admin_id = ?`, [adminId])
         if (fetchAllTemplates.rows.length === 0) return null;

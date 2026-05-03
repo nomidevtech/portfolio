@@ -2,12 +2,17 @@ import Form from "next/form";
 import { addTreatmentServerAction } from "./SA";
 import { db } from "../lib/turso";
 import { initTreatmentTable } from "../Models/initTables";
+import { getUserPlus } from "../lib/getUser";
 
 export default async function AddTreatment() {
-    
+
     await initTreatmentTable();
 
-    const fetchTreatmentsData = await db.execute(`SELECT * FROM treatments`);
+    const currentUser = await getUserPlus();
+    if (!currentUser || currentUser.role !== "admin" || !currentUser.admin_id) redirect("/login");
+    const adminId = currentUser.admin_id;
+
+    const fetchTreatmentsData = await db.execute(`SELECT * FROM treatments WHERE admin_id = ?`, [adminId]);
     let treatments = fetchTreatmentsData?.rows;
     treatments = treatments.map(treatment => ({ name: treatment.name[0].toUpperCase() + treatment.name.slice(1).toLowerCase(), duration: treatment.duration }));
 

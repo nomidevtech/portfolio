@@ -1,5 +1,6 @@
 "use server";
 
+import { getUserPlus } from "@/app/lib/getUser";
 import { db } from "@/app/lib/turso";
 import { initAdminTable, initDoctorTable, initWeeklyTemplatesTable } from "@/app/Models/initTables";
 import { getDayNumber } from "@/app/utils/getDateData";
@@ -11,10 +12,13 @@ import { redirect } from "next/navigation";
 
 export async function createTemplateServerAction(formData) {
 
+    const currentUser = await getUserPlus();
+    if (!currentUser || currentUser.role !== "admin" || !currentUser.admin_id) redirect("/login");
+    const adminId = currentUser.admin_id;
+
     const docPubId = formData.get("doctorPublicId");
 
     try {
-        const adminId = 1; // harcoded for now
 
         const fetchDoctor = await db.execute(`SELECT * FROM doctors WHERE admin_id = ? AND public_id = ?`, [adminId, docPubId]);
         if (fetchDoctor.rows.length === 0) throw new Error("doctor not found");
@@ -39,7 +43,7 @@ export async function createTemplateServerAction(formData) {
 
 
 
-        await db.execute(`INSERT INTO weekly_templates (public_id, admin_id, doctor_id, day_number, start_time, end_time, break_start, break_end, buffer_minutes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`, [
+        await db.execute(`INSERT INTO weekly_templates (public_id, admin_id, doctor_id, day_number, start_time, end_time, break_start, break_end, buffer_minutes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT (admin_id, doctor_id, day_number) DO NOTHING`, [
             nanoid(12),
             adminId,
             doctor.id,

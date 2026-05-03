@@ -4,9 +4,12 @@ import { db } from "@/app/lib/turso";
 import { redirect } from "next/navigation";
 import getMinutes from "@/app/utils/getMinutes";
 import { revalidatePath } from "next/cache";
+import { getUserPlus } from "@/app/lib/getUser";
 
 export async function editSlotServerAction(formData) {
-    const adminId = 1;
+    const currentUser = await getUserPlus();
+    if (!currentUser || currentUser.role !== "admin" || !currentUser.admin_id) redirect("/login");
+    const adminId = currentUser.admin_id;
 
     const slotPubId = formData.get("slotPubId");
     if (!slotPubId) redirect("/edit-template");
@@ -39,7 +42,7 @@ export async function editSlotServerAction(formData) {
         );
     } catch (e) {
         console.error("Update failed:", e);
-        throw new Error("Could not update template");
+        throw new Error("Could not update slot");
     }
 
     revalidatePath(`/edit-slot/${slotPubId}`);

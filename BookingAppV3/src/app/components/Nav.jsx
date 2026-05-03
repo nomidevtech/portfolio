@@ -14,6 +14,7 @@ export default function NavBar() {
                 <Link href="/bookings"><li> Book A Slot</li></Link>
                 <Link href="/signup"><li> Sign Up</li></Link>
                 <Link href="/login"><li>Login</li></Link>
+                <Link href="/dashboard"><li>Dashboard</li></Link>
             </ul>
         </nav>
     </>);

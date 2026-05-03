@@ -4,13 +4,16 @@ import { minutesToMeridiem } from "@/app/utils/minutes-to-meridiem";
 import Form from "next/form";
 import { editSlotServerAction } from "./sa";
 import { rollingWindow } from "@/app/lib/rollingWindow";
+import { getUserPlus } from "@/app/lib/getUser";
 
 export default async function EditSlot({ params }) {
 
-    await rollingWindow();
+    const currentUser = await getUserPlus();
+    if (!currentUser || currentUser.role !== "admin" || !currentUser.admin_id) redirect("/login");
+    const adminId = currentUser.admin_id;
 
     const { pubId } = await params;
-    const adminId = 1;
+
 
     const fetchSlot = await db.execute(`SELECT * FROM slots WHERE public_id = ? AND admin_id = ?`, [pubId, adminId]);
 
@@ -18,7 +21,7 @@ export default async function EditSlot({ params }) {
 
     const { public_id, doctor_id, status, day_number, month_number, year, date_number, start_time, end_time, break_start, break_end, buffer_minutes } = fetchSlot.rows[0];
 
-    const fetchDoctor = await db.execute(`SELECT * FROM doctors WHERE id = ?`, [doctor_id]);
+    const fetchDoctor = await db.execute(`SELECT * FROM doctors WHERE id = ? AND admin_id = ?`, [doctor_id, adminId]);
 
     if (fetchDoctor.rows.length === 0) return <p>Broken link. Doctor not found.</p>
 

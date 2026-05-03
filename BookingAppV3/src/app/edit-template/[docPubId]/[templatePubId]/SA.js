@@ -4,10 +4,16 @@ import { db } from "@/app/lib/turso";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import getMinutes from "@/app/utils/getMinutes"; // Adjust path if needed
+import { getUserPlus } from "@/app/lib/getUser";
+import { rollingWindow } from "@/app/lib/rollingWindow";
 
 export async function updateWeeklyTemplateServerAction(formData) {
 
-  const adminId = 1;
+  const currentUser = await getUserPlus();
+  if (!currentUser || currentUser.role !== "admin" || !currentUser.admin_id) redirect("/login");
+
+  const adminId = currentUser.admin_id;
+
 
   const docPubId = formData.get("doctorPublicId");
   if (!docPubId) return redirect("/edit-template");
@@ -46,6 +52,6 @@ export async function updateWeeklyTemplateServerAction(formData) {
     throw new Error("Could not update template");
   }
 
- //revalidatePath(`/edit-template/${docPubId}/${templatePubId}`);
+  //revalidatePath(`/edit-template/${docPubId}/${templatePubId}`);
   redirect(`/edit-template/${docPubId}`);
 }

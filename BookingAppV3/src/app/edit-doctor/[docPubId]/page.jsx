@@ -1,11 +1,15 @@
 import { db } from "@/app/lib/turso";
 import { addDoctorTreatment, deleteDoctor, editDoctorServerAction, removeDoctorTreatment } from "./sa";
 import Form from "next/form";
-import Link from "next/link";
+import { getUserPlus } from "@/app/lib/getUser";
 
 export default async function EditDoctor({ params }) {
+
+    const currentUser = await getUserPlus();
+    if (!currentUser || currentUser.role !== "admin" || !currentUser.admin_id) redirect("/login");
+    const adminId = currentUser.admin_id;
+
     const { docPubId } = await params;
-    const adminId = 1;
 
     const fetchDoctor = await db.execute(
         `SELECT id FROM doctors WHERE admin_id = ? AND public_id = ?`,
@@ -23,12 +27,11 @@ export default async function EditDoctor({ params }) {
     departments = [...new Set(departments)];
 
     const fetchTreatments = await db.execute(`SELECT name, duration FROM treatments WHERE admin_id = ?`, [adminId]);
-    const treatments = fetchTreatments?.rows.map(fn => fn.name[0].toUpperCase() + fn.name.slice(1).toLowerCase() + " - " + fn.duration + "min");
 
     const fetchDetails = await db.execute(`
         SELECT 
             doctors.name AS doctor_name,
-            GROUP_CONCAT(treatments.name || ' - ' || treatments.duration || 'min') AS treatments,
+            GROUP_CONCAT(treatments.name || ' - ' || treatments.duration || 'min', ' , ') AS treatments,
             doctors.*
         FROM doctors
         LEFT JOIN doctor_treatments ON doctors.id = doctor_treatments.doctor_id 
@@ -40,8 +43,15 @@ export default async function EditDoctor({ params }) {
     const doctorData = fetchDetails.rows[0];
 
     const treatmentsArr = doctorData.treatments
-        ? doctorData.treatments.split(',').map(t => t[0].toUpperCase() + t.slice(1))
+        ? doctorData.treatments.split(',').map(t => {
+            const [name, dur] = t.split(' - ');
+            return name[0].toUpperCase() + name.slice(1).toLowerCase() + ' - ' + dur;
+        })
         : [];
+
+    const treatments = fetchTreatments?.rows
+        .map(fn => fn.name[0].toUpperCase() + fn.name.slice(1).toLowerCase() + " - " + fn.duration + "min")
+        .filter(t => !treatmentsArr.includes(t));
 
     const qualifications = doctorData.qualifications ? JSON.parse(doctorData.qualifications) : [];
 

@@ -5,6 +5,7 @@ import { db } from "../lib/turso";
 import { nanoid } from "nanoid";
 import { initDoctorTable } from "../Models/initTables";
 import { hash } from "../utils/bcrypt";
+import { getUserPlus } from "../lib/getUser";
 
 export async function addDoctorServerAction(formData) {
     let success = false;
@@ -12,7 +13,12 @@ export async function addDoctorServerAction(formData) {
     try {
         await initDoctorTable();
 
-        const adminId = 1;
+        const currentUser = await getUserPlus();
+        if (!currentUser || currentUser.role !== "admin" || !currentUser.admin_id) redirect("/login");
+        const adminId = currentUser.admin_id;
+
+        console.log(adminId);
+
         const name = formData.get("name")?.toString() || "";
         const username = formData.get("username")?.toString() || "";
         const password = formData.get("password")?.toString() || "";

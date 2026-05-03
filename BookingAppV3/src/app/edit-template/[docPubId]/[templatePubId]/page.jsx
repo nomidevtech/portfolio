@@ -4,12 +4,18 @@ import { minutesToMeridiem } from "@/app/utils/minutes-to-meridiem";
 import Form from "next/form";
 import Link from "next/link";
 import { updateWeeklyTemplateServerAction } from "./SA";
+import { getUserPlus } from "@/app/lib/getUser";
 
 export default async function EditDoctorTemplate({ params }) {
-    const { docPubId, templatePubId } = await params;
-    const adminId = 1;
 
-    const fetchDoctor = await db.execute(`SELECT * FROM doctors WHERE public_id = ?`, [docPubId]);
+    const currentUser = await getUserPlus();
+    if (!currentUser || currentUser.role !== "admin" || !currentUser.admin_id) redirect("/login");
+    const adminId = currentUser.admin_id;
+
+    const { docPubId, templatePubId } = await params;
+
+
+    const fetchDoctor = await db.execute(`SELECT * FROM doctors WHERE public_id = ? AND admin_id = ?`, [docPubId, adminId]);
     if (fetchDoctor.rows.length === 0) return <p>Broken link. Doctor not found.</p>
 
     const { name, id } = fetchDoctor.rows[0];
@@ -146,7 +152,7 @@ export default async function EditDoctorTemplate({ params }) {
 
             <div className="border-2 border-blue-100 p-2 mb-4">
                 <label className="block font-bold">Buffer Minutes</label>
-                <input  type="text" name="buffer" defaultValue={template.buffer_minutes} />
+                <input type="text" name="buffer" defaultValue={template.buffer_minutes} />
             </div>
 
             <button type="submit">Update</button>

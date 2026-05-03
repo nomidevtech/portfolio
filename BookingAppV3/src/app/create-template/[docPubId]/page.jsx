@@ -4,17 +4,23 @@ import { createTemplateServerAction } from "./SA";
 import { getDayName } from "@/app/utils/getDateData";
 import { minutesToMeridiem } from "@/app/utils/minutes-to-meridiem";
 import Link from "next/link";
+import { getUserPlus } from "@/app/lib/getUser";
 
 
 export default async function DoctorCreateTemplate({ params }) {
+
+    const currentUser = await getUserPlus();
+    if (!currentUser || currentUser.role !== "admin" || !currentUser.admin_id) redirect("/login");
+    const adminId = currentUser.admin_id;
+
     const { docPubId } = await params;
 
-    const fetchDoctor = await db.execute(`SELECT * FROM doctors WHERE public_id = ?`, [docPubId]);
+    const fetchDoctor = await db.execute(`SELECT * FROM doctors WHERE public_id = ? AND admin_id = ?`, [docPubId, adminId]);
     if (fetchDoctor.rows.length === 0) return <p>Broken link. Doctor not found.</p>
 
     const { name, id } = fetchDoctor.rows[0];
 
-    const fetchExisTemplates = await db.execute(`SELECT * FROM weekly_templates WHERE doctor_id = ?`, [id]);
+    const fetchExisTemplates = await db.execute(`SELECT * FROM weekly_templates WHERE doctor_id = ? AND admin_id = ?`, [id , adminId]);
 
     let currentTemplates = fetchExisTemplates.rows.length > 0 ? fetchExisTemplates.rows : [];
 
