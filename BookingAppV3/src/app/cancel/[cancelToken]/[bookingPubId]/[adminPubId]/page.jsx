@@ -4,17 +4,22 @@ import { redirect } from "next/navigation";
 
 export default async function cancelAppointment({ params }) {
 
-    const adminId = 1;
 
-    const { cancelToken, bookingPubId } = await params;
 
-    if (!cancelToken || !bookingPubId) return <p>1 Broken link. Email not found.</p>;
+    const { cancelToken, bookingPubId, adminPubId } = await params;
+
+    if (!cancelToken || !bookingPubId || !adminPubId) return <p>1 Broken link. Email not found.</p>;
+
+    const fetchAdmin = await db.execute(`SELECT id FROM admins WHERE public_id = ?`, [adminPubId]);
+    if (fetchAdmin.rows.length === 0) return <p>2 Broken link. Email not found.</p>;
+
+    const adminId = fetchAdmin.rows[0].id;
 
     try {
         const fetch = await db.execute(`SELECT id, cancel_token_hash FROM bookings WHERE admin_id = ? AND public_id = ?`, [adminId, bookingPubId]);
         if (fetch.rows.length === 0) return <p>Broken link. Email not found.</p>;
 
-        console.log(fetch.rows[0].cancel_token_hash,"<------------------");
+        console.log(fetch.rows[0].cancel_token_hash, "<------------------");
 
         const verified = await compare(cancelToken, fetch.rows[0].cancel_token_hash);
         if (!verified) return <p> 2 Broken link. Email not found.</p>;

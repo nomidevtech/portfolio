@@ -8,6 +8,7 @@ import { useActionState } from "react";
 export default function ClientBookASlot(
     {
         subSlot,
+        adminPubId,
         docPubId,
         day_number,
         date_number,
@@ -25,6 +26,7 @@ export default function ClientBookASlot(
         {/* {state.message && <p>{state.message}</p>} */}
         <p>{minutesToMeridiem(subSlot.start, true)} - {minutesToMeridiem(subSlot.end, true)}</p>
         <Form action={action}>
+            <input type="hidden" name="adminPubId" value={adminPubId} />
             <input type="hidden" name="docPubId" value={docPubId} />
             <input type="hidden" name="day_number" value={day_number} />
             <input type="hidden" name="date_number" value={date_number} />

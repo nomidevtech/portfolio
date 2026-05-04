@@ -9,10 +9,13 @@ import crypto from "crypto";
 
 export default async function Message({ params }) {
 
-    const adminId = 1;
+    const { bookingPubId, adminPubId } = await params;
+    if (!bookingPubId || !adminPubId) return <p>Broken link. Booking not found.</p>;
 
-    const { bookingPubId } = await params;
-    if (!bookingPubId) return <p>Broken link. Booking not found.</p>;
+    const fetchAdmin = await db.execute(`SELECT id FROM admins WHERE public_id = ?`, [adminPubId]);
+    if (fetchAdmin.rows.length === 0) return <p>Broken link. Booking not found.</p>;
+
+    const adminId = fetchAdmin.rows[0].id;
 
     const fetch = await db.execute(`SELECT * FROM bookings WHERE admin_id = ? AND public_id = ?`, [adminId, bookingPubId]);
     if (fetch.rows.length === 0) return <p>Broken link. Booking not found.</p>;
@@ -34,7 +37,7 @@ export default async function Message({ params }) {
         const html = `
            <p>You can cancel your appointment.</p>
            <p>Click on button to cancel your appointment.</p>
-           <a href="https://portfolio-lw35.vercel.app/cancel/${cancel_token}/${bookingPubId}">Cancel Appointment</a>
+           <a href="https://portfolio-lw35.vercel.app/cancel/${cancel_token}/${bookingPubId}/${adminPubId}">Cancel Appointment</a>
            `;
 
         await sendEmail({ to, subject, html });

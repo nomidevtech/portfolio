@@ -5,10 +5,15 @@ import { getMonthName } from "@/app/utils/getDateData";
 
 export default async function AppointmentRegisteration({ params }) {
 
-    const adminId = 1;
 
-    const { bookingPubId } = await params;
-    if (!bookingPubId) return <p>Broken link. Booking not found.</p>;
+
+    const { bookingPubId, clinic_admin_pubId } = await params;
+    if (!bookingPubId || !clinic_admin_pubId) return <p>Broken link. Booking not found.</p>;
+
+    const fetchAdmin = await db.execute(`SELECT * FROM admins WHERE public_id = ?`, [clinic_admin_pubId]);
+    if (fetchAdmin.rows.length === 0) return <p>Broken link. Booking not found.</p>;
+
+    const adminId = fetchAdmin.rows[0].id;
 
     const fetchBooking = await db.execute(`SELECT * FROM bookings WHERE public_id = ? AND admin_id = ?`, [bookingPubId, adminId]);
     if (fetchBooking.rows.length === 0) return <p>Broken link. Booking not found.</p>;
@@ -28,6 +33,6 @@ export default async function AppointmentRegisteration({ params }) {
         <p>Doctor: {fetchDoctor.rows[0].name.split(" ").map(word => word[0].toUpperCase() + word.slice(1)).join(" ")}</p><p>Treatment: {fetchTreatment.rows[0].name.split("_").map(word => word[0].toUpperCase() + word.slice(1)).join(" ")}</p>
         <p>Session Duration: {fetchTreatment.rows[0].duration} minutes</p>
 
-        <ClientAppointmentRegisteration bookingPubId={bookingPubId} />
+        <ClientAppointmentRegisteration bookingPubId={bookingPubId} adminPubId={clinic_admin_pubId} />
     </>);
 }

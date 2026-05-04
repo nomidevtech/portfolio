@@ -4,13 +4,19 @@ import { redirect } from "next/navigation";
 
 export default async function VerifyEmail({ params }) {
 
-    const adminId = 1;
 
-    const { emailToken, bookingPubId } = await params;
 
-    if (!emailToken || !bookingPubId) return <p>Broken link. Email not found.</p>;
+    const { emailToken, bookingPubId, adminPubId } = await params;
+
+    if (!emailToken || !bookingPubId || !adminPubId) return <p>Broken link. Email not found.</p>;
+
+    const fetchAdmin = await db.execute(`SELECT id FROM admins WHERE public_id = ?`, [adminPubId]);
+    if (fetchAdmin.rows.length === 0) return <p>Broken link. Email not found.</p>;
+
+    const adminId = fetchAdmin.rows[0].id;
 
     try {
+
         const fetch = await db.execute(`SELECT id, email_token_hash FROM bookings WHERE admin_id = ? AND public_id = ?`, [adminId, bookingPubId]);
         if (fetch.rows.length === 0) return <p>Broken link. Email not found.</p>;
 
@@ -25,6 +31,6 @@ export default async function VerifyEmail({ params }) {
     }
 
 
-    redirect(`/message/${bookingPubId}`);
+    redirect(`/message/${bookingPubId}/${adminPubId}`);
 
 }

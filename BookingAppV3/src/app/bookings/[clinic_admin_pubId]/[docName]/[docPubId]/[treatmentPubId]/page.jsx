@@ -7,16 +7,21 @@ import ClientBookASlot from "./Client";
 export default async function DoctorBookings({ params }) {
 
 
-    const { docName, docPubId, treatmentPubId } = await params;
-    const adminId = 1;
+    const { clinic_admin_pubId, docName, docPubId, treatmentPubId } = await params;
+    if (!clinic_admin_pubId || !docPubId || !docName || !treatmentPubId) return <p>1Broken Link. Please try again.</p>;
+
+    const fetchAdmin = await db.execute(`SELECT * FROM admins WHERE public_id = ?`, [clinic_admin_pubId]);
+    if (fetchAdmin.rows.length === 0) return <p>Broken Link. Please try again.</p>;
+
+    const adminId = fetchAdmin.rows[0].id;
 
     const [fetchDoctor, fetchTreatment] = await Promise.all([
         db.execute(`SELECT * FROM doctors where admin_id = ? AND name = ? AND public_id = ?`, [adminId, docName.toLowerCase(), docPubId]),
         db.execute(`SELECT * FROM treatments where public_id = ? AND admin_id = ?`, [treatmentPubId, adminId])
     ]);
 
-    if (fetchDoctor.rows.length === 0) return <p>Broken Link. Please try again.</p>;
-    if (fetchTreatment.rows.length === 0) return <p>Broken Link. Please try again.</p>;
+    if (fetchDoctor.rows.length === 0) return <p>1Broken Link. Please try again.</p>;
+    if (fetchTreatment.rows.length === 0) return <p>3Broken Link. Please try again.</p>;
 
     const docId = fetchDoctor?.rows[0]?.id;
     const treatmentId = fetchTreatment?.rows[0]?.id;
@@ -28,7 +33,7 @@ export default async function DoctorBookings({ params }) {
         db.execute(`SELECT * FROM bookings WHERE admin_id = ? AND doctor_id = ?`, [adminId, docId])
     ]);
 
-    if (fetchRecord.rows.length === 0) return <p>Broken Link. Please try again.</p>;
+    if (fetchRecord.rows.length === 0) return <p>4Broken Link. Please try again.</p>;
     if (fetchSlots.rows.length === 0) return <p>No slots available.</p>;
 
     const allVirtualSlots = fetchSlots.rows || [];
@@ -101,6 +106,7 @@ export default async function DoctorBookings({ params }) {
                             <div key={slot.public_id + index1 + index2} className="border-2">
                                 <ClientBookASlot
                                     subSlot={freeSlot}
+                                    adminPubId={clinic_admin_pubId}
                                     docPubId={docPubId}
                                     day_number={slot.day_number}
                                     date_number={slot.date_number}

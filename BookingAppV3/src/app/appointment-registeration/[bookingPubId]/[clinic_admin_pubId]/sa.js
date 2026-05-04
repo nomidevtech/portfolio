@@ -8,7 +8,13 @@ import { sendEmail } from "@/app/lib/resend";
 
 export async function appointmentRegisterationServerAction(_, formData) {
 
-    const adminId = 1;
+    const adminPubId = formData.get("adminPubId");
+    if (!adminPubId) throw new Error("Invalid admin.");
+
+    const fetchAdmin = await db.execute(`SELECT id FROM admins WHERE public_id = ?`, [adminPubId]);
+    if (fetchAdmin.rows.length === 0) throw new Error("Invalid admin.");
+
+    const adminId = fetchAdmin.rows[0].id;
 
     const bookingPubId = formData.get("bookingPubId");
     const name = formData.get("name");
@@ -36,7 +42,7 @@ export async function appointmentRegisterationServerAction(_, formData) {
         const to = email;
         const html = `
         <p>Click on button to verify your email address.</p>
-        <a href="https://portfolio-lw35.vercel.app/verify/${email_token}/${bookingPubId}">Verify Email</a>
+        <a href="https://portfolio-lw35.vercel.app/verify/${email_token}/${bookingPubId}/${adminPubId}">Verify Email</a>
         `;
 
         const res = await sendEmail({ to, subject, html });
@@ -47,5 +53,5 @@ export async function appointmentRegisterationServerAction(_, formData) {
         console.error(error);
         return { ok: false, message: error.message || "An unexpected error occurred." };
     }
-    redirect(`/message/${bookingPubId}`);
+    redirect(`/message/${bookingPubId}/${adminPubId}`);
 }
