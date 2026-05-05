@@ -3,6 +3,8 @@
 import { redirect } from "next/navigation";
 import { db } from "../lib/turso";
 import { getUser } from "../lib/getUser";
+import { sendCancelationEmails } from "../lib/sendCancelationEmail";
+import { sendEmail } from "../lib/resend";
 
 
 export async function adminRevokeBookings(_, formData) {
@@ -27,10 +29,14 @@ export async function adminRevokeBookings(_, formData) {
         const admin = fetchAdmin.rows[0];
         if (admin.id !== user.admin_id) return { ok: false, message: "Forbidden." };
 
-        await db.execute(
-            `UPDATE bookings SET status = 'revoked' WHERE admin_id = ? AND booking_date_iso = ? AND status != 'revoked'`,
-            [admin.id, bookingsDate]
-        );
+
+        const getAndUpdateBookings = await db.execute(
+            `UPDATE bookings SET status = 'revoked' WHERE admin_id = ? AND booking_date_iso = ? AND status != 'revoked' RETURNING patient_email, patient_name, doctor_name`, [admin.id, bookingsDate]);
+
+        if (getAndUpdateBookings.rows.length > 0) {
+            await sendCancelationEmails(getAndUpdateBookings.rows, 100);
+        }
+
 
     } catch (error) {
         console.error("adminRevokeBookings error:", error);
@@ -79,6 +85,16 @@ export async function adminRevokeBooking(_, formData) {
             [bookingPubId, admin.id]
         );
 
+        const to = fetchBooking.rows[0].patient_email;
+        const subject = "Your booking has been revoked.";
+        const html = `
+                <p>Dear ${fetchBooking.rows[0].patient_name.split(" ").map(word => word[0].toUpperCase() + word.slice(1)).join(" ")}</p>
+                <p>This is to inform you that your scheduled appointment with Dr. ${fetchBooking.rows[0].doctor_name.split(" ").map(word => word[0].toUpperCase() + word.slice(1)).join(" ")} has been cancelled by the clinic.</p>
+                <p>Please Visit our website to schedule another appointment.</p>
+                `;
+
+        await sendEmail({ to, subject, html });
+
     } catch (error) {
         console.error("adminRevokeBooking error:", error);
         return { ok: false, message: "Something went wrong." };
@@ -110,10 +126,14 @@ export async function doctorRevokeBookings(_, formData) {
         const doctor = fetchDoctor.rows[0];
         if (doctor.id !== user.doctor_id) return { ok: false, message: "Forbidden." };
 
-        await db.execute(
-            `UPDATE bookings SET status = 'revoked' WHERE doctor_id = ? AND booking_date_iso = ? AND status != 'revoked'`,
+        const res = await db.execute(
+            `UPDATE bookings SET status = 'revoked' WHERE doctor_id = ? AND booking_date_iso = ? AND status != 'revoked' RETURNING patient_email, patient_name, doctor_name`,
             [doctor.id, bookingsDate]
         );
+
+        if (res.rows.length > 0) {
+            await sendCancelationEmails(res.rows, 100);
+        }
 
     } catch (error) {
         console.error("doctorRevokeBookings error:", error);
@@ -161,6 +181,17 @@ export async function doctorRevokeBooking(_, formData) {
             "UPDATE bookings SET status = 'revoked' WHERE public_id = ? AND doctor_id = ?",
             [bookingPubId, doctor.id]
         );
+
+        const booking = fetchBooking.rows[0];
+        const to = booking.patient_email;
+        const subject = "Your booking has been revoked.";
+        const html = `
+                <p>Dear ${booking.patient_name.split(" ").map(word => word[0].toUpperCase() + word.slice(1)).join(" ")}</p>
+                <p>This is to inform you that your scheduled appointment with Dr. ${booking.doctor_name.split(" ").map(word => word[0].toUpperCase() + word.slice(1)).join(" ")} has been cancelled by the clinic.</p>
+                <p>Please Visit our website to schedule another appointment.</p>
+                `;
+
+        await sendEmail({ to, subject, html });
 
     } catch (error) {
         console.error("doctorRevokeBooking error:", error);

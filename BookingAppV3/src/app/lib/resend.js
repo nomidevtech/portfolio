@@ -25,3 +25,44 @@ export async function sendEmail({ to, subject, html }) {
         };
     }
 }
+export async function sendBulkCancelationEmails(payload = {}) {
+
+    if (!payload) return null;
+
+    for (const chunk in payload) {
+        const clause = payload[chunk].map(item => {
+            return {
+                from: `NomiDev <bookings@nomidev.com>`,
+                to: [item.patient_email],
+                subject: "Appointment Cancellation",
+                html: `
+                <p>Dear ${item.patient_name.split(" ").map(word => word[0].toUpperCase() + word.slice(1)).join(" ")}</p>
+                <p>This is to inform you that your scheduled appointment with Dr. ${item.doctor_name.split(" ").map(word => word[0].toUpperCase() + word.slice(1)).join(" ")} has been cancelled by the clinic.</p>
+                <p>Please Visit our website to schedule another appointment.</p>
+                `
+            }
+        });
+
+        await resend.batch.send(clause);
+    }
+
+
+
+
+    console.dir(payload, { depth: null });
+
+    // try {
+    //     const response = await resend.batch.send(payload);
+
+    //     return {
+    //         success: true,
+    //         data: response.data
+    //     };
+
+    // } catch (error) {
+    //     return {
+    //         success: false,
+    //         error: error.message
+    //     };
+    // }
+}

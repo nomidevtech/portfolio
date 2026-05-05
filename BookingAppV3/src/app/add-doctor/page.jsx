@@ -5,6 +5,8 @@ import { addDoctorServerAction } from "./SA";
 import Link from "next/link";
 import { getUserPlus } from "../lib/getUser";
 import { redirect } from "next/navigation";
+import { sendBulkEmails } from "../lib/resend";
+
 
 export default async function AddDoctor() {
     await initBookingsTable();
@@ -14,6 +16,8 @@ export default async function AddDoctor() {
     await initDoctorTreatmentsTable();
     await initWeeklyTemplatesTable();
     await initSlotsTable();
+
+    
 
     const currentUser = await getUserPlus();
     if (!currentUser || currentUser.role !== "admin" || !currentUser.admin_id) redirect("/login");

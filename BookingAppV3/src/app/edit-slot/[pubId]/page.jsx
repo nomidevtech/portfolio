@@ -4,11 +4,11 @@ import { minutesToMeridiem } from "@/app/utils/minutes-to-meridiem";
 import Form from "next/form";
 import { editSlotServerAction } from "./sa";
 import { rollingWindow } from "@/app/lib/rollingWindow";
-import { getUserPlus } from "@/app/lib/getUser";
+import { getUser, getUserPlus } from "@/app/lib/getUser";
 
 export default async function EditSlot({ params }) {
 
-    const currentUser = await getUserPlus();
+    const currentUser = await getUser();
     if (!currentUser || currentUser.role !== "admin" || !currentUser.admin_id) redirect("/login");
     const adminId = currentUser.admin_id;
 

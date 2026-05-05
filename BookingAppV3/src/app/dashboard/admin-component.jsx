@@ -30,18 +30,24 @@ export default async function AdminComponent({ currentUser }) {
 
         <AdminRevokeBookings adminPubId={currentUser.admin_details.public_id} bookingDate={dateIso} />
 
-        {groupedBooking[dateIso].map(booking => (
-          <div key={booking.public_id} className="border-2 border-amber-950 my-2" >
-            <p>Appointment Date: {booking.date_number > 10 ? booking.date_number : "0" + booking.date_number} {getMonthName(booking.month_number)} {booking.year}</p>
-            <p>Timing: {minutesToMeridiem(booking.treatment_start, true)} - {minutesToMeridiem(booking.treatment_end, true)}</p>
-            <p>Doctor: {booking.doctor_name}</p><p>Treatment: {booking.treatment_name}</p>
-            <p>Session Duration: {booking.treatment_duration} minutes</p>
-            <p>Booking Status: {booking.status}</p>
+        <details>
+          <summary>Bookings : {groupedBooking[dateIso].length > 10 ? groupedBooking[dateIso].length : "0" + groupedBooking[dateIso].length}</summary>
+          {groupedBooking[dateIso].map(booking => (
+            <div key={booking.public_id} className="border-2 border-amber-950 my-2" >
+              <p>Appointment Date: {booking.date_number > 10 ? booking.date_number : "0" + booking.date_number} {getMonthName(booking.month_number)} {booking.year}</p>
+              <p>Timing: {minutesToMeridiem(booking.treatment_start, true)} - {minutesToMeridiem(booking.treatment_end, true)}</p>
+              <p>Doctor: {booking.doctor_name.split(" ").map(word => word[0].toUpperCase() + word.slice(1)).join(" ")}</p><p>Treatment: {booking.treatment_name.split("_").map(word => word[0].toUpperCase() + word.slice(1)).join(" ")}</p>
+              <p>Session Duration: {booking.treatment_duration} minutes</p>
+              <p>Booking Status: {booking.status[0].toUpperCase() + booking.status.slice(1)}</p>
+              <p>Patient Name: {booking?.patient_name ? booking.patient_name.split(" ").map(word => word[0].toUpperCase() + word.slice(1)).join(" ") : "N/A"}</p>
+              <p>Patient Phone: {booking?.patient_phone ? booking.patient_phone : "N/A"}</p>
+              <p>Patient Email: {booking?.patient_email ? booking.patient_email : "N/A"}</p>
 
-            <AdminRevokeBooking adminPubId={currentUser.admin_details.public_id} bookingPubId={booking.public_id} />
+              <AdminRevokeBooking adminPubId={currentUser.admin_details.public_id} bookingPubId={booking.public_id} />
 
-          </div>
-        ))}
+            </div>
+          ))}
+        </details>
       </div>
     ))}
   </>);

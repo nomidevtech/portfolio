@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import getMinutes from "@/app/utils/getMinutes";
 import { revalidatePath } from "next/cache";
 import { getUserPlus } from "@/app/lib/getUser";
+import { sendCancelationEmails } from "@/app/lib/sendCancelationEmail";
 
 export async function editSlotServerAction(formData) {
     const currentUser = await getUserPlus();
@@ -40,6 +41,18 @@ export async function editSlotServerAction(formData) {
             `UPDATE slots SET status = ?, start_time = ?, end_time = ?, break_start = ?, break_end = ?, buffer_minutes = ? WHERE id = ?`,
             [statusromUser, startTimeFromUser, endTimeFromUser, breakStartromUser, breakEndromUser, Number(bufferTimeromUser), id]
         );
+
+        const dateIso = fetchSlot.rows[0].full_date_at_period.split("T")[0];
+
+        const getAndUpdateBookings = await db.execute(
+            `UPDATE bookings SET status = 'revoked' WHERE admin_id = ? AND booking_date_iso = ? AND status != 'revoked' RETURNING patient_email, patient_name, doctor_name`, [adminId, dateIso]);
+
+        if (getAndUpdateBookings.rows.length > 0) {
+            await sendCancelationEmails(getAndUpdateBookings.rows, 100);
+        }
+
+
+
     } catch (e) {
         console.error("Update failed:", e);
         throw new Error("Could not update slot");
