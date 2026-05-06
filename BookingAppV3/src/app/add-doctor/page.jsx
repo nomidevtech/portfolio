@@ -9,13 +9,13 @@ import { sendBulkEmails } from "../lib/resend";
 
 
 export default async function AddDoctor() {
-    await initBookingsTable();
-    await initTreatmentTable();
-    await initDoctorTable();
-    await initTreatmentTable();
-    await initDoctorTreatmentsTable();
-    await initWeeklyTemplatesTable();
-    await initSlotsTable();
+    // await initBookingsTable();
+    // await initTreatmentTable();
+    // await initDoctorTable();
+    // await initTreatmentTable();
+    // await initDoctorTreatmentsTable();
+    // await initWeeklyTemplatesTable();
+    // await initSlotsTable();
 
     
 

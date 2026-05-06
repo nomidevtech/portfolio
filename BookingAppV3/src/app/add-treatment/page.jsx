@@ -6,7 +6,7 @@ import { getUserPlus } from "../lib/getUser";
 
 export default async function AddTreatment() {
 
-    await initTreatmentTable();
+    //await initTreatmentTable();
 
     const currentUser = await getUserPlus();
     if (!currentUser || currentUser.role !== "admin" || !currentUser.admin_id) redirect("/login");
