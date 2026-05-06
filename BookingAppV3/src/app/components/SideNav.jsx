@@ -9,20 +9,21 @@ export default function SideNav({ user }) {
 
     return (<>
         {open &&
-            <aside className="w-85 border-amber-900 border-2 h-screen fixed z-50 bg-gray-600 shadow-lg  p-4">
+            <aside className="w-85 border-amber-900 border-2 h-screen fixed top-0 left-0 z-50 bg-gray-600 shadow-lg  p-4">
                 <button className="absolute top-2 right-2" onClick={() => setOpen(false)}>⬅</button>
                 <div className="flex flex-col justify-between h-full">
                     <ul className="flex flex-col gap-2">
-                        <Link href="/add-doctor"><li>Add Doctor</li></Link>
-                        <Link href="/edit-doctor"><li>Edit Doctor</li></Link>
-                        <Link href="/add-treatment"><li>Add Treatment</li></Link>
-                        <Link href="/create-template"><li> Create Template</li></Link>
-                        <Link href="/edit-template"><li> Edit Template</li></Link>
-                        <Link href="/manage-generated-slots"><li> Manage Generated Slots</li></Link>
-                        <Link href="/bookings"><li> Book A Slot</li></Link>
-                        <Link href="/signup"><li> Sign Up</li></Link>
-                        <Link href="/login"><li>Login</li></Link>
-                        <Link href="/dashboard"><li>Dashboard</li></Link>
+                        <Link href="/dashboard"><li>{user?.role === "admin" ? "Appointments" : "My Appointments"}</li></Link>
+                        {user.role === "admin" && <>
+                            <Link href="/add-doctor"><li>Add Doctor</li></Link>
+                            <Link href="/edit-doctor"><li>Edit Doctor</li></Link>
+                            <Link href="/add-treatment"><li>Add Treatment</li></Link>
+                            <Link href="/create-template"><li> Create Template</li></Link>
+                            <Link href="/edit-template"><li> Edit Template</li></Link>
+                            <Link href="/manage-generated-slots"><li> Manage Generated Slots</li></Link>
+                        </>}
+                        <Link href="/settings"><li> Settings</li></Link>
+
                     </ul>
                     <div className="flex justify-between mb-10 items-center">
                         <div className="flex items-center gap-2">
@@ -32,7 +33,7 @@ export default function SideNav({ user }) {
                         <Link href="/">Logout</Link>
                     </div>
                 </div>
-            </aside>}
+            </aside >}
         <button onClick={() => setOpen(true)}>➡</button>
     </>);
 }

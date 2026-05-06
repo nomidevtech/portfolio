@@ -13,27 +13,19 @@ export default async function NavBar() {
         }
     }
 
-    console.log(user);
-
-
     return (<>
-        <nav className="flex justify-between">
+        <nav className="flex justify-between px-2 items-center">
             {user ? <SideNav user={user} /> : <div></div>}
 
-            <div>
-                <ul className="border-2 border-amber-200 my-2 flex">
+            <div className="flex items-center gap-3">
+                <ul className="border-2 border-amber-200 my-2 flex gap-2">
                     <Link href="/"><li>Home</li></Link>
-                    {/* <Link href="/add-doctor"><li>Add Doctor</li></Link>
-                    <Link href="/edit-doctor"><li>Edit Doctor</li></Link>
-                    <Link href="/add-treatment"><li>Add Treatment</li></Link>
-                    <Link href="/create-template"><li> Create Template</li></Link>
-                    <Link href="/edit-template"><li> Edit Template</li></Link>
-                    <Link href="/manage-generated-slots"><li> Manage Generated Slots</li></Link>
-                    <Link href="/bookings"><li> Book A Slot</li></Link>
-                    <Link href="/signup"><li> Sign Up</li></Link>
-                    <Link href="/login"><li>Login</li></Link>
-                    <Link href="/dashboard"><li>Dashboard</li></Link> */}
+                    <Link href="/about"><li>About</li></Link>
+                    <Link href="/contact"><li>Contact</li></Link>
                 </ul>
+                <div className="bg-green-900 px-2 py-0.5 rounded">
+                    <Link href="/bookings">Bookings</Link>
+                </div>
             </div>
 
             <div>
