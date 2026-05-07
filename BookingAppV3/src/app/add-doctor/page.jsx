@@ -1,22 +1,14 @@
 import Form from "next/form";
 import { db } from "../lib/turso";
-import { initDoctorTreatmentsTable, initDoctorTable, initTreatmentTable, initBookingsTable, initWeeklyTemplatesTable, initSlotsTable } from "../Models/initTables";
 import { addDoctorServerAction } from "./SA";
 import Link from "next/link";
 import { getUserPlus } from "../lib/getUser";
 import { redirect } from "next/navigation";
-import { sendBulkEmails } from "../lib/resend";
+
 
 
 export default async function AddDoctor() {
-    // await initBookingsTable();
-    // await initTreatmentTable();
-    // await initDoctorTable();
-    // await initTreatmentTable();
-    // await initDoctorTreatmentsTable();
-    // await initWeeklyTemplatesTable();
-    // await initSlotsTable();
-
+   
     
 
     const currentUser = await getUserPlus();
@@ -39,7 +31,7 @@ export default async function AddDoctor() {
     return (<>
         <Form action={addDoctorServerAction}>
             <input type="text" name="name" placeholder="Name" />
-            <input type="text" name="username" placeholder="userame" />
+            <input type="text" name="username" placeholder="username" />
             <input type="password" name="password" placeholder="Password" />
             <input type="text" name="qualification" placeholder="Qualifications: MD, Surgeon" />
             <input list="departments" name="department" placeholder="Department" />

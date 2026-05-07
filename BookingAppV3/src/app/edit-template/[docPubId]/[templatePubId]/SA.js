@@ -38,7 +38,7 @@ export async function updateWeeklyTemplateServerAction(formData) {
 
   const buffer_time = Number(formData.get("buffer"));
 
-  if (!startTime || !endTime || !breakStart || !breakEnd || !buffer_time) return redirect("/edit-template")
+  if (startTime === null || endTime === null || breakStart === null || breakEnd === null || isNaN(buffer_time)) return redirect("/edit-template");
 
   try {
     await db.execute({

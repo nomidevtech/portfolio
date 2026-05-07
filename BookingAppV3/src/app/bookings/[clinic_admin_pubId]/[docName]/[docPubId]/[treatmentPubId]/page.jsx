@@ -8,7 +8,7 @@ export default async function DoctorBookings({ params }) {
 
 
     const { clinic_admin_pubId, docName, docPubId, treatmentPubId } = await params;
-    if (!clinic_admin_pubId || !docPubId || !docName || !treatmentPubId) return <p>1Broken Link. Please try again.</p>;
+    if (!clinic_admin_pubId || !docPubId || !docName || !treatmentPubId) return <p>Broken Link. Please try again.</p>;
 
     const fetchAdmin = await db.execute(`SELECT * FROM admins WHERE public_id = ?`, [clinic_admin_pubId]);
     if (fetchAdmin.rows.length === 0) return <p>Broken Link. Please try again.</p>;

@@ -23,7 +23,7 @@ export default function ClientBookASlot(
     const [state, action, isPending] = useActionState(reserveSlot, { ok: null, message: null });
 
     return (<>
-        {/* {state.message && <p>{state.message}</p>} */}
+        {state.message && <p>{state.message}</p>}
         <p>{minutesToMeridiem(subSlot.start, true)} - {minutesToMeridiem(subSlot.end, true)}</p>
         <Form action={action}>
             <input type="hidden" name="adminPubId" value={adminPubId} />
@@ -35,7 +35,7 @@ export default function ClientBookASlot(
             <input type="hidden" name="treatmentPubId" value={treatmentPubId} />
             <input type="hidden" name="treatment_start" value={treatment_start} />
             <input type="hidden" name="treatment_end" value={treatment_end} />
-            <button type="submit" className="btn btn-primary">Reserve Slot⬅</button>
+            <button type="submit" className="btn btn-primary">{isPending ? "Loading..." : "Reserve Slot"}⬅</button>
         </Form>
     </>);
 }

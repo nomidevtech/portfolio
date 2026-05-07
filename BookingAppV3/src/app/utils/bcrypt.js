@@ -1,8 +1,7 @@
 import bcrypt from "bcrypt";
 
-export async function hash(raw) {
-    const saltRounds = 10;
-    const hashed = await bcrypt.hash(raw, saltRounds);
+export async function hash(raw, rounds = 10) {
+    const hashed = await bcrypt.hash(raw, rounds);
     return hashed;
 }
 

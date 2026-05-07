@@ -34,7 +34,7 @@ function AdminComponent({ user }) {
       <input type="email" name="email" placeholder="example@ex.com" defaultValue={user.admin_email} />
       <input type="text" name="clinic_name" placeholder="example@ex.com" defaultValue={user.clinic_name} />
       <input type="tel" name="clinic_phone" placeholder="clinic@ex.com" defaultValue={user.clinic_phone} />
-      <input type="tel" name="clinic_address" placeholder="Street #00" defaultValue={user.clinic_address} />
+      <input type="text" name="clinic_address" placeholder="Street #00" defaultValue={user.clinic_address} />
       <details>
         <summary>Change Password</summary>
         <input type="password" name="current_password" placeholder="Current Password" />

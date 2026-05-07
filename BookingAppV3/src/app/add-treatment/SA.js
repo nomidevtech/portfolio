@@ -21,7 +21,7 @@ export async function addTreatmentServerAction(formData) {
 
     } catch (error) {
         console.error(error);
-        throw error;
+       return null;
     }
     redirect("/add-treatment");
 }

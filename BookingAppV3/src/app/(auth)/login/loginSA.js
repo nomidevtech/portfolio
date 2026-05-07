@@ -26,9 +26,9 @@ export async function loginSA(_, formData) {  // ← prevState added for useActi
         if (fetchUser.rows.length === 0) return { ok: false, message: "User not found" };
 
         const user = fetchUser.rows[0];
-        const passowrdHash = user.password;
+        const passwordHash = user.password;
 
-        const isPasswordValid = await compare(password, passowrdHash);
+        const isPasswordValid = await compare(password, passwordHash);
         if (!isPasswordValid) return { ok: false, message: "Invalid password" };
 
 

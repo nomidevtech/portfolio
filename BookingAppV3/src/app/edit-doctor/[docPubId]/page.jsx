@@ -2,6 +2,7 @@ import { db } from "@/app/lib/turso";
 import { addDoctorTreatment, deleteDoctor, editDoctorServerAction, removeDoctorTreatment } from "./sa";
 import Form from "next/form";
 import { getUserPlus } from "@/app/lib/getUser";
+import { redirect } from "next/navigation";
 
 export default async function EditDoctor({ params }) {
 

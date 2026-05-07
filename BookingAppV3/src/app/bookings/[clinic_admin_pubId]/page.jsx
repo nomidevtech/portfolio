@@ -1,4 +1,3 @@
-import { rollingWindow } from "@/app/lib/rollingWindow";
 import { db } from "@/app/lib/turso";
 import Link from "next/link";
 
@@ -8,12 +7,11 @@ export default async function ClinicAdminAllBookings({ params }) {
 
     const { clinic_admin_pubId } = await params;
 
-    const fetchAmindData = await db.execute(`SELECT * FROM admins WHERE public_id = ?`, [clinic_admin_pubId]);
-    if (fetchAmindData.rows.length === 0) return <p>Link is broken.</p>;
+    const fetchAminData = await db.execute(`SELECT * FROM admins WHERE public_id = ?`, [clinic_admin_pubId]);
+    if (fetchAminData.rows.length === 0) return <p>Link is broken.</p>;
 
-    const adminId = fetchAmindData.rows[0].id;
+    const adminId = fetchAminData.rows[0].id;
 
-    await rollingWindow(31, adminId);
 
     const fetch = await db.execute(`SELECT doctor_id FROM slots WHERE admin_id = ? AND full_date_at_period > DATE('now') ORDER BY full_date_at_period`, [adminId]);
 

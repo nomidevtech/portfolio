@@ -10,7 +10,7 @@ export default async function DoctorComponent({ currentUser }) {
         `SELECT bookings.*, treatments.name AS treatment_name, treatments.duration AS treatment_duration
          FROM bookings
          LEFT JOIN treatments ON bookings.treatment_id = treatments.id
-         WHERE bookings.doctor_id = ?
+         WHERE bookings.doctor_id = ? AND status NOT IN ('revoked', 'cancelled')
          ORDER BY date_number ASC`,
         [currentUser.doctor_id]
     );

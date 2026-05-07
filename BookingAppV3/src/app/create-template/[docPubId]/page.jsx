@@ -5,6 +5,7 @@ import { getDayName } from "@/app/utils/getDateData";
 import { minutesToMeridiem } from "@/app/utils/minutes-to-meridiem";
 import Link from "next/link";
 import { getUserPlus } from "@/app/lib/getUser";
+import { redirect } from "next/navigation";
 
 
 export default async function DoctorCreateTemplate({ params }) {

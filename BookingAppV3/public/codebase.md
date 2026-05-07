@@ -1,6 +1,6 @@
 # Project Codebase (src/app)
 
-Generated on 2026-05-07T03:09:56.830Z
+Generated on 2026-05-07T15:25:24.119Z
 
 ## src/app/(auth)/login/Client.jsx
 
@@ -197,8 +197,8 @@ export default function SignUp() {
             <input type="text" name="full_name" placeholder="Full Name" />
             <input type="text" name="admin_email" placeholder="admin@email.com" />
             <input type="text" name="username" placeholder="Username" />
-            <input type="text" name="password" placeholder="Password" />
-            <input type="text" name="confirm_password" placeholder="Confirm Password" />
+            <input type="password" name="password" placeholder="Password" />
+            <input type="password" name="confirm_password" placeholder="Confirm Password" />
             <input type="text" name="clinic_name" placeholder="Clinic Name" />
             <input type="text" name="clinic_email" placeholder="clinic@email.com" />
             <input type="tel" name="clinic_phone" placeholder="Clinic phone" />
@@ -241,12 +241,11 @@ export async function signupServerAction(_, formData) {
 
     const public_id = nanoid(12);
 
-    const hashedPassword = await hash(password);
-
-
     if (password !== confirm_password) {
         return { ok: false, message: "Passwords do not match" };
     }
+
+    const hashedPassword = await hash(password);
 
     try {
 
@@ -457,6 +456,7 @@ import { addTreatmentServerAction } from "./SA";
 import { db } from "../lib/turso";
 import { initTreatmentTable } from "../Models/initTables";
 import { getUserPlus } from "../lib/getUser";
+import { redirect } from "next/navigation";
 
 export default async function AddTreatment() {
 
@@ -708,7 +708,7 @@ import { db } from "../lib/turso";
 
 export default async function AllClinics() {
 
-    const fetchAllClinics = await db.execute(`SELECT * FROM admins`);
+    const fetchAllClinics = await db.execute(`SELECT public_id, clinic_name, clinic_phone, clinic_address FROM admins`);
     if (fetchAllClinics.rows.length === 0) return <p>No clinics found</p>
 
     console.log(fetchAllClinics.rows);
@@ -731,7 +731,6 @@ export default async function AllClinics() {
 
 `
 ```
-import { rollingWindow } from "@/app/lib/rollingWindow";
 import { db } from "@/app/lib/turso";
 import Link from "next/link";
 
@@ -746,7 +745,6 @@ export default async function ClinicAdminAllBookings({ params }) {
 
     const adminId = fetchAmindData.rows[0].id;
 
-    await rollingWindow(31, adminId);
 
     const fetch = await db.execute(`SELECT doctor_id FROM slots WHERE admin_id = ? AND full_date_at_period > DATE('now') ORDER BY full_date_at_period`, [adminId]);
 
@@ -1141,7 +1139,7 @@ export default async function cancelAppointment({ params }) {
     }
 
 
-    redirect(`/message/${bookingPubId}`);
+    redirect(`/message/${bookingPubId}/${adminPubId}`);
 
 }
 `
@@ -1188,7 +1186,7 @@ import { useActionState } from "react";
 import Form from "next/form";
 import { resendingEmail } from "../lib/resendingEmail";
 
-export default function EmailVerification({ bookingPubId }) {
+export default function EmailVerification({ bookingPubId, adminPubId }) {
 
     const [state, action, isPending] = useActionState(resendingEmail, { ok: null, message: null });
 
@@ -1197,6 +1195,7 @@ export default function EmailVerification({ bookingPubId }) {
     return (<>
         <Form action={action}>
             <input type="hidden" name="bookingPubId" value={bookingPubId} />
+            <input type="hidden" name="adminPubId" value={adminPubId} />
             <button type="submit">{isPending ? "Sending..." : "Send Email Again⬅"}</button>
         </Form>
         {state.ok && !isPending && <p>Sent</p>}
@@ -1255,6 +1254,8 @@ export default async function NavBar() {
 'use client';
 import Link from "next/link";
 import { useState } from "react";
+import { logout } from "../lib/logout";
+import Form from "next/form";
 
 export default function SideNav({ user }) {
 
@@ -1284,7 +1285,9 @@ export default function SideNav({ user }) {
                             <p className="w-10 h-10 rounded-full bg-gray-800 text-white flex items-center justify-center text-sm font-semibold">{user?.name?.[0]?.toUpperCase() || "?"}</p>
                             <p>{user?.name ? user.name.split(" ").map(word => word[0].toUpperCase() + word.slice(1)).join(" ") : ""} ({user?.role ? user.role[0].toUpperCase() + user.role.slice(1) : ""})</p>
                         </div>
-                        <Link href="/">Logout</Link>
+                        <Form action={logout}>
+                            <button type="submit">Logout</button>
+                        </Form>
                     </div>
                 </div>
             </aside >}
@@ -1302,6 +1305,7 @@ export default function SideNav({ user }) {
 import { db } from "../lib/turso";
 import ByDoctors from "../components/ByDoctors";
 import { getUserPlus } from "../lib/getUser";
+import { redirect } from "next/navigation";
 
 export default async function CreateTemplate() {
      
@@ -1615,6 +1619,7 @@ export default async function DoctorCreateTemplate({ params }) {
 "use server";
 
 import { getUserPlus } from "@/app/lib/getUser";
+import { rollingWindow } from "@/app/lib/rollingWindow";
 import { db } from "@/app/lib/turso";
 import { initAdminTable, initDoctorTable, initWeeklyTemplatesTable } from "@/app/Models/initTables";
 import { getDayNumber } from "@/app/utils/getDateData";
@@ -1669,19 +1674,7 @@ export async function createTemplateServerAction(formData) {
             buffer
         ]);
 
-
-
-
-        console.log("docPubId", docPubId);
-        console.log("dayNumber", dayNumber);
-        console.log("buffer", buffer);
-        console.log("startInMinutes", startInMinutes);
-        console.log("endInMinutes", endInMinutes);
-        console.log("breakStartInMinutes", breakStartInMinutes);
-        console.log("breakEndInMinutes", breakEndInMinutes);
-
-
-
+        await rollingWindow(31, adminId);
 
     } catch (error) {
         console.error(error);
@@ -1975,7 +1968,7 @@ export default async function DoctorComponent({ currentUser }) {
         `SELECT bookings.*, treatments.name AS treatment_name, treatments.duration AS treatment_duration
          FROM bookings
          LEFT JOIN treatments ON bookings.treatment_id = treatments.id
-         WHERE bookings.doctor_id = ?
+         WHERE bookings.doctor_id = ? AND status NOT IN ('revoked', 'cancelled')
          ORDER BY date_number ASC`,
         [currentUser.doctor_id]
     );
@@ -2268,6 +2261,7 @@ export async function doctorRevokeBooking(_, formData) {
 import { db } from "../lib/turso";
 import ByDoctors from "../components/ByDoctors";
 import { getUserPlus } from "../lib/getUser";
+import { redirect } from "next/navigation";
 
 export default async function EditDoctors() {
 
@@ -2544,6 +2538,7 @@ import Form from "next/form";
 import { editSlotServerAction } from "./sa";
 import { rollingWindow } from "@/app/lib/rollingWindow";
 import { getUser, getUserPlus } from "@/app/lib/getUser";
+import { redirect } from "next/navigation";
 
 export default async function EditSlot({ params }) {
 
@@ -2729,6 +2724,7 @@ export async function editSlotServerAction(formData) {
 import { db } from "../lib/turso";
 import ByDoctors from "../components/ByDoctors";
 import { getUserPlus } from "../lib/getUser";
+import { redirect } from "next/navigation";
 
 export default async function EditTemplate() {
 
@@ -3101,10 +3097,12 @@ import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 import { getMonthName } from "@/app/utils/getDateData";
 import { minutesToMeridiem } from "@/app/utils/minutes-to-meridiem";
 
-export async function generateTicketPdf(bookingPubId) {
-    if (!bookingPubId) throw new Error("Missing bookingPubId");
+export async function generateTicketPdf(bookingPubId, adminPubId) {
+    if (!bookingPubId || !adminPubId) throw new Error("Missing required fields.");
 
-    const adminId = 1;
+    const fetchAdmin = await db.execute("SELECT id FROM admins WHERE public_id = ?", [adminPubId]);
+    if (fetchAdmin.rows.length === 0) throw new Error("Invalid admin.");
+    const adminId = fetchAdmin.rows[0].id;
 
     const result = await db.execute(
         `
@@ -3281,6 +3279,42 @@ export async function getUserPlus() {
 `
 ```
 
+## src/app/lib/logout.js
+
+`
+```
+"use server";
+
+import { redirect } from "next/navigation";
+import { getUser } from "./getUser";
+import { db } from "@/app/lib/turso";
+import { cookies } from "next/headers";
+
+
+export async function logout() {
+
+    const cookieStore = await cookies();
+    const token = cookieStore.get('token');
+
+
+    try {
+
+        const currentUser = await getUser();
+        if (!currentUser) return null;
+
+        await db.execute('DELETE FROM sessions WHERE user_id = ? AND session_id = ?', [currentUser?.id, token?.value]);
+
+        cookieStore.delete("token");
+
+    } catch (error) {
+        console.error(error);
+        return null;
+    }
+    redirect("/login");
+}
+`
+```
+
 ## src/app/lib/resend.js
 
 `
@@ -3333,25 +3367,6 @@ export async function sendBulkCancelationEmails(payload = {}) {
         await resend.batch.send(clause);
     }
 
-
-
-
-    console.dir(payload, { depth: null });
-
-    // try {
-    //     const response = await resend.batch.send(payload);
-
-    //     return {
-    //         success: true,
-    //         data: response.data
-    //     };
-
-    // } catch (error) {
-    //     return {
-    //         success: false,
-    //         error: error.message
-    //     };
-    // }
 }
 `
 ```
@@ -3369,10 +3384,15 @@ import crypto from "crypto";
 
 export async function resendingEmail(_, formData) {
 
-    const adminId = 1;
+
 
     const bookingPubId = formData.get("bookingPubId");
-    if (!bookingPubId) throw new Error("Missing required fields.");
+    const adminPubId = formData.get("adminPubId");
+    if (!bookingPubId || !adminPubId) throw new Error("Missing required fields.");
+
+    const fetchAdmin = await db.execute(`SELECT id FROM admins WHERE public_id = ?`, [adminPubId]);
+    if (fetchAdmin.rows.length === 0) throw new Error("Invalid admin.");
+    const adminId = fetchAdmin.rows[0].id;
 
     const new_email_token = crypto.randomBytes(16).toString("hex");
     const hashed = await hash(new_email_token);
@@ -3823,14 +3843,14 @@ export async function toggleSlotStatus(slotPubId) {
 import { useState } from "react";
 import { generateTicketPdf } from "@/app/lib/generateTicketPdf";
 
-export default function DownloadTicketButton({ bookingPubId }) {
+export default function DownloadTicketButton({ bookingPubId, adminPubId }) {
     const [loading, setLoading] = useState(false);
 
     async function handleDownload() {
         try {
             setLoading(true);
 
-            const pdfBytes = await generateTicketPdf(bookingPubId);
+            const pdfBytes = await generateTicketPdf(bookingPubId, adminPubId);
 
             const blob = new Blob([pdfBytes], { type: "application/pdf" });
             const url = URL.createObjectURL(blob);
@@ -3912,9 +3932,9 @@ export default async function Message({ params }) {
         <p>Patient Email: {booking.patient_email}</p>
         <p>Patient Phone: {booking.patient_phone}</p>
         {booking.status !== "verified" && <p>You need to verify your email within 30 minutes to book the slot. Otherwise it will be avaliable for others to book again.</p>}
-        {booking.status !== "verified" && <EmailVerification bookingPubId={bookingPubId} />}
+        {booking.status !== "verified" && <EmailVerification bookingPubId={bookingPubId} adminPubId={adminPubId} />}
         {booking.status === "verified" && <><p>Slot Booked Successfully.</p>
-            <DownloadTicketButton bookingPubId={bookingPubId} />
+            <DownloadTicketButton bookingPubId={bookingPubId} adminPubId={adminPubId} />
         </>}
     </>);
 }
@@ -4094,7 +4114,7 @@ export async function initBookingsTable() {
                 doctor_id INTEGER,
                 doctor_name TEXT,
                 patient_name TEXT,
-                patient_email TEXT UNIQUE,
+                patient_email TEXT,
                 patient_phone TEXT,
                 treatment_start INTEGER,
                 treatment_end INTEGER,
@@ -4247,7 +4267,7 @@ function AdminComponent({ user }) {
         <input type="password" name="current_password" placeholder="Current Password" />
         <input type="password" name="new_password" placeholder="New Password" />
       </details>
-      <button type="submit">Update⬅</button>
+      <button type="submit">Save Changes⬅</button>
     </Form>
   </>);
 };
@@ -4285,16 +4305,12 @@ function DoctorComponent({ user }) {
 ```
 "use server";
 
-
 import { redirect } from "next/navigation";
 import { db } from "../lib/turso";
 import { compare, hash } from "../utils/bcrypt";
 import { getUserPlus } from "../lib/getUser";
 
-
 export async function updateAdmin(formData) {
-
-
     const adminPubId = formData.get("adminPubId")?.trim();
     const name = formData.get("name")?.trim();
     const username = formData.get("username")?.trim();
@@ -4305,110 +4321,70 @@ export async function updateAdmin(formData) {
     const current_password = formData.get("current_password");
     const new_password = formData.get("new_password");
 
-    if (!adminPubId) return null;
+    if (!adminPubId || !name || !username || !email || !clinic_name || !clinic_phone || !clinic_address) return { error: "Missing fields" };
 
     const getCurrentUser = await getUserPlus();
     if (!getCurrentUser || getCurrentUser.role !== "admin") redirect("/login");
+
     const currentUser = getCurrentUser.admin_details;
-    if (currentUser.public_id !== adminPubId) return null;
+    if (currentUser.public_id !== adminPubId) return { error: "Unauthorized" };
 
-    if (!name || !username || !email || !clinic_name || !clinic_phone || !clinic_address) return null;
-
-    let passwordMatch = null;
-    let new_passwordHash = null;
-
-    if (current_password || new_password) {
-        passwordMatch = await compare(current_password, currentUser.password);
-        new_passwordHash = await hash(new_password, 12);
-    }
-
-    if (new_password && current_password && !passwordMatch) return null;
-
-    if (new_password && passwordMatch) {
-        await db.execute("UPDATE admins SET admin_name = ?, admin_username = ?, admin_email = ?, clinic_name = ?, clinic_phone = ?, clinic_address = ?, password = ? WHERE id = ?", [name, username, email, clinic_name, clinic_phone, clinic_address, new_passwordHash, getCurrentUser.id]);
-
-        if (username !== currentUser.username) {
-            await db.execute(
-                "UPDATE users SET username = ?, password = ? WHERE id = ?",
-                [username, new_passwordHash, getCurrentUser.id]
-            );
+    try {
+        let new_passwordHash = null;
+        if (new_password && current_password) {
+            const passwordMatch = await compare(current_password, currentUser.password);
+            if (!passwordMatch) return { error: "Password mismatch" };
+            new_passwordHash = await hash(new_password, 12);
         }
 
-        redirect("/settings");
-    }
-
-    await db.execute("UPDATE admins SET admin_name = ?, admin_username = ?, admin_email = ?, clinic_name = ?, clinic_phone = ?, clinic_address = ? WHERE id = ?", [name, username, email, clinic_name, clinic_phone, clinic_address, getCurrentUser.id]);
-
-    if (username !== currentUser.username) {
-        await db.execute(
-            "UPDATE users SET username = ?, password = ? WHERE id = ?",
-            [username, new_passwordHash, getCurrentUser.id]
-        );
+        if (new_passwordHash) {
+            await db.execute("UPDATE admins SET admin_name = ?, admin_username = ?, admin_email = ?, clinic_name = ?, clinic_phone = ?, clinic_address = ?, password = ? WHERE id = ?", [name, username, email, clinic_name, clinic_phone, clinic_address, new_passwordHash, getCurrentUser.id]);
+            await db.execute("UPDATE users SET username = ?, password = ? WHERE id = ?", [username, new_passwordHash, getCurrentUser.id]);
+        } else {
+            await db.execute("UPDATE admins SET admin_name = ?, admin_username = ?, admin_email = ?, clinic_name = ?, clinic_phone = ?, clinic_address = ? WHERE id = ?", [name, username, email, clinic_name, clinic_phone, clinic_address, getCurrentUser.id]);
+            await db.execute("UPDATE users SET username = ? WHERE id = ?", [username, getCurrentUser.id]);
+        }
+    } catch (e) {
+        return { error: "Update failed" };
     }
 
     redirect("/settings");
-
-
-
-
-
-
 }
 
-
-
 export async function updateDoctor(formData) {
-
     const docPublicId = formData.get("docPublicId")?.trim();
     const name = formData.get("name")?.trim();
     const username = formData.get("username")?.trim();
     const current_password = formData.get("current_password");
     const new_password = formData.get("new_password");
-    const qualificationsRaw = formData.get("qualifications")?.split(",")
-        .map((q) => q.trim().toUpperCase())
-        .filter(Boolean) || [];
+    const qualificationsRaw = formData.get("qualifications")?.split(",").map((q) => q.trim().toUpperCase()).filter(Boolean) || [];
     const qualificationsJson = JSON.stringify(qualificationsRaw);
 
-    if (!docPublicId) return { error: "Missing doctor ID." };
-
+    if (!docPublicId || !name || !username) return { error: "Missing fields" };
 
     const getCurrentUser = await getUserPlus();
     if (!getCurrentUser || getCurrentUser.role !== "doctor") redirect("/login");
 
     const currentUser = getCurrentUser.doctor_details;
-    if (currentUser.public_id !== docPublicId) return { error: "Unauthorized." };
+    if (currentUser.public_id !== docPublicId) return { error: "Unauthorized" };
 
-
-    let passwordMatch = null;
-    let new_passwordHash = null;
-
-    if (current_password && new_password) {
-        passwordMatch = await compare(current_password, currentUser.password_hash);
-        new_passwordHash = await hash(new_password, 12);
-    }
-
-    if (new_password && current_password && !passwordMatch) return { error: "Incorrect current password." };
-
-    if (new_password && passwordMatch) {
-        await db.execute("UPDATE doctors SET name = ?, username = ?, qualifications = ?, password = ? WHERE id = ?", [name, username, qualificationsJson, new_passwordHash, getCurrentUser.id]);
-
-        if (username !== currentUser.username) {
-            await db.execute(
-                "UPDATE users SET username = ?, password = ? WHERE id = ?",
-                [username, new_passwordHash, getCurrentUser.id]
-            );
+    try {
+        let new_passwordHash = null;
+        if (current_password && new_password) {
+            const passwordMatch = await compare(current_password, currentUser.password_hash);
+            if (!passwordMatch) return { error: "Password mismatch" };
+            new_passwordHash = await hash(new_password, 12);
         }
 
-        redirect("/settings");
-    }
-
-    await db.execute("UPDATE doctors SET name = ?, username = ?, qualifications = ? WHERE id = ?", [name, username, qualificationsJson, getCurrentUser.id]);
-
-    if (username !== currentUser.username) {
-        await db.execute(
-            "UPDATE users SET username = ? , password = ? WHERE id = ?",
-            [username, new_passwordHash, getCurrentUser.id]
-        );
+        if (new_passwordHash) {
+            await db.execute("UPDATE doctors SET name = ?, username = ?, qualifications = ?, password = ? WHERE id = ?", [name, username, qualificationsJson, new_passwordHash, getCurrentUser.id]);
+            await db.execute("UPDATE users SET username = ?, password = ? WHERE id = ?", [username, new_passwordHash, getCurrentUser.id]);
+        } else {
+            await db.execute("UPDATE doctors SET name = ?, username = ?, qualifications = ? WHERE id = ?", [name, username, qualificationsJson, getCurrentUser.id]);
+            await db.execute("UPDATE users SET username = ? WHERE id = ?", [username, getCurrentUser.id]);
+        }
+    } catch (e) {
+        return { error: "Update failed" };
     }
 
     redirect("/settings");

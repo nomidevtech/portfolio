@@ -10,7 +10,7 @@ export async function reserveSlot(_, formData) {
 
     const adminPubId = formData.get("adminPubId");
     const fetchAdmin = await db.execute(`SELECT * FROM admins WHERE public_id = ?`, [adminPubId]);
-    if (fetchAdmin.rows.length === 0) throw new Error("Invalid admin.");
+    if (fetchAdmin.rows.length === 0) return { ok: false, message: "Invalid admin." }
 
     const adminId = fetchAdmin.rows[0].id;
 
@@ -27,15 +27,15 @@ export async function reserveSlot(_, formData) {
 
     try {
 
-        if (!docPubId || !date_number || !month_number || !year || !treatmentPubId || !patient_selected_treatment_start || !patient_selected_treatment_end) throw new Error("Missing required fields.");
+        if (!docPubId || !date_number || !month_number || !year || !treatmentPubId || !patient_selected_treatment_start || !patient_selected_treatment_end) return { ok: false, message: "Missing required fields" };
 
         const [fetchDoctor, fetchTreatment] = await Promise.all([
             db.execute(`SELECT * FROM doctors where admin_id = ? AND public_id = ?`, [adminId, docPubId]),
             db.execute(`SELECT * FROM treatments where admin_id = ? AND public_id = ?`, [adminId, treatmentPubId]),
         ]);
 
-        if (fetchDoctor.rows.length === 0) throw new Error("Invalid doctor.");
-        if (fetchTreatment.rows.length === 0) throw new Error("Invalid treatment.");
+        if (fetchDoctor.rows.length === 0) return { ok: false, message: "Invalid doctor." };
+        if (fetchTreatment.rows.length === 0) return { ok: false, message: "Invalid treatment." };
 
         const docId = fetchDoctor?.rows[0]?.id;
         const docName = fetchDoctor?.rows[0]?.name;
@@ -43,7 +43,7 @@ export async function reserveSlot(_, formData) {
         const treatmentDuration = fetchTreatment?.rows[0]?.duration;
 
         const validTreatmentDuration = patient_selected_treatment_end - patient_selected_treatment_start === treatmentDuration;
-        if (!validTreatmentDuration) throw new Error("Invalid treatment duration.");
+        if (!validTreatmentDuration) return { ok: false, message: "Invalid treatment duration." };
 
         const [fetchRecord, fetchBookings] = await Promise.all([
             db.execute(
@@ -59,8 +59,8 @@ export async function reserveSlot(_, formData) {
             ),
         ]);
 
-        if (fetchRecord.rows.length === 0) throw new Error("Invalid doctor-treatment combination.");
-        if (fetchBookings.rows.length > 0) throw new Error("Slot already reserved by someone.");
+        if (fetchRecord.rows.length === 0) return { ok: false, message: "Invalid treatment." };
+        if (fetchBookings.rows.length > 0) return { ok: false, message: "Slot already reserved by someone." };
 
         const bookingDate = `${year}-${String(month_number + 1).padStart(2, '0')}-${String(date_number).padStart(2, '0')}`;
 
@@ -71,13 +71,13 @@ export async function reserveSlot(_, formData) {
             [adminId, nanoid(12), docName, docId, treatmentId, day_number, date_number, month_number, year, bookingDate, patient_selected_treatment_start, patient_selected_treatment_end]
         );
 
-        if (res.rows.length === 0) throw new Error("Slot already reserved by someone.");
+        if (res.rows.length === 0) return { ok: false, message: "Failed to reserve slot." };
 
         bookingPublicId = res.rows[0].public_id;
 
     } catch (error) {
         console.error(error);
-        return { ok: false, message: error.message };
+        return { ok: false, message: "Failed to reserve slot." };
     }
 
     redirect(`/appointment-registeration/${bookingPublicId}/${adminPubId}`);

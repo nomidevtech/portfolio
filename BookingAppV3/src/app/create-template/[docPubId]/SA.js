@@ -1,6 +1,7 @@
 "use server";
 
 import { getUserPlus } from "@/app/lib/getUser";
+import { rollingWindow } from "@/app/lib/rollingWindow";
 import { db } from "@/app/lib/turso";
 import { initAdminTable, initDoctorTable, initWeeklyTemplatesTable } from "@/app/Models/initTables";
 import { getDayNumber } from "@/app/utils/getDateData";
@@ -55,19 +56,7 @@ export async function createTemplateServerAction(formData) {
             buffer
         ]);
 
-
-
-
-        console.log("docPubId", docPubId);
-        console.log("dayNumber", dayNumber);
-        console.log("buffer", buffer);
-        console.log("startInMinutes", startInMinutes);
-        console.log("endInMinutes", endInMinutes);
-        console.log("breakStartInMinutes", breakStartInMinutes);
-        console.log("breakEndInMinutes", breakEndInMinutes);
-
-
-
+        await rollingWindow();
 
     } catch (error) {
         console.error(error);

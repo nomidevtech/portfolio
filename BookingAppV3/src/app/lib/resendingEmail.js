@@ -33,7 +33,7 @@ export async function resendingEmail(_, formData) {
         const to = fetch?.rows[0]?.patient_email;
         const html = `
            <p>Click on button to verify your email address.</p>
-           <a href="https://portfolio-lw35.vercel.app/verify/${new_email_token}/${bookingPubId}">Verify Email</a>
+           <a href="https://portfolio-lw35.vercel.app/verify/${new_email_token}/${bookingPubId}/${adminPubId}">Verify Email</a>
            `;
 
         const res = await sendEmail({ to, subject, html });

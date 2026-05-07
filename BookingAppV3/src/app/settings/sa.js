@@ -21,23 +21,29 @@ export async function updateAdmin(formData) {
     const getCurrentUser = await getUserPlus();
     if (!getCurrentUser || getCurrentUser.role !== "admin") redirect("/login");
 
-    const currentUser = getCurrentUser.admin_details;
-    if (currentUser.public_id !== adminPubId) return { error: "Unauthorized" };
+    const adminIdInAdminTable = getCurrentUser.admin_id;
+    const userIdInUsersTable = getCurrentUser.id;
+
+    if (getCurrentUser.admin_details.public_id !== adminPubId) return { error: "Unauthorized" };
 
     try {
         let new_passwordHash = null;
         if (new_password && current_password) {
-            const passwordMatch = await compare(current_password, currentUser.password);
+            const passwordMatch = await compare(current_password, getCurrentUser.admin_details.password);
             if (!passwordMatch) return { error: "Password mismatch" };
             new_passwordHash = await hash(new_password, 12);
         }
 
         if (new_passwordHash) {
-            await db.execute("UPDATE admins SET admin_name = ?, admin_username = ?, admin_email = ?, clinic_name = ?, clinic_phone = ?, clinic_address = ?, password = ? WHERE id = ?", [name, username, email, clinic_name, clinic_phone, clinic_address, new_passwordHash, getCurrentUser.id]);
-            await db.execute("UPDATE users SET username = ?, password = ? WHERE id = ?", [username, new_passwordHash, getCurrentUser.id]);
+            await db.execute("UPDATE admins SET admin_name = ?, admin_username = ?, admin_email = ?, clinic_name = ?, clinic_phone = ?, clinic_address = ?, password = ? WHERE id = ?",
+                [name, username, email, clinic_name, clinic_phone, clinic_address, new_passwordHash, adminIdInAdminTable]);
+            await db.execute("UPDATE users SET username = ?, password = ? WHERE id = ?",
+                [username, new_passwordHash, userIdInUsersTable]);
         } else {
-            await db.execute("UPDATE admins SET admin_name = ?, admin_username = ?, admin_email = ?, clinic_name = ?, clinic_phone = ?, clinic_address = ? WHERE id = ?", [name, username, email, clinic_name, clinic_phone, clinic_address, getCurrentUser.id]);
-            await db.execute("UPDATE users SET username = ? WHERE id = ?", [username, getCurrentUser.id]);
+            await db.execute("UPDATE admins SET admin_name = ?, admin_username = ?, admin_email = ?, clinic_name = ?, clinic_phone = ?, clinic_address = ? WHERE id = ?",
+                [name, username, email, clinic_name, clinic_phone, clinic_address, adminIdInAdminTable]);
+            await db.execute("UPDATE users SET username = ? WHERE id = ?",
+                [username, userIdInUsersTable]);
         }
     } catch (e) {
         return { error: "Update failed" };
@@ -60,23 +66,29 @@ export async function updateDoctor(formData) {
     const getCurrentUser = await getUserPlus();
     if (!getCurrentUser || getCurrentUser.role !== "doctor") redirect("/login");
 
-    const currentUser = getCurrentUser.doctor_details;
-    if (currentUser.public_id !== docPublicId) return { error: "Unauthorized" };
+    const doctorIdInTable = getCurrentUser.doctor_id;
+    const userIdInUsersTable = getCurrentUser.id;
+
+    if (getCurrentUser.doctor_details.public_id !== docPublicId) return { error: "Unauthorized" };
 
     try {
         let new_passwordHash = null;
         if (current_password && new_password) {
-            const passwordMatch = await compare(current_password, currentUser.password_hash);
+            const passwordMatch = await compare(current_password, getCurrentUser.doctor_details.password);
             if (!passwordMatch) return { error: "Password mismatch" };
             new_passwordHash = await hash(new_password, 12);
         }
 
         if (new_passwordHash) {
-            await db.execute("UPDATE doctors SET name = ?, username = ?, qualifications = ?, password = ? WHERE id = ?", [name, username, qualificationsJson, new_passwordHash, getCurrentUser.id]);
-            await db.execute("UPDATE users SET username = ?, password = ? WHERE id = ?", [username, new_passwordHash, getCurrentUser.id]);
+            await db.execute("UPDATE doctors SET name = ?, username = ?, qualifications = ?, password = ? WHERE id = ?",
+                [name, username, qualificationsJson, new_passwordHash, doctorIdInTable]);
+            await db.execute("UPDATE users SET username = ?, password = ? WHERE id = ?",
+                [username, new_passwordHash, userIdInUsersTable]);
         } else {
-            await db.execute("UPDATE doctors SET name = ?, username = ?, qualifications = ? WHERE id = ?", [name, username, qualificationsJson, getCurrentUser.id]);
-            await db.execute("UPDATE users SET username = ? WHERE id = ?", [username, getCurrentUser.id]);
+            await db.execute("UPDATE doctors SET name = ?, username = ?, qualifications = ? WHERE id = ?",
+                [name, username, qualificationsJson, doctorIdInTable]);
+            await db.execute("UPDATE users SET username = ? WHERE id = ?",
+                [username, userIdInUsersTable]);
         }
     } catch (e) {
         return { error: "Update failed" };

@@ -37,7 +37,7 @@ export default async function Message({ params }) {
         const html = `
            <p>You can cancel your appointment.</p>
            <p>Click on button to cancel your appointment.</p>
-           <a href="https://portfolio-lw35.vercel.app/cancel/${cancel_token}/${bookingPubId}/${adminPubId}">Cancel Appointment</a>
+           <a href="${process.env.NEXT_PUBLIC_APP_URL}/cancel/${cancel_token}/${bookingPubId}/${adminPubId}">Cancel Appointment</a>
            `;
 
         await sendEmail({ to, subject, html });

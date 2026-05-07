@@ -2,16 +2,15 @@
 
 import { nanoid } from "nanoid";
 import { initSlotsTable } from "../Models/initTables";
-import { getDayName } from "../utils/getDateData";
 import { db } from "./turso";
-import { getUserPlus } from "./getUser";
 
-export async function rollingWindow(win = 31, adminId = null) {
+
+export async function rollingWindow(win = 31) {
     await initSlotsTable();
     try {
 
 
-        const fetchAllTemplates = await db.execute(`SELECT * FROM weekly_templates WHERE admin_id = ?`, [adminId])
+        const fetchAllTemplates = await db.execute(`SELECT * FROM weekly_templates`);
         if (fetchAllTemplates.rows.length === 0) return null;
 
         const slotsArr = [];
@@ -76,6 +75,9 @@ export async function rollingWindow(win = 31, adminId = null) {
                     DO NOTHING`,
             values
         );
+
+
+        await db.execute(`DELETE FROM slots WHERE DATE(full_date_at_period) < DATE('now')`);
 
     } catch (error) {
         console.error(error);

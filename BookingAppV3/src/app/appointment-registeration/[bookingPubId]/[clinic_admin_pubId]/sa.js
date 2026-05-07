@@ -42,7 +42,7 @@ export async function appointmentRegisterationServerAction(_, formData) {
         const to = email;
         const html = `
         <p>Click on button to verify your email address.</p>
-        <a href="https://portfolio-lw35.vercel.app/verify/${email_token}/${bookingPubId}/${adminPubId}">Verify Email</a>
+        <a href="${process.env.NEXT_PUBLIC_APP_URL}/verify/${email_token}/${bookingPubId}/${adminPubId}">Verify Email</a>
         `;
 
         const res = await sendEmail({ to, subject, html });

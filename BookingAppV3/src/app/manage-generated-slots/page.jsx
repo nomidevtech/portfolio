@@ -14,7 +14,6 @@ export default async function GeneratedSlots() {
     if (!currentUser || currentUser.role !== "admin" || !currentUser.admin_id) redirect("/login");
     const adminId = currentUser.admin_id;
 
-    await rollingWindow(31, adminId);
 
 
     const fetch = await db.execute(
