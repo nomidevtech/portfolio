@@ -4,8 +4,10 @@ export function GET(request) {
     const authHeader = request.headers.get('authorization');
     const cronSecret = process.env.CRON_SECRET;
     console.log("API route was called after env before check");
+    console.log("AUTH HEADER:", authHeader);
+    console.log("CRON SECRET EXISTS:", !!cronSecret);
+    console.log("CRON SECRET LENGTH:", cronSecret?.length);
 
-    
 
     if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
         return new Response('Unauthorized', {
