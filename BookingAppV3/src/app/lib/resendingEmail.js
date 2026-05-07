@@ -7,10 +7,15 @@ import crypto from "crypto";
 
 export async function resendingEmail(_, formData) {
 
-    const adminId = 1;
+
 
     const bookingPubId = formData.get("bookingPubId");
-    if (!bookingPubId) throw new Error("Missing required fields.");
+    const adminPubId = formData.get("adminPubId");
+    if (!bookingPubId || !adminPubId) throw new Error("Missing required fields.");
+
+    const fetchAdmin = await db.execute(`SELECT id FROM admins WHERE public_id = ?`, [adminPubId]);
+    if (fetchAdmin.rows.length === 0) throw new Error("Invalid admin.");
+    const adminId = fetchAdmin.rows[0].id;
 
     const new_email_token = crypto.randomBytes(16).toString("hex");
     const hashed = await hash(new_email_token);

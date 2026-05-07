@@ -13,8 +13,8 @@ export default function SignUp() {
             <input type="text" name="full_name" placeholder="Full Name" />
             <input type="text" name="admin_email" placeholder="admin@email.com" />
             <input type="text" name="username" placeholder="Username" />
-            <input type="text" name="password" placeholder="Password" />
-            <input type="text" name="confirm_password" placeholder="Confirm Password" />
+            <input type="password" name="password" placeholder="Password" />
+            <input type="password" name="confirm_password" placeholder="Confirm Password" />
             <input type="text" name="clinic_name" placeholder="Clinic Name" />
             <input type="text" name="clinic_email" placeholder="clinic@email.com" />
             <input type="tel" name="clinic_phone" placeholder="Clinic phone" />

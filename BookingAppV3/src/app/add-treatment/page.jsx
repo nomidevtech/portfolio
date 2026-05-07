@@ -3,6 +3,7 @@ import { addTreatmentServerAction } from "./SA";
 import { db } from "../lib/turso";
 import { initTreatmentTable } from "../Models/initTables";
 import { getUserPlus } from "../lib/getUser";
+import { redirect } from "next/navigation";
 
 export default async function AddTreatment() {
 

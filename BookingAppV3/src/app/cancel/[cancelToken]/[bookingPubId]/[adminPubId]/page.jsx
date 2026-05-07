@@ -32,6 +32,6 @@ export default async function cancelAppointment({ params }) {
     }
 
 
-    redirect(`/message/${bookingPubId}`);
+    redirect(`/message/${bookingPubId}/${adminPubId}`);
 
 }

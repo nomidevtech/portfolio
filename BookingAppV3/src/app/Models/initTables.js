@@ -167,7 +167,7 @@ export async function initBookingsTable() {
                 doctor_id INTEGER,
                 doctor_name TEXT,
                 patient_name TEXT,
-                patient_email TEXT UNIQUE,
+                patient_email TEXT,
                 patient_phone TEXT,
                 treatment_start INTEGER,
                 treatment_end INTEGER,

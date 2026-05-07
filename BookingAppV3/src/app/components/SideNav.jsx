@@ -1,6 +1,8 @@
 'use client';
 import Link from "next/link";
 import { useState } from "react";
+import { logout } from "../lib/logout";
+import Form from "next/form";
 
 export default function SideNav({ user }) {
 
@@ -30,7 +32,9 @@ export default function SideNav({ user }) {
                             <p className="w-10 h-10 rounded-full bg-gray-800 text-white flex items-center justify-center text-sm font-semibold">{user?.name?.[0]?.toUpperCase() || "?"}</p>
                             <p>{user?.name ? user.name.split(" ").map(word => word[0].toUpperCase() + word.slice(1)).join(" ") : ""} ({user?.role ? user.role[0].toUpperCase() + user.role.slice(1) : ""})</p>
                         </div>
-                        <Link href="/">Logout</Link>
+                        <Form action={logout}>
+                            <button type="submit">Logout</button>
+                        </Form>
                     </div>
                 </div>
             </aside >}

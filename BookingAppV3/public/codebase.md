@@ -1,0 +1,4581 @@
+# Project Codebase (src/app)
+
+Generated on 2026-05-07T03:09:56.830Z
+
+## src/app/(auth)/login/Client.jsx
+
+`
+```
+"use client";
+
+import Form from "next/form";
+import { loginSA } from "./loginSA";
+import { useActionState } from "react";
+
+export default function Client() {
+    const initialState = { ok: null, message: "" };
+    const [state, formAction, isPending] = useActionState(loginSA, initialState);
+
+    return (
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4 py-12">
+            <div className="w-full max-w-sm">
+                <div className="text-center mb-8">
+                    <h1 className="text-2xl font-bold text-gray-900">Welcome back</h1>
+                    <p className="text-sm text-gray-500 mt-1">Sign in to your account</p>
+                </div>
+
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+                    <Form action={formAction} className="flex flex-col gap-4">
+                        <div className="flex flex-col gap-1.5">
+                            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                                Username
+                            </label>
+                            <input
+                                name="username"
+                                type="text"
+                                placeholder="your_username"
+                                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900 placeholder-gray-400 bg-white focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent transition-all"
+                            />
+                        </div>
+
+                        <div className="flex flex-col gap-1.5">
+                            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                                Password
+                            </label>
+                            <input
+                                name="password"
+                                type="password"
+                                placeholder="••••••••"
+                                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900 placeholder-gray-400 bg-white focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent transition-all"
+                            />
+                        </div>
+
+                        {state.message && (
+                            <p className={`text-sm px-4 py-3 rounded-xl border ${
+                                state.ok
+                                    ? "text-green-700 bg-green-50 border-green-200"
+                                    : "text-red-600 bg-red-50 border-red-200"
+                            }`}>
+                                {state.ok ? "Login successful! Redirecting…" : state.message}
+                            </p>
+                        )}
+
+                        <button
+                            type="submit"
+                            disabled={isPending}
+                            className="w-full bg-gray-900 text-white rounded-xl py-3 text-sm font-semibold hover:bg-gray-700 active:bg-gray-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors mt-1"
+                        >
+                            {isPending ? "Signing in…" : "Sign in"}
+                        </button>
+                    </Form>
+                </div>
+
+                <p className="text-sm text-gray-500 text-center mt-6">
+                    Don't have an account?{" "}
+                    <a href="/signup" className="font-semibold text-gray-900 hover:underline">
+                        Sign up
+                    </a>
+                </p>
+            </div>
+        </div>
+    );
+}
+
+`
+```
+
+## src/app/(auth)/login/loginSA.js
+
+`
+```
+"use server";
+
+import crypto from "crypto";
+import { db } from "@/app/lib/turso";
+import { cookies, headers } from "next/headers";
+//import { redis } from "@/app/lib/redis";
+import { redirect } from "next/navigation";  // ← fixed import
+import { compare, hash } from "@/app/utils/bcrypt";
+import { initSessionsTable } from "@/app/Models/initTables";
+//import { initSessionsTable } from "@/app/models/table-inits";
+
+
+
+
+export async function loginSA(_, formData) {  // ← prevState added for useActionState
+    try {
+
+        await initSessionsTable();
+        const username = formData.get("username")?.trim();
+        const password = formData.get("password");
+
+        if (!username) return { ok: false, message: "Username or email required" };
+        if (!password) return { ok: false, message: "Password required" };
+
+        const fetchUser = await db.execute("SELECT * FROM users WHERE username = ?", [username]);
+        if (fetchUser.rows.length === 0) return { ok: false, message: "User not found" };
+
+        const user = fetchUser.rows[0];
+        const passowrdHash = user.password;
+
+        const isPasswordValid = await compare(password, passowrdHash);
+        if (!isPasswordValid) return { ok: false, message: "Invalid password" };
+
+
+        const sessionToken = crypto.randomBytes(64).toString("hex");
+
+        const cookieStore = await cookies();
+
+        cookieStore.set("token", sessionToken, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === "production",
+            sameSite: "lax",
+            path: "/",
+            maxAge: 60 * 60 * 24 * 14
+        });
+
+        const d = new Date();
+        d.setDate(d.getDate() + 14);
+        const expires = d.toISOString();
+
+        await db.execute(`INSERT INTO sessions (session_id, user_id, expires_at) VALUES (?, ?, ?)`, [sessionToken, user.id, expires]);
+
+
+
+    } catch (error) {
+
+        console.error(error);
+
+        return {
+            ok: false,
+            message: "Internal server error"
+        };
+    }
+
+    redirect("/");
+}
+`
+```
+
+## src/app/(auth)/login/page.jsx
+
+`
+```
+import Client from "./Client";
+import { getUser } from "@/app/lib/getUser";
+import { redirect } from "next/navigation";
+
+
+export default async function Login() {
+
+    const currentUser = await getUser();
+    if (currentUser?.id) return redirect("/settings");
+
+    return <Client />
+
+}
+
+`
+```
+
+## src/app/(auth)/signup/page.jsx
+
+`
+```
+'use client'
+import Form from "next/form";
+import { useActionState } from "react";
+import { signupServerAction } from "./sa";
+
+
+export default function SignUp() {
+
+    const [state, action, isPending] = useActionState(signupServerAction, { ok: false, message: null })
+
+    return (<>
+        <Form action={action}>
+            <input type="text" name="full_name" placeholder="Full Name" />
+            <input type="text" name="admin_email" placeholder="admin@email.com" />
+            <input type="text" name="username" placeholder="Username" />
+            <input type="text" name="password" placeholder="Password" />
+            <input type="text" name="confirm_password" placeholder="Confirm Password" />
+            <input type="text" name="clinic_name" placeholder="Clinic Name" />
+            <input type="text" name="clinic_email" placeholder="clinic@email.com" />
+            <input type="tel" name="clinic_phone" placeholder="Clinic phone" />
+            <input type="text" name="clinic_address" placeholder="Clinic Address" />
+            <button type="submit">Sign Up</button>
+        </Form>
+    </>)
+}
+
+
+
+`
+```
+
+## src/app/(auth)/signup/sa.js
+
+`
+```
+"use server";
+
+import { db } from "@/app/lib/turso";
+import { initAdminTable, initUsersTable } from "@/app/Models/initTables";
+import { hash } from "@/app/utils/bcrypt";
+import { nanoid } from "nanoid";
+import { redirect } from "next/navigation";
+
+export async function signupServerAction(_, formData) {
+    await initAdminTable();
+    await initUsersTable();
+    const admin_name = formData.get("full_name")?.replace(/\s+/g, '-').toLowerCase();
+    const admin_email = formData.get("admin_email");
+    const username = formData.get("username")?.replace(/\s+/g, '-');
+    const password = formData.get("password");
+    const confirm_password = formData.get("confirm_password");
+
+    const clinic_name = formData.get("clinic_name")?.replace(/\s+/g, '-').toLowerCase();
+    const clinic_email = formData.get("clinic_email");
+    const clinic_phone = formData.get("clinic_phone");
+    const clinic_address = formData.get("clinic_address")?.replace(/\s+/g, '-').toLowerCase();
+
+    const public_id = nanoid(12);
+
+    const hashedPassword = await hash(password);
+
+
+    if (password !== confirm_password) {
+        return { ok: false, message: "Passwords do not match" };
+    }
+
+    try {
+
+        const isUsernameAvailable = await db.execute("SELECT username FROM users WHERE username = ?", [username]);
+        if (isUsernameAvailable.rows.length > 0) return { ok: false, message: "Username already exists" }
+
+        const res = await db.execute(`INSERT INTO admins ( public_id, admin_name, admin_email, admin_username, 
+                clinic_name, clinic_phone, clinic_address, password ) VALUES (?, ?, ?, ?, ?, ?, ?, ?) RETURNING id`,
+            [
+                public_id,
+                admin_name,
+                admin_email,
+                username,
+                clinic_name,
+                clinic_phone,
+                clinic_address,
+                hashedPassword
+            ]);
+
+
+
+        await db.execute(
+            `INSERT INTO users ( public_id, admin_id, role, username, password ) VALUES (?, ?, ?, ?, ?)`, [nanoid(12),
+            res.rows[0]?.id,
+            "admin",
+            username,
+            hashedPassword]
+        );
+
+    } catch (error) {
+        console.error(error);
+        return { ok: false, message: "Registration failed. Username might already exist." };
+    }
+    redirect("/login");
+}
+
+`
+```
+
+## src/app/add-doctor/page.jsx
+
+`
+```
+import Form from "next/form";
+import { db } from "../lib/turso";
+import { initDoctorTreatmentsTable, initDoctorTable, initTreatmentTable, initBookingsTable, initWeeklyTemplatesTable, initSlotsTable } from "../Models/initTables";
+import { addDoctorServerAction } from "./SA";
+import Link from "next/link";
+import { getUserPlus } from "../lib/getUser";
+import { redirect } from "next/navigation";
+import { sendBulkEmails } from "../lib/resend";
+
+
+export default async function AddDoctor() {
+    // await initBookingsTable();
+    // await initTreatmentTable();
+    // await initDoctorTable();
+    // await initTreatmentTable();
+    // await initDoctorTreatmentsTable();
+    // await initWeeklyTemplatesTable();
+    // await initSlotsTable();
+
+    
+
+    const currentUser = await getUserPlus();
+    if (!currentUser || currentUser.role !== "admin" || !currentUser.admin_id) redirect("/login");
+    const adminId = currentUser.admin_id;
+
+
+    const fetchDepartments = await db.execute(`SELECT department FROM doctors WHERE admin_id = ?`, [adminId]);
+    let departments = fetchDepartments?.rows;
+    departments = departments.map(dep => dep.department[0].toUpperCase() + dep.department.slice(1).toLowerCase());
+    departments = [...new Set(departments)];
+
+    const fetchTreatments = await db.execute(`SELECT name, duration FROM treatments WHERE admin_id = ?`, [adminId]);
+    const treatments = fetchTreatments?.rows.map(fn => fn.name[0].toUpperCase() + fn.name.slice(1).toLowerCase() + " - " + fn.duration + "min");
+
+    const fetchAllDoctors = await db.execute(`SELECT * FROM doctors WHERE admin_id = ?`, [adminId]);
+    const allDoctors = fetchAllDoctors.rows;
+
+
+    return (<>
+        <Form action={addDoctorServerAction}>
+            <input type="text" name="name" placeholder="Name" />
+            <input type="text" name="username" placeholder="userame" />
+            <input type="password" name="password" placeholder="Password" />
+            <input type="text" name="qualification" placeholder="Qualifications: MD, Surgeon" />
+            <input list="departments" name="department" placeholder="Department" />
+            <datalist id="departments">
+                {departments?.map((dep, idx) => <option key={idx} value={dep} />)}
+            </datalist>
+            <select name="treatment" placeholder="Treatments" >
+                {treatments?.map((treatment, idx) => <option key={idx} value={treatment}>{treatment}</option>)}
+            </select>
+            <input type="submit" value="Submit" />
+        </Form>
+        {allDoctors?.length > 0 && (
+            <details>
+                <summary>Current Doctors</summary>
+                {allDoctors.map((doctor) => (
+                    <div key={doctor.public_id} className="border-2">
+                        <p>
+                            Name: Dr. {doctor.name.charAt(0).toUpperCase() + doctor.name.slice(1)} -
+                            Qualifications: {JSON.parse(doctor.qualifications || "[]").join(", ").toUpperCase()} -
+                            Department: {doctor.department.charAt(0).toUpperCase() + doctor.department.slice(1)}
+                        </p>
+                        <Link href={`/edit-doctor/${doctor.public_id}`}>Edit⬅</Link>
+                    </div>
+                ))}
+            </details>
+        )}
+    </>);
+}
+`
+```
+
+## src/app/add-doctor/SA.js
+
+`
+```
+"use server";
+
+import { redirect } from "next/navigation";
+import { db } from "../lib/turso";
+import { nanoid } from "nanoid";
+import { initDoctorTable } from "../Models/initTables";
+import { hash } from "../utils/bcrypt";
+import { getUserPlus } from "../lib/getUser";
+
+export async function addDoctorServerAction(formData) {
+    let success = false;
+
+    try {
+        await initDoctorTable();
+
+        const currentUser = await getUserPlus();
+        if (!currentUser || currentUser.role !== "admin" || !currentUser.admin_id) redirect("/login");
+        const adminId = currentUser.admin_id;
+
+        console.log(adminId);
+
+        const name = formData.get("name")?.toString() || "";
+        const username = formData.get("username")?.toString() || "";
+        const password = formData.get("password")?.toString() || "";
+        const department = formData.get("department")?.toString() || "";
+        const treatmentString = formData.get("treatment")?.toString() || "";
+
+        const treamentArr = treatmentString.split(' - ');
+        const treatmentName = treamentArr[0]?.trim().replace(/\s/g, "").toLowerCase();
+        const treatmentDuration = Number(treamentArr[1]?.split("min")[0]?.trim());
+
+        const qualification = formData.get("qualification")
+            ?.toString()
+            .split(/[ ,]+/)
+            .filter(Boolean)
+            .map(q => q.trim().toLowerCase());
+
+        const fetchTreatment = await db.execute(
+            `SELECT id FROM treatments WHERE name = ? AND duration = ?`,
+            [treatmentName, treatmentDuration]
+        );
+
+        if (fetchTreatment.rows.length === 0) return null;
+
+        const passowrdHash = await hash(password);
+
+        const result = await db.execute(
+            `INSERT INTO doctors (admin_id, name, username, password, department, public_id, qualifications) VALUES (?, ?, ?, ?, ?, ?, ?) RETURNING id`,
+            [adminId, name.toLowerCase(), username, passowrdHash, department.toLowerCase(), nanoid(12), JSON.stringify(qualification)]
+        );
+
+        const doctorId = result.rows[0]?.id;
+        if (!doctorId) return null;
+
+        await db.execute(
+            `INSERT INTO doctor_treatments (public_id, admin_id, doctor_id, treatment_id) VALUES (?, ?, ?, ?)`,
+            [nanoid(12), adminId, doctorId, fetchTreatment.rows[0].id]
+        );
+
+        await db.execute(
+            `INSERT INTO users (public_id, doctor_id, role, username, password) VALUES (?, ?, ?, ?, ?)`, [
+            nanoid(12),
+            doctorId,
+            "doctor",
+            username,
+            passowrdHash
+        ]);
+
+        success = true;
+    } catch (error) {
+        console.error(error);
+        return null;
+    }
+
+    if (success) {
+        redirect("/add-doctor");
+    }
+}
+`
+```
+
+## src/app/add-treatment/page.jsx
+
+`
+```
+import Form from "next/form";
+import { addTreatmentServerAction } from "./SA";
+import { db } from "../lib/turso";
+import { initTreatmentTable } from "../Models/initTables";
+import { getUserPlus } from "../lib/getUser";
+
+export default async function AddTreatment() {
+
+    //await initTreatmentTable();
+
+    const currentUser = await getUserPlus();
+    if (!currentUser || currentUser.role !== "admin" || !currentUser.admin_id) redirect("/login");
+    const adminId = currentUser.admin_id;
+
+    const fetchTreatmentsData = await db.execute(`SELECT * FROM treatments WHERE admin_id = ?`, [adminId]);
+    let treatments = fetchTreatmentsData?.rows;
+    treatments = treatments.map(treatment => ({ name: treatment.name[0].toUpperCase() + treatment.name.slice(1).toLowerCase(), duration: treatment.duration }));
+
+
+    return (<>
+        <Form action={addTreatmentServerAction}>
+            <input type="text" name="name" placeholder="Name" />
+            <input type="number" name="duration" placeholder="Duration" />
+            <input type="submit" value="Submit" />
+        </Form>
+        {treatments?.length > 0 && <>
+            <h2>Current Treatments</h2>
+            {treatments?.map((treatment, idx) => <p key={idx}>Type: {treatment.name} - Duration: {Math.round(treatment.duration)}min</p>)}
+        </>}
+    </>);
+}
+`
+```
+
+## src/app/add-treatment/SA.js
+
+`
+```
+"use server";
+
+import { redirect } from "next/navigation";
+import { db } from "../lib/turso";
+import { nanoid } from "nanoid";
+import { initTreatmentTable } from "../Models/initTables";
+import { getUserPlus } from "../lib/getUser";
+
+export async function addTreatmentServerAction(formData) {
+    try {
+        const currentUser = await getUserPlus();
+        if (!currentUser || currentUser.role !== "admin" || !currentUser.admin_id) redirect("/login");
+        const adminId = currentUser.admin_id;
+
+        const name = formData.get("name")?.toLowerCase().replace(/\s/g, "_");
+        const duration = Number(formData.get("duration")) || 0;
+
+        await initTreatmentTable();
+
+        await db.execute(`INSERT INTO treatments (admin_id, name, duration, public_id) VALUES (?, ?, ?, ?)`, [adminId, name.toLowerCase(), duration, nanoid(12)]);
+
+    } catch (error) {
+        console.error(error);
+        throw error;
+    }
+    redirect("/add-treatment");
+}
+`
+```
+
+## src/app/api/cron/route.js
+
+`
+```
+
+
+export function GET(request) {
+    const authHeader = request.headers.get('authorization');
+    const cronSecret = process.env.CRON_SECRET;
+    console.log("API route was called after env before check");
+    console.log("AUTH HEADER:", authHeader);
+    console.log("CRON SECRET EXISTS:", !!cronSecret);
+    console.log("CRON SECRET LENGTH:", cronSecret?.length);
+
+
+    if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
+        return new Response('Unauthorized', {
+            status: 401,
+        });
+    }
+
+    console.log("API route was called after env");
+
+    return Response.json({ success: true, message: "Hello from API" });
+}
+
+
+
+
+
+// export default async function GET() {
+//     console.log("API route was called");
+
+//     return Response.json({
+//         message: "Hello from API"
+//     });
+// }
+`
+```
+
+## src/app/appointment-registeration/[bookingPubId]/[clinic_admin_pubId]/client.jsx
+
+`
+```
+'use client';
+
+import Form from "next/form";
+import { appointmentRegisterationServerAction } from "./sa";
+import { useActionState } from "react";
+
+export default function ClientAppointmentRegisteration({ bookingPubId, adminPubId }) {
+
+    const [state, action, isPending] = useActionState(appointmentRegisterationServerAction, { ok: null, message: null });
+
+    return (<>
+        <Form action={action} >
+            <input type="hidden" name="adminPubId" value={adminPubId} />
+            <input type="hidden" name="bookingPubId" value={bookingPubId} />
+            <input type="text" name="name" placeholder="Name" />
+            <input type="email" name="email" placeholder="example@ex.com" />
+            <input type="text" name="phone" placeholder="Phone Number" />
+            <button type="submit" className="btn btn-primary">Register⬅</button>
+        </Form>
+        {state.message && <p>{state.message}</p>}
+    </>);
+}
+`
+```
+
+## src/app/appointment-registeration/[bookingPubId]/[clinic_admin_pubId]/page.jsx
+
+`
+```
+import { db } from "@/app/lib/turso";
+import ClientAppointmentRegisteration from "./client";
+import { minutesToMeridiem } from "@/app/utils/minutes-to-meridiem";
+import { getMonthName } from "@/app/utils/getDateData";
+
+export default async function AppointmentRegisteration({ params }) {
+
+
+
+    const { bookingPubId, clinic_admin_pubId } = await params;
+    if (!bookingPubId || !clinic_admin_pubId) return <p>Broken link. Booking not found.</p>;
+
+    const fetchAdmin = await db.execute(`SELECT * FROM admins WHERE public_id = ?`, [clinic_admin_pubId]);
+    if (fetchAdmin.rows.length === 0) return <p>Broken link. Booking not found.</p>;
+
+    const adminId = fetchAdmin.rows[0].id;
+
+    const fetchBooking = await db.execute(`SELECT * FROM bookings WHERE public_id = ? AND admin_id = ?`, [bookingPubId, adminId]);
+    if (fetchBooking.rows.length === 0) return <p>Broken link. Booking not found.</p>;
+
+    const booking = fetchBooking.rows[0];
+
+    const [fetchDoctor, fetchTreatment] = await Promise.all([
+        db.execute(`SELECT * FROM doctors WHERE id = ?`, [booking.doctor_id]),
+        db.execute(`SELECT * FROM treatments WHERE id = ?`, [booking.treatment_id])
+    ]);
+
+    if (fetchDoctor.rows.length === 0 || fetchTreatment.rows.length === 0) return <p>Broken link. Booking not found.</p>;
+
+    return (<>
+        <p>Appointment Date: {booking.date_number > 10 ? booking.date_number : "0" + booking.date_number} {getMonthName(booking.month_number)} {booking.year}</p>
+        <p>Timing: {minutesToMeridiem(booking.treatment_start, true)} - {minutesToMeridiem(booking.treatment_end, true)}</p>
+        <p>Doctor: {fetchDoctor.rows[0].name.split(" ").map(word => word[0].toUpperCase() + word.slice(1)).join(" ")}</p><p>Treatment: {fetchTreatment.rows[0].name.split("_").map(word => word[0].toUpperCase() + word.slice(1)).join(" ")}</p>
+        <p>Session Duration: {fetchTreatment.rows[0].duration} minutes</p>
+
+        <ClientAppointmentRegisteration bookingPubId={bookingPubId} adminPubId={clinic_admin_pubId} />
+    </>);
+}
+`
+```
+
+## src/app/appointment-registeration/[bookingPubId]/[clinic_admin_pubId]/sa.js
+
+`
+```
+"use server";
+
+import { db } from "@/app/lib/turso";
+import { redirect } from "next/navigation";
+import crypto from "crypto";
+import { hash } from "@/app/utils/bcrypt";
+import { sendEmail } from "@/app/lib/resend";
+
+export async function appointmentRegisterationServerAction(_, formData) {
+
+    const adminPubId = formData.get("adminPubId");
+    if (!adminPubId) throw new Error("Invalid admin.");
+
+    const fetchAdmin = await db.execute(`SELECT id FROM admins WHERE public_id = ?`, [adminPubId]);
+    if (fetchAdmin.rows.length === 0) throw new Error("Invalid admin.");
+
+    const adminId = fetchAdmin.rows[0].id;
+
+    const bookingPubId = formData.get("bookingPubId");
+    const name = formData.get("name");
+    const email = formData.get("email");
+    const phone = formData.get("phone");
+    if (!bookingPubId || !name || !email || !phone) throw new Error("Missing required fields.");
+
+
+    if ((!name.match(/^[a-zA-Z\s]+$/)) || name.length > 20 || name.length < 3) return { ok: false, message: "Name should only contain letters and spaces and should be 3-20 characters long." };
+
+    if (!email.match(/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/)) throw new Error("Invalid email.");
+
+    if (phone.length > 15 || phone.length < 7) throw new Error("Invalid phone number.");
+
+    const email_token = crypto.randomBytes(16).toString("hex");
+    const hashed = await hash(email_token);
+
+    try {
+        const fetch = await db.execute(`SELECT id FROM bookings WHERE public_id = ? AND admin_id = ?`, [bookingPubId, adminId]);
+        if (fetch.rows.length === 0) throw new Error("Invalid booking.");
+
+        await db.execute(`UPDATE bookings SET patient_name = ?, patient_email = ?, patient_phone = ?, status = ?, email_token_hash = ?, email_token_created_at = CURRENT_TIMESTAMP WHERE id = ? AND admin_id = ?`, [name, email, phone, "unverified", hashed, fetch.rows[0].id, adminId]);
+
+        const subject = `Book Your Slot`;
+        const to = email;
+        const html = `
+        <p>Click on button to verify your email address.</p>
+        <a href="https://portfolio-lw35.vercel.app/verify/${email_token}/${bookingPubId}/${adminPubId}">Verify Email</a>
+        `;
+
+        const res = await sendEmail({ to, subject, html });
+        if (res.success === false) throw new Error(res.error);
+
+
+    } catch (error) {
+        console.error(error);
+        return { ok: false, message: error.message || "An unexpected error occurred." };
+    }
+    redirect(`/message/${bookingPubId}/${adminPubId}`);
+}
+
+`
+```
+
+## src/app/bookings/page.jsx
+
+`
+```
+import Link from "next/link";
+import { db } from "../lib/turso";
+
+export default async function AllClinics() {
+
+    const fetchAllClinics = await db.execute(`SELECT * FROM admins`);
+    if (fetchAllClinics.rows.length === 0) return <p>No clinics found</p>
+
+    console.log(fetchAllClinics.rows);
+
+    return (<>
+        {fetchAllClinics.rows.map(fn => (
+            <div key={fn.public_id} className="border-2 border-amber-50" >
+                <p>Clinic Name: {fn.clinic_name.split(" ").map(word => word[0].toUpperCase() + word.slice(1)).join(" ")}</p>
+                <p>Phone: {fn.clinic_phone}</p>
+                <p>Address: {fn.clinic_address.split(" ").map(word => word[0].toUpperCase() + word.slice(1)).join(" ")}</p>
+                <Link href={`/bookings/${fn.public_id}`}>Bookings⬅</Link>
+            </div>
+        ))}
+    </>);
+}
+`
+```
+
+## src/app/bookings/[clinic_admin_pubId]/page.jsx
+
+`
+```
+import { rollingWindow } from "@/app/lib/rollingWindow";
+import { db } from "@/app/lib/turso";
+import Link from "next/link";
+
+export default async function ClinicAdminAllBookings({ params }) {
+
+
+
+    const { clinic_admin_pubId } = await params;
+
+    const fetchAmindData = await db.execute(`SELECT * FROM admins WHERE public_id = ?`, [clinic_admin_pubId]);
+    if (fetchAmindData.rows.length === 0) return <p>Link is broken.</p>;
+
+    const adminId = fetchAmindData.rows[0].id;
+
+    await rollingWindow(31, adminId);
+
+    const fetch = await db.execute(`SELECT doctor_id FROM slots WHERE admin_id = ? AND full_date_at_period > DATE('now') ORDER BY full_date_at_period`, [adminId]);
+
+    if (fetch.rows.length === 0) return <p>No slots available.</p>;
+
+
+    const doctorIds = [...new Set(fetch.rows.map(doc => doc.doctor_id))];
+
+    const placeHolders = doctorIds.map(() => "?").join(',');
+
+    const fetchDoctors = await db.execute(`SELECT * FROM doctors WHERE admin_id = ? AND id IN (${placeHolders})`, [adminId, ...doctorIds]);
+    const doctors = fetchDoctors.rows;
+
+    const departments = [...new Set(fetchDoctors.rows.map(doc => doc.department))];
+
+
+    if (doctors.length === 0 || departments.length === 0) return <p>No slots available.</p>;
+
+    const fetchDocWithTreatment = await db.execute(`SELECT 
+            d.id AS doctor_id,
+            d.public_id AS doctor_public_id,
+            d.name AS doctor_name,
+            t.id AS treatment_id,
+            t.public_id AS treatment_public_id,
+            t.name AS treatment_name,
+            t.duration
+            FROM doctors d
+            JOIN doctor_treatments dt 
+            ON d.id = dt.doctor_id
+            JOIN treatments t 
+            ON t.id = dt.treatment_id
+            WHERE d.admin_id = ?;`, [adminId]);
+
+    const arr = [];
+
+    fetchDocWithTreatment.rows.forEach(fn1 => {
+        let doctor = arr.find(fn2 => fn2.doctor_id === fn1.doctor_id);
+
+        if (!doctor) {
+            arr.push({ doctor_id: fn1.doctor_id, doctor_public_id: fn1.doctor_public_id, doctor_name: fn1.doctor_name, treatments: [] });
+            doctor = arr.find(fn2 => fn2.doctor_id === fn1.doctor_id);
+        }
+
+        doctor.treatments.push({ name: fn1.treatment_name, duration: fn1.duration, public_id: fn1.treatment_public_id });
+    });
+
+    return (<>
+        {departments.map(dep => (
+            <div key={dep} className="border-2 border-amber-950 my-4" >
+                <h2>Department: {dep[0].toUpperCase() + dep.slice(1)}</h2>
+                <details>
+                    <summary>Show Avaialbe Doctors</summary>
+                    {doctors.filter(doc => doc.department === dep).map(doc => {
+                        const doctorWithTreatments = arr.find(d => d.doctor_id === doc.id);
+                        return (
+                            <div key={doc.public_id} className="border-2">
+                                <p>Dr. {doc.name[0].toUpperCase() + doc.name.slice(1)}</p>
+                                <p>Qualifications: {JSON.parse(doc.qualifications).join(', ').toUpperCase()}</p>
+
+                                {doctorWithTreatments?.treatments.map(tr => (
+                                    <span key={tr.public_id} className="border-2 p-2">
+                                        <Link
+
+                                            href={`/bookings/${clinic_admin_pubId}/${doc.name.toLowerCase()}/${doc.public_id}/${tr.public_id}`}
+                                        >
+                                            {tr.name} ({tr.duration} mins)
+                                        </Link>
+                                    </span>
+                                ))}
+                            </div>
+                        );
+                    })}
+                </details>
+
+            </div>
+        ))}
+    </>);
+}
+`
+```
+
+## src/app/bookings/[clinic_admin_pubId]/[docName]/[docPubId]/[treatmentPubId]/Client.jsx
+
+`
+```
+'use client';
+
+import Form from "next/form";
+import { reserveSlot } from "./sa";
+import { minutesToMeridiem } from "@/app/utils/minutes-to-meridiem";
+import { useActionState } from "react";
+
+export default function ClientBookASlot(
+    {
+        subSlot,
+        adminPubId,
+        docPubId,
+        day_number,
+        date_number,
+        month_number,
+        year,
+        treatmentPubId,
+        treatment_start,
+        treatment_end
+    }
+) {
+
+    const [state, action, isPending] = useActionState(reserveSlot, { ok: null, message: null });
+
+    return (<>
+        {/* {state.message && <p>{state.message}</p>} */}
+        <p>{minutesToMeridiem(subSlot.start, true)} - {minutesToMeridiem(subSlot.end, true)}</p>
+        <Form action={action}>
+            <input type="hidden" name="adminPubId" value={adminPubId} />
+            <input type="hidden" name="docPubId" value={docPubId} />
+            <input type="hidden" name="day_number" value={day_number} />
+            <input type="hidden" name="date_number" value={date_number} />
+            <input type="hidden" name="month_number" value={month_number} />
+            <input type="hidden" name="year" value={year} />
+            <input type="hidden" name="treatmentPubId" value={treatmentPubId} />
+            <input type="hidden" name="treatment_start" value={treatment_start} />
+            <input type="hidden" name="treatment_end" value={treatment_end} />
+            <button type="submit" className="btn btn-primary">Reserve Slot⬅</button>
+        </Form>
+    </>);
+}
+
+`
+```
+
+## src/app/bookings/[clinic_admin_pubId]/[docName]/[docPubId]/[treatmentPubId]/page.jsx
+
+`
+```
+import { rollingWindow } from "@/app/lib/rollingWindow";
+import { db } from "@/app/lib/turso";
+import { initBookingsTable } from "@/app/Models/initTables";
+import { getDayName, getMonthName } from "@/app/utils/getDateData";
+import ClientBookASlot from "./Client";
+
+export default async function DoctorBookings({ params }) {
+
+
+    const { clinic_admin_pubId, docName, docPubId, treatmentPubId } = await params;
+    if (!clinic_admin_pubId || !docPubId || !docName || !treatmentPubId) return <p>1Broken Link. Please try again.</p>;
+
+    const fetchAdmin = await db.execute(`SELECT * FROM admins WHERE public_id = ?`, [clinic_admin_pubId]);
+    if (fetchAdmin.rows.length === 0) return <p>Broken Link. Please try again.</p>;
+
+    const adminId = fetchAdmin.rows[0].id;
+
+    const [fetchDoctor, fetchTreatment] = await Promise.all([
+        db.execute(`SELECT * FROM doctors where admin_id = ? AND name = ? AND public_id = ?`, [adminId, docName.toLowerCase(), docPubId]),
+        db.execute(`SELECT * FROM treatments where public_id = ? AND admin_id = ?`, [treatmentPubId, adminId])
+    ]);
+
+    if (fetchDoctor.rows.length === 0) return <p>1Broken Link. Please try again.</p>;
+    if (fetchTreatment.rows.length === 0) return <p>3Broken Link. Please try again.</p>;
+
+    const docId = fetchDoctor?.rows[0]?.id;
+    const treatmentId = fetchTreatment?.rows[0]?.id;
+    const treatmentDuration = fetchTreatment?.rows[0]?.duration;
+
+    const [fetchRecord, fetchSlots, fetchBookings] = await Promise.all([
+        db.execute(`SELECT * FROM doctor_treatments WHERE doctor_id = ? AND treatment_id = ? AND admin_id = ?`, [docId, treatmentId, adminId]),
+        db.execute(`SELECT * FROM slots WHERE admin_id = ? AND doctor_id = ? AND full_date_at_period > DATE('now') ORDER BY full_date_at_period`, [adminId, docId]),
+        db.execute(`SELECT * FROM bookings WHERE admin_id = ? AND doctor_id = ?`, [adminId, docId])
+    ]);
+
+    if (fetchRecord.rows.length === 0) return <p>4Broken Link. Please try again.</p>;
+    if (fetchSlots.rows.length === 0) return <p>No slots available.</p>;
+
+    const allVirtualSlots = fetchSlots.rows || [];
+
+    for (const slot of allVirtualSlots) {
+        slot.baseWindows = [
+            { start: slot.start_time, end: slot.break_start },
+            { start: slot.break_end, end: slot.end_time }
+        ];
+    }
+
+    for (const fn1 of allVirtualSlots) {
+        fn1.virtualSlots = [];
+        for (const fn2 of fn1.baseWindows) {
+            let newStart = fn2.start;
+            while (newStart + treatmentDuration <= fn2.end) {
+                fn1.virtualSlots.push({ start: newStart, end: newStart + treatmentDuration });
+                newStart = newStart + treatmentDuration + fn1.buffer_minutes;
+            }
+        }
+    };
+
+    for (const fn1 of allVirtualSlots) {
+        fn1.freeVirtualSlots = [];
+
+        for (const fn2 of fn1.virtualSlots) {
+            let isFree = true;
+
+            for (const fn3 of fetchBookings.rows) {
+                if (
+                    fn1.date_number === fn3.date_number &&
+                    fn1.month_number === fn3.month_number &&
+                    fn1.year === fn3.year
+                ) {
+                    const overlap = fn3.treatment_start < fn2.end && fn3.treatment_end > fn2.start;
+                    if (overlap) {
+                        isFree = false;
+                        break;
+                    }
+                }
+            }
+            if (isFree) {
+                fn1.freeVirtualSlots.push(fn2);
+            }
+        }
+    }
+
+
+
+
+    //console.dir(allVirtualSlots, { depth: null });
+    // console.dir(fetchBookings.rows, { depth: null });
+    // console.log(fetchSlots.rows);
+    // await initBookingsTable();
+    // await rollingWindow();
+
+
+
+    return (<>
+        <div className="p-6">
+            {allVirtualSlots.map((slot, index1) => (
+                <div key={slot.public_id} className="border-2 ">
+                    <p>{getDayName(slot.day_number)} {slot.date_number > 9 ? slot.date_number : `0${slot.date_number}`} {getMonthName(slot.month_number)} {slot.year}</p>
+                    <p>Dr. {fetchDoctor.rows[0].name[0].toUpperCase() + fetchDoctor.rows[0].name.slice(1)} {JSON.parse(fetchDoctor.rows[0].qualifications).join(', ').toUpperCase()}</p>
+                    <p>Slots for ( {fetchTreatment.rows[0].name.split("_").map(fn => fn[0].toUpperCase() + fn.slice(1)).join(" ")} )</p>
+                    <p>Slot Duration: {fetchTreatment.rows[0].duration < 10 ? `0${fetchTreatment.rows[0].duration}` : fetchTreatment.rows[0].duration}min</p>
+                    <details>
+                        <summary>Available Slots</summary>
+                        {slot.freeVirtualSlots.length > 0 ? slot.freeVirtualSlots.map((freeSlot, index2) => (
+                            <div key={slot.public_id + index1 + index2} className="border-2">
+                                <ClientBookASlot
+                                    subSlot={freeSlot}
+                                    adminPubId={clinic_admin_pubId}
+                                    docPubId={docPubId}
+                                    day_number={slot.day_number}
+                                    date_number={slot.date_number}
+                                    month_number={slot.month_number}
+                                    year={slot.year}
+                                    treatmentPubId={treatmentPubId}
+                                    treatment_start={freeSlot.start}
+                                    treatment_end={freeSlot.end}
+                                />
+                            </div>
+                        )) : <p>No available slots for this day.</p>}
+                    </details>
+                </div >
+            ))
+            }
+        </div>
+    </>);
+}
+
+`
+```
+
+## src/app/bookings/[clinic_admin_pubId]/[docName]/[docPubId]/[treatmentPubId]/sa.js
+
+`
+```
+"use server";
+
+import { db } from "@/app/lib/turso";
+import { initBookingsTable } from "@/app/Models/initTables";
+import { nanoid } from "nanoid";
+import { redirect } from "next/navigation";
+
+
+export async function reserveSlot(_, formData) {
+
+    const adminPubId = formData.get("adminPubId");
+    const fetchAdmin = await db.execute(`SELECT * FROM admins WHERE public_id = ?`, [adminPubId]);
+    if (fetchAdmin.rows.length === 0) throw new Error("Invalid admin.");
+
+    const adminId = fetchAdmin.rows[0].id;
+
+    const docPubId = formData.get("docPubId");
+    const treatmentPubId = formData.get("treatmentPubId");
+    const patient_selected_treatment_start = Number(formData.get("treatment_start"));
+    const patient_selected_treatment_end = Number(formData.get("treatment_end"));
+    const day_number = Number(formData.get("day_number"));
+    const date_number = Number(formData.get("date_number"));
+    const month_number = Number(formData.get("month_number"));
+    const year = Number(formData.get("year"));
+
+    let bookingPublicId = null;
+
+    try {
+
+        if (!docPubId || !date_number || !month_number || !year || !treatmentPubId || !patient_selected_treatment_start || !patient_selected_treatment_end) throw new Error("Missing required fields.");
+
+        const [fetchDoctor, fetchTreatment] = await Promise.all([
+            db.execute(`SELECT * FROM doctors where admin_id = ? AND public_id = ?`, [adminId, docPubId]),
+            db.execute(`SELECT * FROM treatments where admin_id = ? AND public_id = ?`, [adminId, treatmentPubId]),
+        ]);
+
+        if (fetchDoctor.rows.length === 0) throw new Error("Invalid doctor.");
+        if (fetchTreatment.rows.length === 0) throw new Error("Invalid treatment.");
+
+        const docId = fetchDoctor?.rows[0]?.id;
+        const docName = fetchDoctor?.rows[0]?.name;
+        const treatmentId = fetchTreatment?.rows[0]?.id;
+        const treatmentDuration = fetchTreatment?.rows[0]?.duration;
+
+        const validTreatmentDuration = patient_selected_treatment_end - patient_selected_treatment_start === treatmentDuration;
+        if (!validTreatmentDuration) throw new Error("Invalid treatment duration.");
+
+        const [fetchRecord, fetchBookings] = await Promise.all([
+            db.execute(
+                `SELECT 1 FROM doctor_treatments WHERE doctor_id = ? AND treatment_id = ? AND admin_id = ?`,
+                [docId, treatmentId, adminId]
+            ),
+            db.execute(
+                `SELECT 1 FROM bookings
+                 WHERE admin_id = ? AND doctor_id = ? AND date_number = ? AND month_number = ? AND year = ?
+                 AND treatment_end > ? AND treatment_start < ?
+                 LIMIT 1`,
+                [adminId, docId, date_number, month_number, year, patient_selected_treatment_start, patient_selected_treatment_end]
+            ),
+        ]);
+
+        if (fetchRecord.rows.length === 0) throw new Error("Invalid doctor-treatment combination.");
+        if (fetchBookings.rows.length > 0) throw new Error("Slot already reserved by someone.");
+
+        const bookingDate = `${year}-${String(month_number + 1).padStart(2, '0')}-${String(date_number).padStart(2, '0')}`;
+
+
+        const res = await db.execute(
+            `INSERT INTO bookings (admin_id, public_id, doctor_name, doctor_id, treatment_id, day_number, date_number, month_number, year, booking_date_iso, treatment_start, treatment_end)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING public_id`,
+            [adminId, nanoid(12), docName, docId, treatmentId, day_number, date_number, month_number, year, bookingDate, patient_selected_treatment_start, patient_selected_treatment_end]
+        );
+
+        if (res.rows.length === 0) throw new Error("Slot already reserved by someone.");
+
+        bookingPublicId = res.rows[0].public_id;
+
+    } catch (error) {
+        console.error(error);
+        return { ok: false, message: error.message };
+    }
+
+    redirect(`/appointment-registeration/${bookingPublicId}/${adminPubId}`);
+}
+`
+```
+
+## src/app/cancel/[cancelToken]/[bookingPubId]/[adminPubId]/page.jsx
+
+`
+```
+import { db } from "@/app/lib/turso";
+import { compare } from "@/app/utils/bcrypt";
+import { redirect } from "next/navigation";
+
+export default async function cancelAppointment({ params }) {
+
+
+
+    const { cancelToken, bookingPubId, adminPubId } = await params;
+
+    if (!cancelToken || !bookingPubId || !adminPubId) return <p>1 Broken link. Email not found.</p>;
+
+    const fetchAdmin = await db.execute(`SELECT id FROM admins WHERE public_id = ?`, [adminPubId]);
+    if (fetchAdmin.rows.length === 0) return <p>2 Broken link. Email not found.</p>;
+
+    const adminId = fetchAdmin.rows[0].id;
+
+    try {
+        const fetch = await db.execute(`SELECT id, cancel_token_hash FROM bookings WHERE admin_id = ? AND public_id = ?`, [adminId, bookingPubId]);
+        if (fetch.rows.length === 0) return <p>Broken link. Email not found.</p>;
+
+        console.log(fetch.rows[0].cancel_token_hash, "<------------------");
+
+        const verified = await compare(cancelToken, fetch.rows[0].cancel_token_hash);
+        if (!verified) return <p> 2 Broken link. Email not found.</p>;
+
+        await db.execute(`UPDATE bookings SET cancel_token_hash = NULL, status = 'cancelled' WHERE admin_id = ? AND public_id = ?`, [adminId, bookingPubId]);
+
+    } catch (error) {
+        console.error(error);
+        return <p>3 Broken link. Email not found.</p>;
+    }
+
+
+    redirect(`/message/${bookingPubId}`);
+
+}
+`
+```
+
+## src/app/components/ByDoctors.jsx
+
+`
+```
+import Link from "next/link";
+
+export default async function ByDoctors({ fetchedDoctors = [], navString = "" }) {
+
+
+    let doctors = fetchedDoctors.rows;
+    doctors = doctors?.map(doctor => ({ public_id: doctor.public_id, name: doctor.name, department: doctor.department[0].toUpperCase() + doctor.department.slice(1) })) || [];
+
+    let departments = doctors.map(doctor => doctor.department);
+    departments = [...new Set(departments)];
+    departments = departments.map(d => d[0].toUpperCase() + d.slice(1));
+
+    return (<>
+        {departments.length > 0 && departments.map(dep => (
+            <div key={dep} className="border-2 border-amber-950 my-4">
+                <h2>{dep.split(" ").map(fn => fn[0].toUpperCase() + fn.slice(1)).join(" ")}</h2>
+                {doctors.filter(doc => doc.department === dep).map(doc => (
+                    <Link key={doc.public_id} href={`/${navString}/${doc.public_id}`} >{doc.name[0].toUpperCase() + doc.name.slice(1)}</Link>
+                ))}
+            </div>
+
+        ))}
+    </>);
+}
+`
+```
+
+## src/app/components/emailVerification.jsx
+
+`
+```
+'use client';
+
+import { useActionState } from "react";
+import Form from "next/form";
+import { resendingEmail } from "../lib/resendingEmail";
+
+export default function EmailVerification({ bookingPubId }) {
+
+    const [state, action, isPending] = useActionState(resendingEmail, { ok: null, message: null });
+
+
+
+    return (<>
+        <Form action={action}>
+            <input type="hidden" name="bookingPubId" value={bookingPubId} />
+            <button type="submit">{isPending ? "Sending..." : "Send Email Again⬅"}</button>
+        </Form>
+        {state.ok && !isPending && <p>Sent</p>}
+    </>);
+}
+`
+```
+
+## src/app/components/Nav.jsx
+
+`
+```
+import Link from "next/link";
+import SideNav from "./SideNav";
+import { getUserPlus } from "../lib/getUser";
+
+export default async function NavBar() {
+
+    const getCurrentUser = await getUserPlus();
+    let user = null;
+    if (getCurrentUser?.id) {
+        user = {
+            role: getCurrentUser.role,
+            name: getCurrentUser.admin_details ? getCurrentUser.admin_details.admin_name : getCurrentUser.doctor_details.name
+        }
+    }
+
+    return (<>
+        <nav className="flex justify-between px-2 items-center">
+            {user ? <SideNav user={user} /> : <div></div>}
+
+            <div className="flex items-center gap-3">
+                <ul className="border-2 border-amber-200 my-2 flex gap-2">
+                    <Link href="/"><li>Home</li></Link>
+                    <Link href="/about"><li>About</li></Link>
+                    <Link href="/contact"><li>Contact</li></Link>
+                </ul>
+                <div className="bg-green-900 px-2 py-0.5 rounded">
+                    <Link href="/bookings">Bookings</Link>
+                </div>
+            </div>
+
+            <div>
+                {user ? <div></div> : <Link href="/login">Login</Link>}
+            </div>
+        </nav>
+    </>);
+}
+`
+```
+
+## src/app/components/SideNav.jsx
+
+`
+```
+'use client';
+import Link from "next/link";
+import { useState } from "react";
+
+export default function SideNav({ user }) {
+
+    const [open, setOpen] = useState(false);
+
+
+    return (<>
+        {open &&
+            <aside className="w-85 border-amber-900 border-2 h-screen fixed top-0 left-0 z-50 bg-gray-600 shadow-lg  p-4">
+                <button className="absolute top-2 right-2" onClick={() => setOpen(false)}>⬅</button>
+                <div className="flex flex-col justify-between h-full">
+                    <ul className="flex flex-col gap-2">
+                        <Link href="/dashboard"><li>{user?.role === "admin" ? "Appointments" : "My Appointments"}</li></Link>
+                        {user.role === "admin" && <>
+                            <Link href="/add-doctor"><li>Add Doctor</li></Link>
+                            <Link href="/edit-doctor"><li>Edit Doctor</li></Link>
+                            <Link href="/add-treatment"><li>Add Treatment</li></Link>
+                            <Link href="/create-template"><li> Create Template</li></Link>
+                            <Link href="/edit-template"><li> Edit Template</li></Link>
+                            <Link href="/manage-generated-slots"><li> Manage Generated Slots</li></Link>
+                        </>}
+                        <Link href="/settings"><li> Settings</li></Link>
+
+                    </ul>
+                    <div className="flex justify-between mb-10 items-center">
+                        <div className="flex items-center gap-2">
+                            <p className="w-10 h-10 rounded-full bg-gray-800 text-white flex items-center justify-center text-sm font-semibold">{user?.name?.[0]?.toUpperCase() || "?"}</p>
+                            <p>{user?.name ? user.name.split(" ").map(word => word[0].toUpperCase() + word.slice(1)).join(" ") : ""} ({user?.role ? user.role[0].toUpperCase() + user.role.slice(1) : ""})</p>
+                        </div>
+                        <Link href="/">Logout</Link>
+                    </div>
+                </div>
+            </aside >}
+        <button onClick={() => setOpen(true)}>➡</button>
+    </>);
+}
+
+`
+```
+
+## src/app/create-template/page.jsx
+
+`
+```
+import { db } from "../lib/turso";
+import ByDoctors from "../components/ByDoctors";
+import { getUserPlus } from "../lib/getUser";
+
+export default async function CreateTemplate() {
+     
+    const currentUser = await getUserPlus();
+        if (!currentUser || currentUser.role !== "admin" || !currentUser.admin_id) redirect("/login");
+        const adminId = currentUser.admin_id;
+
+    const fetchDoctors = await db.execute(`SELECT * FROM doctors WHERE admin_id = ?`, [adminId]);
+
+    return (<>
+        <ByDoctors fetchedDoctors={fetchDoctors} navString="create-template" />
+    </>);
+}
+`
+```
+
+## src/app/create-template/[docPubId]/page.jsx
+
+`
+```
+import Form from "next/form";
+import { db } from "@/app/lib/turso";
+import { createTemplateServerAction } from "./SA";
+import { getDayName } from "@/app/utils/getDateData";
+import { minutesToMeridiem } from "@/app/utils/minutes-to-meridiem";
+import Link from "next/link";
+import { getUserPlus } from "@/app/lib/getUser";
+
+
+export default async function DoctorCreateTemplate({ params }) {
+
+    const currentUser = await getUserPlus();
+    if (!currentUser || currentUser.role !== "admin" || !currentUser.admin_id) redirect("/login");
+    const adminId = currentUser.admin_id;
+
+    const { docPubId } = await params;
+
+    const fetchDoctor = await db.execute(`SELECT * FROM doctors WHERE public_id = ? AND admin_id = ?`, [docPubId, adminId]);
+    if (fetchDoctor.rows.length === 0) return <p>Broken link. Doctor not found.</p>
+
+    const { name, id } = fetchDoctor.rows[0];
+
+    const fetchExisTemplates = await db.execute(`SELECT * FROM weekly_templates WHERE doctor_id = ? AND admin_id = ?`, [id , adminId]);
+
+    let currentTemplates = fetchExisTemplates.rows.length > 0 ? fetchExisTemplates.rows : [];
+
+    console.log(currentTemplates)
+
+    currentTemplates = currentTemplates?.sort((a, b) => a.day_number - b.day_number);
+
+
+
+
+
+
+    const existDays = fetchExisTemplates.rows.map(fn => (
+        getDayName(fn.day_number)
+    ));
+
+
+    let defaultBuffer = 10;
+    let defaultStartHr = "09";
+    let defaultStartMin = "00";
+    let defaultStartMeridiem = "AM";
+    let defaultEndHr = "05";
+    let defaultEndMin = "00";
+    let defaultEndMeridiem = "PM";
+    let defaultBreakStartHr = "12";
+    let defaultBreakStartMin = "00";
+    let defaultBreakStartMeridiem = "PM";
+    let defaultBreakEndHr = "01";
+    let defaultBreakEndMin = "00";
+    let defaultBreakEndMeridiem = "PM";
+
+    const allDays = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+    const nonTemplateDays = allDays.filter(day => !existDays.includes(day));
+
+    let days = nonTemplateDays.length === 0 ? allDays : nonTemplateDays;
+
+    const dummyHrs = [];
+    for (let i = 1; i <= 12; i++) {
+        if (i < 10) dummyHrs.push("0" + i);
+        else dummyHrs.push(String(i));
+    }
+
+    const dummyMinutes = [];
+    for (let i = 0; i <= 59; i++) {
+        if (i < 10) dummyMinutes.push("0" + i);
+        else dummyMinutes.push(String(i));
+    }
+
+    const meridiem = ["AM", "PM"];
+
+
+
+    return (<>
+        <div>
+            <h2>{`Dr. ${name[0].toUpperCase() + name.slice(1)}'s Current Templates`}</h2>
+            <h2> Department: {fetchDoctor.rows[0].department.split(" ").map(fn => fn[0].toUpperCase() + fn.slice(1)).join(" ")}</h2>
+            {currentTemplates.length > 0 && <>
+                {currentTemplates.map(temp => (
+                    <div key={temp.public_id} className="border-2 border-amber-50" >
+                        <p>Template Day: {getDayName(temp.day_number)}</p>
+                        <p>Clinic Time: {minutesToMeridiem(temp.start_time, true)} - {minutesToMeridiem(temp.end_time, true)}</p>
+                        <p>Break Duration: {minutesToMeridiem(temp.break_start, true)} - {minutesToMeridiem(temp.break_end, true)}</p>
+                        <p>Buffer: {temp.buffer_minutes} minutes</p>
+                        <Link href={`/edit-template/${docPubId}/${temp.public_id}`}>Edit⬅</Link>
+                    </div>
+                ))}
+            </>}
+        </div>
+
+
+        <h1>Create New Template for Dr. {name[0].toUpperCase() + name.slice(1)}</h1>
+        <Form action={createTemplateServerAction} className="space-y-6 p-6 bg-gray-50 dark:bg-gray-900 rounded-md">
+            <input type="hidden" name="doctorPublicId" value={docPubId} />
+            <select type="hidden" name="day" >
+                {days.map((day) => (
+                    <option value={day} key={day}>
+                        {day}
+                    </option>
+                ))}
+            </select>
+
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
+                Buffer in minutes
+            </label>
+            <input defaultValue={defaultBuffer} type="number" name="buffer" placeholder="Buffer in minutes" className="border border-gray-300 dark:border-gray-700 rounded-md px-3 py-2 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-gray-100" />
+
+            <div className="space-y-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
+                    Select Clinic Start time
+                </label>
+                <div className="flex gap-2 items-center">
+                    <select
+                        name="startHr"
+                        className="border border-gray-300 dark:border-gray-700 rounded-md px-3 py-2 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-gray-100"
+                        defaultValue={defaultStartHr}
+                    >
+                        {dummyHrs.map((hr) => (
+                            <option value={hr} key={hr}>
+                                {hr}
+                            </option>
+                        ))}
+                    </select>
+                    <select
+                        name="startMin"
+                        className="border border-gray-300 dark:border-gray-700 rounded-md px-3 py-2 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-gray-100"
+                        defaultValue={defaultStartMin}
+                    >
+                        {dummyMinutes.map((min) => (
+                            <option value={min} key={min}>
+                                {min}
+                            </option>
+                        ))}
+                    </select>
+                    <select
+                        defaultValue={defaultStartMeridiem}
+                        name="startMeridiem"
+                        className="border border-gray-300 dark:border-gray-700 rounded-md px-3 py-2 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-gray-100"
+                    >
+                        {meridiem.map((mer) => (
+                            <option value={mer} key={mer}>
+                                {mer}
+                            </option>
+                        ))}
+                    </select>
+                </div>
+            </div>
+
+            <div className="space-y-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
+                    Select Clinic End time
+                </label>
+                <div className="flex gap-2 items-center">
+                    <select
+                        defaultValue={defaultEndHr}
+                        name="endHr"
+                        className="border border-gray-300 dark:border-gray-700 rounded-md px-3 py-2 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-gray-100"
+                    >
+                        {dummyHrs.map((hr) => (
+                            <option value={hr} key={hr}>
+                                {hr}
+                            </option>
+                        ))}
+                    </select>
+                    <select
+                        defaultValue={defaultEndMin}
+                        name="endMin"
+                        className="border border-gray-300 dark:border-gray-700 rounded-md px-3 py-2 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-gray-100"
+                    >
+                        {dummyMinutes.map((min) => (
+                            <option value={min} key={min}>
+                                {min}
+                            </option>
+                        ))}
+                    </select>
+                    <select
+                        defaultValue={defaultEndMeridiem}
+                        name="endMeridiem"
+                        className="border border-gray-300 dark:border-gray-700 rounded-md px-3 py-2 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-gray-100"
+                    >
+                        {meridiem.map((mer) => (
+                            <option value={mer} key={mer}>
+                                {mer}
+                            </option>
+                        ))}
+                    </select>
+                </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">Break Start</label>
+                    <div className="flex gap-2 items-center">
+                        <select
+                            defaultValue={defaultBreakStartHr}
+                            name="breakStartHr"
+                            className="border border-gray-300 dark:border-gray-700 rounded-md px-3 py-2 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-gray-100"
+                        >
+                            {dummyHrs.map((hr) => (
+                                <option value={hr} key={hr}>
+                                    {hr}
+                                </option>
+                            ))}
+                        </select>
+                        <select
+                            defaultValue={defaultBreakStartMin}
+                            name="breakStartMin"
+                            className="border border-gray-300 dark:border-gray-700 rounded-md px-3 py-2 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-gray-100"
+                        >
+                            {dummyMinutes.map((min) => (
+                                <option value={min} key={min}>
+                                    {min}
+                                </option>
+                            ))}
+                        </select>
+                        <select
+                            defaultValue={defaultBreakStartMeridiem}
+                            name="breakStartMeridiem"
+                            className="border border-gray-300 dark:border-gray-700 rounded-md px-3 py-2 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-gray-100"
+                        >
+                            {meridiem.map((mer) => (
+                                <option value={mer} key={mer}>
+                                    {mer}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+                </div>
+
+                <div className="space-y-2">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">Break End</label>
+                    <div className="flex gap-2 items-center">
+                        <select
+                            defaultValue={defaultBreakEndHr}
+                            name="breakEndHr"
+                            className="border border-gray-300 dark:border-gray-700 rounded-md px-3 py-2 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-gray-100"
+                        >
+                            {dummyHrs.map((hr) => (
+                                <option value={hr} key={hr}>
+                                    {hr}
+                                </option>
+                            ))}
+                        </select>
+                        <select
+                            defaultValue={defaultBreakEndMin}
+                            name="breakEndMin"
+                            className="border border-gray-300 dark:border-gray-700 rounded-md px-3 py-2 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-gray-100"
+                        >
+                            {dummyMinutes.map((min) => (
+                                <option value={min} key={min}>
+                                    {min}
+                                </option>
+                            ))}
+                        </select>
+                        <select
+                            defaultValue={defaultBreakEndMeridiem}
+                            name="breakEndMeridiem"
+                            className="border border-gray-300 dark:border-gray-700 rounded-md px-3 py-2 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-gray-100"
+                        >
+                            {meridiem.map((mer) => (
+                                <option value={mer} key={mer}>
+                                    {mer}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <div>
+                <button
+                    type="submit"
+                    className="mt-2 inline-flex items-center justify-center rounded-md bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 px-4 py-2 text-sm font-semibold text-white focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
+                >
+                    Submit
+                </button>
+            </div>
+        </Form>
+    </>);
+}
+
+`
+```
+
+## src/app/create-template/[docPubId]/SA.js
+
+`
+```
+"use server";
+
+import { getUserPlus } from "@/app/lib/getUser";
+import { db } from "@/app/lib/turso";
+import { initAdminTable, initDoctorTable, initWeeklyTemplatesTable } from "@/app/Models/initTables";
+import { getDayNumber } from "@/app/utils/getDateData";
+import getMinutes from "@/app/utils/getMinutes";
+import { nanoid } from "nanoid";
+import { redirect } from "next/navigation";
+
+
+
+export async function createTemplateServerAction(formData) {
+
+    const currentUser = await getUserPlus();
+    if (!currentUser || currentUser.role !== "admin" || !currentUser.admin_id) redirect("/login");
+    const adminId = currentUser.admin_id;
+
+    const docPubId = formData.get("doctorPublicId");
+
+    try {
+
+        const fetchDoctor = await db.execute(`SELECT * FROM doctors WHERE admin_id = ? AND public_id = ?`, [adminId, docPubId]);
+        if (fetchDoctor.rows.length === 0) throw new Error("doctor not found");
+
+        const doctor = fetchDoctor.rows[0];
+
+        const dayFromUser = formData.get("day")?.toLowerCase();
+        const dayNumber = getDayNumber(dayFromUser);
+        const buffer = Number(formData.get("buffer"));
+
+        // We are getting values and passing them as arguments in single line.
+        const startInMinutes =
+            getMinutes(formData.get("startHr"), formData.get("startMin"), formData.get("startMeridiem"));
+        const endInMinutes =
+            getMinutes(formData.get("endHr"), formData.get("endMin"), formData.get("endMeridiem"));
+        const breakStartInMinutes =
+            getMinutes(formData.get("breakStartHr"), formData.get("breakStartMin"), formData.get("breakStartMeridiem"));
+        const breakEndInMinutes =
+            getMinutes(formData.get("breakEndHr"), formData.get("breakEndMin"), formData.get("breakEndMeridiem"));
+
+        if (startInMinutes === null || endInMinutes === null || breakStartInMinutes === null || breakEndInMinutes === null || isNaN(buffer)) throw new Error("Invalid input");
+
+
+
+        await db.execute(`INSERT INTO weekly_templates (public_id, admin_id, doctor_id, day_number, start_time, end_time, break_start, break_end, buffer_minutes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT (admin_id, doctor_id, day_number) DO NOTHING`, [
+            nanoid(12),
+            adminId,
+            doctor.id,
+            dayNumber,
+            startInMinutes,
+            endInMinutes,
+            breakStartInMinutes,
+            breakEndInMinutes,
+            buffer
+        ]);
+
+
+
+
+        console.log("docPubId", docPubId);
+        console.log("dayNumber", dayNumber);
+        console.log("buffer", buffer);
+        console.log("startInMinutes", startInMinutes);
+        console.log("endInMinutes", endInMinutes);
+        console.log("breakStartInMinutes", breakStartInMinutes);
+        console.log("breakEndInMinutes", breakEndInMinutes);
+
+
+
+
+    } catch (error) {
+        console.error(error);
+        return { ok: false, message: error.message }
+    }
+    redirect(`/create-template/${docPubId}`)
+}
+
+`
+```
+
+## src/app/dashboard/admin-component.jsx
+
+`
+```
+import { db } from "../lib/turso";
+import { getMonthName } from "../utils/getDateData";
+import { minutesToMeridiem } from "../utils/minutes-to-meridiem";
+import { AdminRevokeBooking, AdminRevokeBookings } from "./client";
+
+export default async function AdminComponent({ currentUser }) {
+
+  console.log("currentUser", currentUser);
+
+  const fetch = await db.execute(`SELECT bookings.*, treatments.name AS treatment_name, treatments.duration AS treatment_duration FROM bookings LEFT JOIN treatments ON bookings.treatment_id = treatments.id WHERE bookings.admin_id = ? AND status != 'revoked' ORDER BY date_number ASC`, [currentUser.admin_id]);
+
+  const allBooking = fetch.rows;
+
+  const groupedBooking = allBooking.reduce((acc, booking) => {
+    if (!acc[booking.booking_date_iso]) {
+      acc[booking.booking_date_iso] = [];
+    }
+    acc[booking.booking_date_iso].push(booking);
+    return acc;
+  }, {});
+
+  //console.log("allBooking", allBooking);
+  //console.log("groupedBooking", groupedBooking);
+
+  return (<>
+    {Object.keys(groupedBooking).map(dateIso => (
+      <div key={dateIso} className="border-2 border-b-amber-100 my-4" >
+
+        <h2>{dateIso.split("-")[2]} {getMonthName(Number(dateIso.split("-")[1] - 1))} {dateIso.split("-")[0]}</h2>
+
+        <AdminRevokeBookings adminPubId={currentUser.admin_details.public_id} bookingDate={dateIso} />
+
+        <details>
+          <summary>Bookings : {groupedBooking[dateIso].length > 10 ? groupedBooking[dateIso].length : "0" + groupedBooking[dateIso].length}</summary>
+          {groupedBooking[dateIso].map(booking => (
+            <div key={booking.public_id} className="border-2 border-amber-950 my-2" >
+              <p>Appointment Date: {booking.date_number > 10 ? booking.date_number : "0" + booking.date_number} {getMonthName(booking.month_number)} {booking.year}</p>
+              <p>Timing: {minutesToMeridiem(booking.treatment_start, true)} - {minutesToMeridiem(booking.treatment_end, true)}</p>
+              <p>Doctor: {booking.doctor_name.split(" ").map(word => word[0].toUpperCase() + word.slice(1)).join(" ")}</p><p>Treatment: {booking.treatment_name.split("_").map(word => word[0].toUpperCase() + word.slice(1)).join(" ")}</p>
+              <p>Session Duration: {booking.treatment_duration} minutes</p>
+              <p>Booking Status: {booking.status[0].toUpperCase() + booking.status.slice(1)}</p>
+              <p>Patient Name: {booking?.patient_name ? booking.patient_name.split(" ").map(word => word[0].toUpperCase() + word.slice(1)).join(" ") : "N/A"}</p>
+              <p>Patient Phone: {booking?.patient_phone ? booking.patient_phone : "N/A"}</p>
+              <p>Patient Email: {booking?.patient_email ? booking.patient_email : "N/A"}</p>
+
+              <AdminRevokeBooking adminPubId={currentUser.admin_details.public_id} bookingPubId={booking.public_id} />
+
+            </div>
+          ))}
+        </details>
+      </div>
+    ))}
+  </>);
+}
+`
+```
+
+## src/app/dashboard/client.jsx
+
+`
+```
+"use client";
+
+import { useState, useActionState } from "react";
+import Form from "next/form";
+import {
+    adminRevokeBookings,
+    adminRevokeBooking,
+    doctorRevokeBookings,
+    doctorRevokeBooking,
+} from "./sa"; 
+
+export function AdminRevokeBookings({ adminPubId, bookingDate }) {
+    const [confirm, setConfirm] = useState(false);
+    const [state, formAction, isPending] = useActionState(adminRevokeBookings, null);
+
+    function handleClick(e) {
+        if (!confirm) {
+            e.preventDefault();
+            setConfirm(true);
+        }
+    }
+
+    function handleCancel(e) {
+        e.preventDefault();
+        setConfirm(false);
+    }
+
+    return (
+        <Form action={formAction}>
+            <input type="hidden" name="bookingsDate" value={bookingDate} />
+            <input type="hidden" name="adminPubId" value={adminPubId} />
+
+            <button type="submit" onClick={handleClick} disabled={isPending}>
+                {isPending
+                    ? "Revoking..."
+                    : confirm
+                        ? "Are you sure? Confirm Revoke ⛔"
+                        : "Revoke All Bookings ⬅"}
+            </button>
+
+            {confirm && !isPending && (
+                <>
+                    <button onClick={handleCancel}>Cancel</button>
+                    <p style={{ color: "red", marginTop: "8px" }}>
+                        Warning: Affected patients will be notified and may need to reschedule or book again.
+                    </p>
+                </>
+            )}
+
+            {state && !state.ok && (
+                <p style={{ color: "red", marginTop: "8px" }}>
+                    Error: {state.message}
+                </p>
+            )}
+        </Form>
+    );
+}
+
+export function AdminRevokeBooking({ adminPubId, bookingPubId }) {
+    const [confirm, setConfirm] = useState(false);
+    const [state, formAction, isPending] = useActionState(adminRevokeBooking, null);
+
+    function handleClick(e) {
+        if (!confirm) {
+            e.preventDefault();
+            setConfirm(true);
+        }
+    }
+
+    function handleCancel(e) {
+        e.preventDefault();
+        setConfirm(false);
+    }
+
+    return (
+        <Form action={formAction}>
+            <input type="hidden" name="bookingPubId" value={bookingPubId} />
+            <input type="hidden" name="adminPubId" value={adminPubId} />
+
+            <button type="submit" onClick={handleClick} disabled={isPending}>
+                {isPending
+                    ? "Revoking..."
+                    : confirm
+                        ? "Are you sure? Confirm Revoke ⛔"
+                        : "Revoke This Booking ⬅"}
+            </button>
+
+            {confirm && !isPending && (
+                <>
+                    <button onClick={handleCancel}>Cancel</button>
+                    <p style={{ color: "red", marginTop: "8px" }}>
+                        Warning: Affected patients will be notified and may need to reschedule or book again.
+                    </p>
+                </>
+            )}
+
+            {state && !state.ok && (
+                <p style={{ color: "red", marginTop: "8px" }}>
+                    Error: {state.message}
+                </p>
+            )}
+        </Form>
+    );
+}
+
+export function DoctorRevokeBookings({ doctorPubId, bookingDate }) {
+    const [confirm, setConfirm] = useState(false);
+    const [state, formAction, isPending] = useActionState(doctorRevokeBookings, null);
+
+    function handleClick(e) {
+        if (!confirm) {
+            e.preventDefault();
+            setConfirm(true);
+        }
+    }
+
+    function handleCancel(e) {
+        e.preventDefault();
+        setConfirm(false);
+    }
+
+    return (
+        <Form action={formAction}>
+            <input type="hidden" name="bookingsDate" value={bookingDate} />
+            <input type="hidden" name="doctorPubId" value={doctorPubId} />
+
+            <button type="submit" onClick={handleClick} disabled={isPending}>
+                {isPending
+                    ? "Revoking..."
+                    : confirm
+                        ? "Are you sure? Confirm Revoke ⛔"
+                        : "Revoke All Bookings ⬅"}
+            </button>
+
+            {confirm && !isPending && (
+                <>
+                    <button onClick={handleCancel}>Cancel</button>
+                    <p style={{ color: "red", marginTop: "8px" }}>
+                        Warning: Affected patients will be notified and may need to reschedule or book again.
+                    </p>
+                </>
+            )}
+
+            {state && !state.ok && (
+                <p style={{ color: "red", marginTop: "8px" }}>
+                    Error: {state.message}
+                </p>
+            )}
+        </Form>
+    );
+}
+
+export function DoctorRevokeBooking({ doctorPubId, bookingPubId }) {
+    const [confirm, setConfirm] = useState(false);
+    const [state, formAction, isPending] = useActionState(doctorRevokeBooking, null);
+
+    function handleClick(e) {
+        if (!confirm) {
+            e.preventDefault();
+            setConfirm(true);
+        }
+    }
+
+    function handleCancel(e) {
+        e.preventDefault();
+        setConfirm(false);
+    }
+
+    return (
+        <Form action={formAction}>
+            <input type="hidden" name="bookingPubId" value={bookingPubId} />
+            <input type="hidden" name="doctorPubId" value={doctorPubId} />
+
+            <button type="submit" onClick={handleClick} disabled={isPending}>
+                {isPending
+                    ? "Revoking..."
+                    : confirm
+                        ? "Are you sure? Confirm Revoke ⛔"
+                        : "Revoke This Booking ⬅"}
+            </button>
+
+            {confirm && !isPending && (
+                <>
+                    <button onClick={handleCancel}>Cancel</button>
+                    <p style={{ color: "red", marginTop: "8px" }}>
+                        Warning: Affected patients will be notified and may need to reschedule or book again.
+                    </p>
+                </>
+            )}
+
+            {state && !state.ok && (
+                <p style={{ color: "red", marginTop: "8px" }}>
+                    Error: {state.message}
+                </p>
+            )}
+        </Form>
+    );
+}
+`
+```
+
+## src/app/dashboard/doctor-component.jsx
+
+`
+```
+// doctor-component.jsx
+import { db } from "../lib/turso";
+import { getMonthName } from "../utils/getDateData";
+import { minutesToMeridiem } from "../utils/minutes-to-meridiem";
+import { DoctorRevokeBooking, DoctorRevokeBookings } from "./client";
+
+export default async function DoctorComponent({ currentUser }) {
+
+    const fetch = await db.execute(
+        `SELECT bookings.*, treatments.name AS treatment_name, treatments.duration AS treatment_duration
+         FROM bookings
+         LEFT JOIN treatments ON bookings.treatment_id = treatments.id
+         WHERE bookings.doctor_id = ?
+         ORDER BY date_number ASC`,
+        [currentUser.doctor_id]
+    );
+
+    const allBookings = fetch.rows;
+
+    const groupedBookings = allBookings.reduce((acc, booking) => {
+        if (!acc[booking.booking_date_iso]) {
+            acc[booking.booking_date_iso] = [];
+        }
+        acc[booking.booking_date_iso].push(booking);
+        return acc;
+    }, {});
+
+    return (
+        <>
+            {Object.keys(groupedBookings).map(dateIso => (
+                <div key={dateIso} className="border-2 border-b-amber-100 my-4">
+
+                    <h2>
+                        {dateIso.split("-")[2]}{" "}
+                        {getMonthName(Number(dateIso.split("-")[1]) - 1)}{" "}
+                        {dateIso.split("-")[0]}
+                    </h2>
+
+                    <DoctorRevokeBookings
+                        doctorPubId={currentUser.doctor_details.public_id}
+                        bookingDate={dateIso}
+                    />
+
+                    {groupedBookings[dateIso].map(booking => (
+                        <div key={booking.public_id} className="border-2 border-amber-950 my-2">
+                            <p>Appointment Date: {booking.date_number > 10 ? booking.date_number : "0" + booking.date_number} {getMonthName(booking.month_number)} {booking.year}</p>
+                            <p>Timing: {minutesToMeridiem(booking.treatment_start, true)} - {minutesToMeridiem(booking.treatment_end, true)}</p>
+                            <p>Patient: {booking.patient_name}</p>
+                            <p>Treatment: {booking.treatment_name}</p>
+                            <p>Session Duration: {booking.treatment_duration} minutes</p>
+                            <p>Booking Status: {booking.status}</p>
+
+                            <DoctorRevokeBooking
+                                doctorPubId={currentUser.doctor_details.public_id}
+                                bookingPubId={booking.public_id}
+                            />
+                        </div>
+                    ))}
+                </div>
+            ))}
+        </>
+    );
+}
+`
+```
+
+## src/app/dashboard/page.jsx
+
+`
+```
+import { redirect } from "next/navigation";
+import { getUser, getUserPlus } from "../lib/getUser";
+import AdminComponent from "./admin-component";
+import DoctorComponent from "./doctor-component";
+
+export default async function Dashboard() {
+
+    const currentUser = await getUserPlus();
+    if (!currentUser?.id) return redirect("/login");
+
+    return (<>
+        {currentUser.role === "admin" && <AdminComponent currentUser={currentUser} />}
+        {currentUser.role === "doctor" && <DoctorComponent currentUser={currentUser} />}
+    </>);
+
+}
+`
+```
+
+## src/app/dashboard/sa.js
+
+`
+```
+"use server";
+
+import { redirect } from "next/navigation";
+import { db } from "../lib/turso";
+import { getUser } from "../lib/getUser";
+import { sendCancelationEmails } from "../lib/sendCancelationEmail";
+import { sendEmail } from "../lib/resend";
+
+
+export async function adminRevokeBookings(_, formData) {
+    try {
+        const bookingsDate = formData.get("bookingsDate");
+        const adminPubId = formData.get("adminPubId");
+
+        if (!bookingsDate || !adminPubId) {
+            return { ok: false, message: "Missing required fields." };
+        }
+
+        const user = await getUser();
+        if (!user) return { ok: false, message: "Unauthorized." };
+        if (user.role !== "admin") return { ok: false, message: "Forbidden." };
+
+        const fetchAdmin = await db.execute(
+            "SELECT * FROM admins WHERE public_id = ?",
+            [adminPubId]
+        );
+        if (fetchAdmin.rows.length === 0) return { ok: false, message: "Admin not found." };
+
+        const admin = fetchAdmin.rows[0];
+        if (admin.id !== user.admin_id) return { ok: false, message: "Forbidden." };
+
+
+        const getAndUpdateBookings = await db.execute(
+            `UPDATE bookings SET status = 'revoked' WHERE admin_id = ? AND booking_date_iso = ? AND status != 'revoked' RETURNING patient_email, patient_name, doctor_name`, [admin.id, bookingsDate]);
+
+        if (getAndUpdateBookings.rows.length > 0) {
+            await sendCancelationEmails(getAndUpdateBookings.rows, 100);
+        }
+
+
+    } catch (error) {
+        console.error("adminRevokeBookings error:", error);
+        return { ok: false, message: "Something went wrong." };
+    }
+
+    redirect("/dashboard");
+}
+
+
+export async function adminRevokeBooking(_, formData) {
+    try {
+        const bookingPubId = formData.get("bookingPubId");
+        const adminPubId = formData.get("adminPubId");
+
+        if (!bookingPubId || !adminPubId) {
+            return { ok: false, message: "Missing required fields." };
+        }
+
+        const user = await getUser();
+        if (!user) return { ok: false, message: "Unauthorized." };
+        if (user.role !== "admin") return { ok: false, message: "Forbidden." };
+
+        const fetchAdmin = await db.execute(
+            "SELECT * FROM admins WHERE public_id = ?",
+            [adminPubId]
+        );
+        if (fetchAdmin.rows.length === 0) return { ok: false, message: "Admin not found." };
+
+        const admin = fetchAdmin.rows[0];
+        if (admin.id !== user.admin_id) return { ok: false, message: "Forbidden." };
+
+        const fetchBooking = await db.execute(
+            "SELECT * FROM bookings WHERE public_id = ? AND admin_id = ?",
+            [bookingPubId, admin.id]
+        );
+        if (fetchBooking.rows.length === 0) {
+            return { ok: false, message: "Booking not found or access denied." };
+        }
+        if (fetchBooking.rows[0].status === "revoked") {
+            return { ok: false, message: "Booking is already revoked." };
+        }
+
+        await db.execute(
+            "UPDATE bookings SET status = 'revoked' WHERE public_id = ? AND admin_id = ?",
+            [bookingPubId, admin.id]
+        );
+
+        const to = fetchBooking.rows[0].patient_email;
+        const subject = "Your booking has been revoked.";
+        const html = `
+                <p>Dear ${fetchBooking.rows[0].patient_name.split(" ").map(word => word[0].toUpperCase() + word.slice(1)).join(" ")}</p>
+                <p>This is to inform you that your scheduled appointment with Dr. ${fetchBooking.rows[0].doctor_name.split(" ").map(word => word[0].toUpperCase() + word.slice(1)).join(" ")} has been cancelled by the clinic.</p>
+                <p>Please Visit our website to schedule another appointment.</p>
+                `;
+
+        await sendEmail({ to, subject, html });
+
+    } catch (error) {
+        console.error("adminRevokeBooking error:", error);
+        return { ok: false, message: "Something went wrong." };
+    }
+
+    redirect("/dashboard");
+}
+
+
+export async function doctorRevokeBookings(_, formData) {
+    try {
+        const bookingsDate = formData.get("bookingsDate");
+        const doctorPubId = formData.get("doctorPubId");
+
+        if (!bookingsDate || !doctorPubId) {
+            return { ok: false, message: "Missing required fields." };
+        }
+
+        const user = await getUser();
+        if (!user) return { ok: false, message: "Unauthorized." };
+        if (user.role !== "doctor") return { ok: false, message: "Forbidden." };
+
+        const fetchDoctor = await db.execute(
+            "SELECT * FROM doctors WHERE public_id = ?",
+            [doctorPubId]
+        );
+        if (fetchDoctor.rows.length === 0) return { ok: false, message: "Doctor not found." };
+
+        const doctor = fetchDoctor.rows[0];
+        if (doctor.id !== user.doctor_id) return { ok: false, message: "Forbidden." };
+
+        const res = await db.execute(
+            `UPDATE bookings SET status = 'revoked' WHERE doctor_id = ? AND booking_date_iso = ? AND status != 'revoked' RETURNING patient_email, patient_name, doctor_name`,
+            [doctor.id, bookingsDate]
+        );
+
+        if (res.rows.length > 0) {
+            await sendCancelationEmails(res.rows, 100);
+        }
+
+    } catch (error) {
+        console.error("doctorRevokeBookings error:", error);
+        return { ok: false, message: "Something went wrong." };
+    }
+
+    redirect("/dashboard");
+}
+
+
+export async function doctorRevokeBooking(_, formData) {
+    try {
+        const bookingPubId = formData.get("bookingPubId");
+        const doctorPubId = formData.get("doctorPubId");
+
+        if (!bookingPubId || !doctorPubId) {
+            return { ok: false, message: "Missing required fields." };
+        }
+
+        const user = await getUser();
+        if (!user) return { ok: false, message: "Unauthorized." };
+        if (user.role !== "doctor") return { ok: false, message: "Forbidden." };
+
+        const fetchDoctor = await db.execute(
+            "SELECT * FROM doctors WHERE public_id = ?",
+            [doctorPubId]
+        );
+        if (fetchDoctor.rows.length === 0) return { ok: false, message: "Doctor not found." };
+
+        const doctor = fetchDoctor.rows[0];
+        if (doctor.id !== user.doctor_id) return { ok: false, message: "Forbidden." };
+
+        const fetchBooking = await db.execute(
+            "SELECT * FROM bookings WHERE public_id = ? AND doctor_id = ?",
+            [bookingPubId, doctor.id]
+        );
+        if (fetchBooking.rows.length === 0) {
+            return { ok: false, message: "Booking not found or access denied." };
+        }
+        if (fetchBooking.rows[0].status === "revoked") {
+            return { ok: false, message: "Booking is already revoked." };
+        }
+
+        await db.execute(
+            "UPDATE bookings SET status = 'revoked' WHERE public_id = ? AND doctor_id = ?",
+            [bookingPubId, doctor.id]
+        );
+
+        const booking = fetchBooking.rows[0];
+        const to = booking.patient_email;
+        const subject = "Your booking has been revoked.";
+        const html = `
+                <p>Dear ${booking.patient_name.split(" ").map(word => word[0].toUpperCase() + word.slice(1)).join(" ")}</p>
+                <p>This is to inform you that your scheduled appointment with Dr. ${booking.doctor_name.split(" ").map(word => word[0].toUpperCase() + word.slice(1)).join(" ")} has been cancelled by the clinic.</p>
+                <p>Please Visit our website to schedule another appointment.</p>
+                `;
+
+        await sendEmail({ to, subject, html });
+
+    } catch (error) {
+        console.error("doctorRevokeBooking error:", error);
+        return { ok: false, message: "Something went wrong." };
+    }
+
+    redirect("/dashboard");
+}
+`
+```
+
+## src/app/edit-doctor/page.jsx
+
+`
+```
+import { db } from "../lib/turso";
+import ByDoctors from "../components/ByDoctors";
+import { getUserPlus } from "../lib/getUser";
+
+export default async function EditDoctors() {
+
+    const currentUser = await getUserPlus();
+    if (!currentUser || currentUser.role !== "admin" || !currentUser.admin_id) redirect("/login");
+    const adminId = currentUser.admin_id;
+
+    const fetchDoctors = await db.execute(`SELECT * FROM doctors WHERE admin_id = ?`, [adminId]);
+
+    return (<>
+        <ByDoctors fetchedDoctors={fetchDoctors} navString="edit-doctor" />
+    </>);
+}
+`
+```
+
+## src/app/edit-doctor/[docPubId]/page.jsx
+
+`
+```
+import { db } from "@/app/lib/turso";
+import { addDoctorTreatment, deleteDoctor, editDoctorServerAction, removeDoctorTreatment } from "./sa";
+import Form from "next/form";
+import { getUserPlus } from "@/app/lib/getUser";
+
+export default async function EditDoctor({ params }) {
+
+    const currentUser = await getUserPlus();
+    if (!currentUser || currentUser.role !== "admin" || !currentUser.admin_id) redirect("/login");
+    const adminId = currentUser.admin_id;
+
+    const { docPubId } = await params;
+
+    const fetchDoctor = await db.execute(
+        `SELECT id FROM doctors WHERE admin_id = ? AND public_id = ?`,
+        [adminId, docPubId]
+    );
+
+    if (fetchDoctor.rows.length === 0) {
+        return <p>Broken link. Doctor not found.</p>;
+    }
+
+    const doctorId = fetchDoctor.rows[0].id;
+
+    const fetchDepartments = await db.execute(`SELECT department FROM doctors WHERE admin_id = ?`, [adminId]);
+    let departments = fetchDepartments?.rows.map(dep => dep.department[0].toUpperCase() + dep.department.slice(1).toLowerCase());
+    departments = [...new Set(departments)];
+
+    const fetchTreatments = await db.execute(`SELECT name, duration FROM treatments WHERE admin_id = ?`, [adminId]);
+
+    const fetchDetails = await db.execute(`
+        SELECT 
+            doctors.name AS doctor_name,
+            GROUP_CONCAT(treatments.name || ' - ' || treatments.duration || 'min', ' , ') AS treatments,
+            doctors.*
+        FROM doctors
+        LEFT JOIN doctor_treatments ON doctors.id = doctor_treatments.doctor_id 
+            AND doctors.admin_id = doctor_treatments.admin_id
+        LEFT JOIN treatments ON doctor_treatments.treatment_id = treatments.id
+        WHERE doctors.admin_id = ? AND doctors.id = ?
+    `, [adminId, doctorId]);
+
+    const doctorData = fetchDetails.rows[0];
+
+    const treatmentsArr = doctorData.treatments
+        ? doctorData.treatments.split(',').map(t => {
+            const [name, dur] = t.split(' - ');
+            return name[0].toUpperCase() + name.slice(1).toLowerCase() + ' - ' + dur;
+        })
+        : [];
+
+    const treatments = fetchTreatments?.rows
+        .map(fn => fn.name[0].toUpperCase() + fn.name.slice(1).toLowerCase() + " - " + fn.duration + "min")
+        .filter(t => !treatmentsArr.includes(t));
+
+    const qualifications = doctorData.qualifications ? JSON.parse(doctorData.qualifications) : [];
+
+    return (
+        <>
+            <div>Editing: {doctorData?.doctor_name}</div>
+
+            <label>Add Additional Treatments</label>
+            <Form action={addDoctorTreatment}>
+                <input type="hidden" name="doctor_pubId" value={docPubId} />
+                <select name="treatment">
+                    <option>Select Additional Treatments</option>
+                    {treatments?.map((treatment, idx) => <option key={idx} value={treatment}>{treatment}</option>)}
+                </select>
+                <button type="submit">Add</button>
+            </Form>
+
+            <label>Remove Treatments</label>
+            <Form action={removeDoctorTreatment}>
+                <input type="hidden" name="doctor_pubId" value={docPubId} />
+                <select name="remove_treatment">
+                    <option>Select Treatments to Remove</option>
+                    {treatmentsArr?.map((treatment, idx) => <option key={idx} value={treatment}>{treatment}</option>)}
+                </select>
+                <button type="submit">Remove</button>
+            </Form>
+
+            <Form action={editDoctorServerAction}>
+                <input type="hidden" name="doctor_pubId" value={docPubId} />
+                <input type="text" name="name" placeholder="Name" defaultValue={doctorData.doctor_name[0].toUpperCase() + doctorData.doctor_name.slice(1)} />
+                <input list="departments" name="department" placeholder="Department" defaultValue={doctorData.department[0].toUpperCase() + doctorData.department.slice(1)} />
+                <datalist id="departments">
+                    {departments?.map((dep, idx) => <option key={idx} value={dep} />)}
+                </datalist>
+                <input type="text" name="qualification" placeholder="Qualifications" defaultValue={qualifications.join(", ")} />
+                <input type="submit" value="Submit" />
+            </Form>
+
+            <div>
+                <p>Name: {doctorData.doctor_name[0].toUpperCase() + doctorData.doctor_name.slice(1)}</p>
+                <p>Department: {doctorData.department[0].toUpperCase() + doctorData.department.slice(1)}</p>
+                <p>Qualifications: {qualifications.join(", ").toUpperCase() || "None"}</p>
+                <p>Treatments: {doctorData.treatments || 'None'}</p>
+            </div>
+
+            <Form action={deleteDoctor}>
+                <input type="hidden" name="doctor_pubId" value={docPubId} />
+                <button type="submit">Delete Doctor</button>
+            </Form>
+        </>
+    );
+}
+`
+```
+
+## src/app/edit-doctor/[docPubId]/sa.js
+
+`
+```
+"use server";
+
+import { getUserPlus } from "@/app/lib/getUser";
+import { db } from "@/app/lib/turso";
+import { nanoid } from "nanoid";
+import { redirect } from "next/navigation";
+
+async function verify() {
+    const currentUser = await getUserPlus();
+    if (!currentUser || currentUser.role !== "admin" || !currentUser.admin_id) redirect("/login");
+    return currentUser.admin_id;
+}
+
+async function getDoctorId(doctorPubId, adminId) {
+    if (!doctorPubId) return null;
+    const result = await db.execute(
+        `SELECT id FROM doctors WHERE public_id = ? AND admin_id = ?`,
+        [doctorPubId, adminId]
+    );
+    if (result.rows.length === 0) return null;
+    return result.rows[0].id;
+}
+
+async function getTreatmentId(treatmentStr, adminId) {
+    if (!treatmentStr) return null;
+    const parts = treatmentStr.split(" - ");
+    if (parts.length !== 2) return null;
+    const name = parts[0]?.toLowerCase();
+    const duration = parseInt(parts[1]);
+    if (!name || isNaN(duration)) return null;
+    const result = await db.execute(
+        `SELECT id FROM treatments WHERE LOWER(name) = ? AND duration = ? AND admin_id = ?`,
+        [name, duration, adminId]
+    );
+    if (result.rows.length === 0) return null;
+    return result.rows[0].id;
+}
+
+export async function editDoctorServerAction(formData) {
+
+    const adminId = await verify();
+    if (!adminId) return null;
+
+
+    const doctorPubId = formData?.get("doctor_pubId");
+    const name = formData?.get("name");
+    const department = formData?.get("department");
+    const qualification = formData.get("qualification")?.toString().split(/[ ,]+/).filter(Boolean).map(q => q.trim().toLowerCase());
+
+    if (!doctorPubId || !name || !department) return null;
+
+    try {
+        const doctorId = await getDoctorId(doctorPubId, adminId);
+        if (!doctorId) return null;
+
+        await db.execute(
+            `UPDATE doctors SET name = ?, department = ?, qualifications = ? WHERE id = ? AND admin_id = ?`,
+            [name.toLowerCase(), department.toLowerCase(), JSON.stringify(qualification), doctorId, adminId]
+        );
+    } catch (error) {
+        console.error(error);
+        return null;
+    }
+    redirect(`/edit-doctor/${doctorPubId}`);
+}
+
+export async function removeDoctorTreatment(formData) {
+
+    const adminId = await verify();
+    if (!adminId) return null;
+
+    const doctorPubId = formData?.get("doctor_pubId");
+    const treatmentStr = formData?.get("remove_treatment");
+    if (!doctorPubId || !treatmentStr) return null;
+    try {
+        const doctorId = await getDoctorId(doctorPubId, adminId);
+        const treatmentId = await getTreatmentId(treatmentStr, adminId);
+        if (!doctorId || !treatmentId) return null;
+        await db.execute(
+            `DELETE FROM doctor_treatments WHERE doctor_id = ? AND treatment_id = ? AND admin_id = ?`,
+            [doctorId, treatmentId, adminId]
+        );
+    } catch (error) {
+        console.error(error);
+        return null;
+    }
+    redirect(`/edit-doctor/${doctorPubId}`);
+}
+
+export async function addDoctorTreatment(formData) {
+
+    const adminId = await verify();
+    if (!adminId) return null;
+
+    const doctorPubId = formData?.get("doctor_pubId");
+    const treatmentStr = formData?.get("treatment");
+    if (!doctorPubId || !treatmentStr) return null;
+    try {
+        const doctorId = await getDoctorId(doctorPubId, adminId);
+        const treatmentId = await getTreatmentId(treatmentStr, adminId);
+        if (!doctorId || !treatmentId) return null;
+        await db.execute(
+            `INSERT OR IGNORE INTO doctor_treatments (public_id, admin_id, doctor_id, treatment_id) VALUES (?, ?, ?, ?)`,
+            [nanoid(12), adminId, doctorId, treatmentId]
+        );
+    } catch (error) {
+        console.error(error);
+        return null;
+    }
+    redirect(`/edit-doctor/${doctorPubId}`);
+}
+
+export async function deleteDoctor(formData) {
+
+    const adminId = await verify();
+    if (!adminId) return null;
+
+    const doctorPubId = formData?.get("doctor_pubId");
+    if (!doctorPubId) return null;
+    try {
+        const doctorId = await getDoctorId(doctorPubId, adminId);
+        if (!doctorId) return null;
+        await db.execute(`DELETE FROM doctors WHERE id = ? AND admin_id = ?`, [doctorId, adminId]);
+    } catch (error) {
+        console.error(error);
+        return null;
+    }
+    redirect(`/add-doctor`);
+}
+`
+```
+
+## src/app/edit-slot/[pubId]/page.jsx
+
+`
+```
+import { db } from "@/app/lib/turso";
+import { getDayName, getMonthName } from "@/app/utils/getDateData";
+import { minutesToMeridiem } from "@/app/utils/minutes-to-meridiem";
+import Form from "next/form";
+import { editSlotServerAction } from "./sa";
+import { rollingWindow } from "@/app/lib/rollingWindow";
+import { getUser, getUserPlus } from "@/app/lib/getUser";
+
+export default async function EditSlot({ params }) {
+
+    const currentUser = await getUser();
+    if (!currentUser || currentUser.role !== "admin" || !currentUser.admin_id) redirect("/login");
+    const adminId = currentUser.admin_id;
+
+    const { pubId } = await params;
+
+
+    const fetchSlot = await db.execute(`SELECT * FROM slots WHERE public_id = ? AND admin_id = ?`, [pubId, adminId]);
+
+    if (fetchSlot.rows.length === 0) return <p>Broken link. Slot not found.</p>
+
+    const { public_id, doctor_id, status, day_number, month_number, year, date_number, start_time, end_time, break_start, break_end, buffer_minutes } = fetchSlot.rows[0];
+
+    const fetchDoctor = await db.execute(`SELECT * FROM doctors WHERE id = ? AND admin_id = ?`, [doctor_id, adminId]);
+
+    if (fetchDoctor.rows.length === 0) return <p>Broken link. Doctor not found.</p>
+
+    const { name, department } = fetchDoctor.rows[0];
+
+    const dummyHrs = Array.from({ length: 12 }, (_, i) => String(i + 1).padStart(2, '0'));
+    const dummyMinutes = Array.from({ length: 60 }, (_, i) => String(i).padStart(2, '0'));
+    const meridiem = ["AM", "PM"];
+    const statusArr = ["active", "inactive"];
+
+    return (<>
+        <h1>Slot: {getDayName(day_number)} {getMonthName(month_number)} {date_number >= 10 ? date_number : '0' + date_number} {year} For Dr. {name[0].toUpperCase() + name.slice(1)} From {department} Department </h1>
+
+        <Form action={editSlotServerAction}>
+            <input type="hidden" name="slotPubId" value={public_id} />
+
+            <div className="border-2 border-amber-100 p-2 mb-4">
+                <label className="block font-bold">Status</label>
+                <select name="status" defaultValue={status}>
+                    {statusArr.map((fn) => (
+                        <option value={fn} key={fn}>
+                            {fn[0].toUpperCase() + fn.slice(1)}
+                        </option>
+                    ))}
+                </select>
+            </div>
+
+            <div className="border-2 border-amber-100 p-2 mb-4">
+                <label className="block font-bold">Clinic Start</label>
+                <select name="startHr" defaultValue={minutesToMeridiem(start_time, false).hrs} >
+                    {dummyHrs.map((hr) => <option value={hr} key={hr}>{hr}</option>)}
+                </select>
+                <select name="startMin" defaultValue={minutesToMeridiem(start_time, false).mins}>
+                    {dummyMinutes.map((min) => <option value={min} key={min}>{min}</option>)}
+                </select>
+                <select name="startMeridiem" defaultValue={minutesToMeridiem(start_time, false).meridiem}>
+                    {meridiem.map((mer) => <option value={mer} key={mer}>{mer}</option>)}
+                </select>
+            </div>
+
+            <div className="border-2 border-amber-100 p-2 mb-4">
+                <label className="block font-bold">Clinic End</label>
+                <select name="endHr" defaultValue={minutesToMeridiem(end_time, false).hrs} >
+                    {dummyHrs.map((hr) => <option value={hr} key={hr}>{hr}</option>)}
+                </select>
+                <select name="endMin" defaultValue={minutesToMeridiem(end_time, false).mins}>
+                    {dummyMinutes.map((min) => <option value={min} key={min}>{min}</option>)}
+                </select>
+                <select name="endMeridiem" defaultValue={minutesToMeridiem(end_time, false).meridiem}>
+                    {meridiem.map((mer) => <option value={mer} key={mer}>{mer}</option>)}
+                </select>
+            </div>
+
+            <div className="border-2 border-blue-100 p-2 mb-4">
+                <label className="block font-bold">Break Start</label>
+                <select name="breakStartHr" defaultValue={minutesToMeridiem(break_start, false).hrs} >
+                    {dummyHrs.map((hr) => <option value={hr} key={hr}>{hr}</option>)}
+                </select>
+                <select name="breakStartMin" defaultValue={minutesToMeridiem(break_start, false).mins}>
+                    {dummyMinutes.map((min) => <option value={min} key={min}>{min}</option>)}
+                </select>
+                <select name="breakStartMeridiem" defaultValue={minutesToMeridiem(break_start, false).meridiem}>
+                    {meridiem.map((mer) => <option value={mer} key={mer}>{mer}</option>)}
+                </select>
+            </div>
+
+            <div className="border-2 border-blue-100 p-2 mb-4">
+                <label className="block font-bold">Break End</label>
+                <select name="breakEndHr" defaultValue={minutesToMeridiem(break_end, false).hrs} >
+                    {dummyHrs.map((hr) => <option value={hr} key={hr}>{hr}</option>)}
+                </select>
+                <select name="breakEndMin" defaultValue={minutesToMeridiem(break_end, false).mins}>
+                    {dummyMinutes.map((min) => <option value={min} key={min}>{min}</option>)}
+                </select>
+                <select name="breakEndMeridiem" defaultValue={minutesToMeridiem(break_end, false).meridiem}>
+                    {meridiem.map((mer) => <option value={mer} key={mer}>{mer}</option>)}
+                </select>
+            </div>
+
+            <div className="border-2 border-blue-100 p-2 mb-4">
+                <label className="block font-bold">Buffer Minutes</label>
+                <input type="number" name="buffer" defaultValue={buffer_minutes} />
+            </div>
+
+            <button type="submit">Update</button>
+        </Form>
+    </>);
+}
+`
+```
+
+## src/app/edit-slot/[pubId]/sa.js
+
+`
+```
+"use server";
+
+import { db } from "@/app/lib/turso";
+import { redirect } from "next/navigation";
+import getMinutes from "@/app/utils/getMinutes";
+import { revalidatePath } from "next/cache";
+import { getUserPlus } from "@/app/lib/getUser";
+import { sendCancelationEmails } from "@/app/lib/sendCancelationEmail";
+
+export async function editSlotServerAction(formData) {
+    const currentUser = await getUserPlus();
+    if (!currentUser || currentUser.role !== "admin" || !currentUser.admin_id) redirect("/login");
+    const adminId = currentUser.admin_id;
+
+    const slotPubId = formData.get("slotPubId");
+    if (!slotPubId) redirect("/edit-template");
+
+    const fetchSlot = await db.execute(`SELECT * FROM slots WHERE public_id = ? AND admin_id = ?`, [slotPubId, adminId]);
+    if (fetchSlot?.rows.length === 0) redirect("/edit-slot");
+
+    const startTimeFromUser = getMinutes(formData.get("startHr"), formData.get("startMin"), formData.get("startMeridiem"));
+    const endTimeFromUser = getMinutes(formData.get("endHr"), formData.get("endMin"), formData.get("endMeridiem"));
+    const breakStartromUser = getMinutes(formData.get("breakStartHr"), formData.get("breakStartMin"), formData.get("breakStartMeridiem"));
+    const breakEndromUser = getMinutes(formData.get("breakEndHr"), formData.get("breakEndMin"), formData.get("breakEndMeridiem"));
+
+    const bufferTimeromUser = formData.get("buffer");
+    const statusromUser = formData.get("status");
+
+    if (startTimeFromUser === null || endTimeFromUser === null || breakStartromUser === null || breakEndromUser === null || !bufferTimeromUser || !statusromUser) {
+        redirect("/edit-template");
+    }
+
+    const { id, status, start_time, end_time, break_start, break_end, buffer_minutes } = fetchSlot.rows[0];
+
+    if (status === statusromUser && start_time === startTimeFromUser && end_time === endTimeFromUser && break_start === breakStartromUser && break_end === breakEndromUser && buffer_minutes === Number(bufferTimeromUser)) {
+        redirect(`/edit-slot/${slotPubId}`);
+    }
+
+    try {
+        await db.execute(
+            `UPDATE slots SET status = ?, start_time = ?, end_time = ?, break_start = ?, break_end = ?, buffer_minutes = ? WHERE id = ?`,
+            [statusromUser, startTimeFromUser, endTimeFromUser, breakStartromUser, breakEndromUser, Number(bufferTimeromUser), id]
+        );
+
+        const dateIso = fetchSlot.rows[0].full_date_at_period.split("T")[0];
+
+        const getAndUpdateBookings = await db.execute(
+            `UPDATE bookings SET status = 'revoked' WHERE admin_id = ? AND booking_date_iso = ? AND status != 'revoked' RETURNING patient_email, patient_name, doctor_name`, [adminId, dateIso]);
+
+        if (getAndUpdateBookings.rows.length > 0) {
+            await sendCancelationEmails(getAndUpdateBookings.rows, 100);
+        }
+
+
+
+    } catch (e) {
+        console.error("Update failed:", e);
+        throw new Error("Could not update slot");
+    }
+
+    revalidatePath(`/edit-slot/${slotPubId}`);
+    redirect(`/edit-slot/${slotPubId}`);
+}
+`
+```
+
+## src/app/edit-template/page.jsx
+
+`
+```
+import { db } from "../lib/turso";
+import ByDoctors from "../components/ByDoctors";
+import { getUserPlus } from "../lib/getUser";
+
+export default async function EditTemplate() {
+
+    const currentUser = await getUserPlus();
+    if (!currentUser || currentUser.role !== "admin" || !currentUser.admin_id) redirect("/login");
+    const adminId = currentUser.admin_id;
+
+    const fetchDoctors = await db.execute(`SELECT * FROM doctors WHERE admin_id = ?`, [adminId]);
+
+    return (<>
+        <ByDoctors fetchedDoctors={fetchDoctors} navString="edit-template" />
+    </>);
+}
+`
+```
+
+## src/app/edit-template/[docPubId]/page.jsx
+
+`
+```
+import { db } from "@/app/lib/turso";
+import Link from "next/link";
+import { minutesToMeridiem } from "@/app/utils/minutes-to-meridiem";
+import { getDayName } from "@/app/utils/getDateData";
+import { getUserPlus } from "@/app/lib/getUser";
+
+
+export default async function DoctorEditTemplates({ params }) {
+
+    const currentUser = await getUserPlus();
+    if (!currentUser || currentUser.role !== "admin" || !currentUser.admin_id) redirect("/login");
+
+    const { docPubId } = await params;
+    const adminId = currentUser.admin_id;
+
+    const fetchDoctor = await db.execute(`SELECT * FROM doctors WHERE public_id = ? AND admin_id = ?`, [docPubId, adminId]);
+    if (fetchDoctor.rows.length === 0) return <p>Broken link. Doctor not found.</p>
+
+    const { name, id } = fetchDoctor.rows[0];
+
+    const fetchTemplates = await db.execute(`SELECT * FROM weekly_templates WHERE doctor_id = ? AND admin_id = ?`, [id, adminId]);
+    if (fetchTemplates.rows.length === 0) return <p>No templates found.  <Link href={`/create-template/${docPubId}`}>Click Here⬅</Link></p>
+
+
+    return (<>
+        <h2>Dr. {name[0].toUpperCase() + name.slice(1)}'s Templates</h2>
+        {fetchTemplates.rows.map(temp => (
+            <div key={temp.public_id} className="border-2 border-amber-50" >
+                <p>Template Day: {getDayName(temp.day_number)}</p>
+                <p>Clinic Time: {minutesToMeridiem(temp.start_time, true)} - {minutesToMeridiem(temp.end_time, true)}</p>
+                <p>Break Duration: {minutesToMeridiem(temp.break_start, true)} - {minutesToMeridiem(temp.break_end, true)}</p>
+                <p>Buffer: {temp.buffer_minutes} minutes</p>
+                <Link href={`/edit-template/${docPubId}/${temp.public_id}`}>Edit⬅</Link>
+            </div>
+        ))}
+
+        <Link href={`/create-template/${docPubId}`}>Create New Template</Link>
+
+
+    </>);
+}
+
+`
+```
+
+## src/app/edit-template/[docPubId]/[templatePubId]/page.jsx
+
+`
+```
+import { db } from "@/app/lib/turso";
+import { getDayName } from "@/app/utils/getDateData";
+import { minutesToMeridiem } from "@/app/utils/minutes-to-meridiem";
+import Form from "next/form";
+import Link from "next/link";
+import { updateWeeklyTemplateServerAction } from "./SA";
+import { getUserPlus } from "@/app/lib/getUser";
+
+export default async function EditDoctorTemplate({ params }) {
+
+    const currentUser = await getUserPlus();
+    if (!currentUser || currentUser.role !== "admin" || !currentUser.admin_id) redirect("/login");
+    const adminId = currentUser.admin_id;
+
+    const { docPubId, templatePubId } = await params;
+
+
+    const fetchDoctor = await db.execute(`SELECT * FROM doctors WHERE public_id = ? AND admin_id = ?`, [docPubId, adminId]);
+    if (fetchDoctor.rows.length === 0) return <p>Broken link. Doctor not found.</p>
+
+    const { name, id } = fetchDoctor.rows[0];
+
+    const fetchTemplate = await db.execute(`SELECT * FROM weekly_templates WHERE public_id = ? AND doctor_id = ? AND admin_id = ?`, [templatePubId, id, adminId]);
+
+    if (fetchTemplate.rows.length === 0) return <p>No templates found.  <Link href={`/create-template/${docPubId}`}>Click Here⬅</Link></p>
+
+    let template = fetchTemplate.rows[0];
+
+    console.log(template)
+
+    const dummyHrs = [];
+    for (let i = 1; i <= 12; i++) {
+        if (i < 10) dummyHrs.push("0" + i);
+        else dummyHrs.push(String(i));
+    }
+
+    const dummyMinutes = [];
+    for (let i = 0; i <= 59; i++) {
+        if (i < 10) dummyMinutes.push("0" + i);
+        else dummyMinutes.push(String(i));
+    }
+
+    const meridiem = ["AM", "PM"];
+
+    return (<>
+        <h1>Dr. {name[0].toUpperCase() + name.slice(1)}'s {getDayName(template.day_number)} Template</h1>
+
+        <Form action={updateWeeklyTemplateServerAction}>
+            <input type="hidden" name="doctorPublicId" value={docPubId} />
+            <input type="hidden" name="templatePublicId" value={templatePubId} />
+
+
+            <div className="border-2 border-amber-100 p-2 mb-4">
+                <label className="block font-bold">Clinic Start</label>
+                <select name="startHr" defaultValue={minutesToMeridiem(template.start_time, false).hrs} >
+                    {dummyHrs.map((hr) => (
+                        <option value={hr} key={hr}>
+                            {hr}
+                        </option>
+                    ))}
+                </select>
+                <select name="startMin" defaultValue={minutesToMeridiem(template.start_time, false).mins}>
+                    {dummyMinutes.map((min) => (
+                        <option value={min} key={min}>
+                            {min}
+                        </option>
+                    ))}
+                </select>
+                <select name="startMeridiem" defaultValue={minutesToMeridiem(template.start_time, false).meridiem}>
+                    {meridiem.map((mer) => (
+                        <option value={mer} key={mer}>
+                            {mer}
+                        </option>
+                    ))}
+                </select>
+            </div>
+
+            <div className="border-2 border-amber-100 p-2 mb-4">
+                <label className="block font-bold">Clinic End</label>
+                <select name="endHr" defaultValue={minutesToMeridiem(template.end_time, false).hrs} >
+                    {dummyHrs.map((hr) => (
+                        <option value={hr} key={hr}>
+                            {hr}
+                        </option>
+                    ))}
+                </select>
+                <select name="endMin" defaultValue={minutesToMeridiem(template.end_time, false).mins}>
+                    {dummyMinutes.map((min) => (
+                        <option value={min} key={min}>
+                            {min}
+                        </option>
+                    ))}
+                </select>
+                <select name="endMeridiem" defaultValue={minutesToMeridiem(template.end_time, false).meridiem}>
+                    {meridiem.map((mer) => (
+                        <option value={mer} key={mer}>
+                            {mer}
+                        </option>
+                    ))}
+                </select>
+            </div>
+
+            <div className="border-2 border-blue-100 p-2 mb-4">
+                <label className="block font-bold">Break Start</label>
+                <select name="breakStartHr" defaultValue={minutesToMeridiem(template.break_start, false).hrs} >
+                    {dummyHrs.map((hr) => (
+                        <option value={hr} key={hr}>
+                            {hr}
+                        </option>
+                    ))}
+                </select>
+                <select name="breakStartMin" defaultValue={minutesToMeridiem(template.break_start, false).mins}>
+                    {dummyMinutes.map((min) => (
+                        <option value={min} key={min}>
+                            {min}
+                        </option>
+                    ))}
+                </select>
+                <select name="breakStartMeridiem" defaultValue={minutesToMeridiem(template.break_start, false).meridiem}>
+                    {meridiem.map((mer) => (
+                        <option value={mer} key={mer}>
+                            {mer}
+                        </option>
+                    ))}
+                </select>
+            </div>
+
+            <div className="border-2 border-blue-100 p-2 mb-4">
+                <label className="block font-bold">Break End</label>
+                <select name="breakEndHr" defaultValue={minutesToMeridiem(template.break_end, false).hrs} >
+                    {dummyHrs.map((hr) => (
+                        <option value={hr} key={hr}>
+                            {hr}
+                        </option>
+                    ))}
+                </select>
+                <select name="breakEndMin" defaultValue={minutesToMeridiem(template.break_end, false).mins}>
+                    {dummyMinutes.map((min) => (
+                        <option value={min} key={min}>
+                            {min}
+                        </option>
+                    ))}
+                </select>
+                <select name="breakEndMeridiem" defaultValue={minutesToMeridiem(template.break_end, false).meridiem}>
+                    {meridiem.map((mer) => (
+                        <option value={mer} key={mer}>
+                            {mer}
+                        </option>
+                    ))}
+                </select>
+            </div>
+
+            <div className="border-2 border-blue-100 p-2 mb-4">
+                <label className="block font-bold">Buffer Minutes</label>
+                <input type="text" name="buffer" defaultValue={template.buffer_minutes} />
+            </div>
+
+            <button type="submit">Update</button>
+        </Form>
+
+    </>);
+}
+`
+```
+
+## src/app/edit-template/[docPubId]/[templatePubId]/SA.js
+
+`
+```
+"use server";
+
+import { db } from "@/app/lib/turso";
+import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
+import getMinutes from "@/app/utils/getMinutes"; // Adjust path if needed
+import { getUserPlus } from "@/app/lib/getUser";
+import { rollingWindow } from "@/app/lib/rollingWindow";
+
+export async function updateWeeklyTemplateServerAction(formData) {
+
+  const currentUser = await getUserPlus();
+  if (!currentUser || currentUser.role !== "admin" || !currentUser.admin_id) redirect("/login");
+
+  const adminId = currentUser.admin_id;
+
+
+  const docPubId = formData.get("doctorPublicId");
+  if (!docPubId) return redirect("/edit-template");
+
+  const fetchDocId = await db.execute(`SELECT id FROM doctors WHERE public_id = ? AND admin_id = ?`, [docPubId, adminId]);
+  if (fetchDocId?.rows.length === 0) return redirect("/edit-template");
+
+  const templatePubId = formData.get("templatePublicId");
+  if (!templatePubId) return redirect("/edit-template");
+
+
+  const fetchTemplateId = await db.execute(`SELECT id FROM weekly_templates WHERE public_id = ? AND doctor_id = ? AND admin_id = ?`, [templatePubId, fetchDocId.rows[0].id, adminId]);
+  if (fetchTemplateId?.rows.length === 0) return redirect("/edit-template");
+
+
+
+
+  const startTime = getMinutes(formData.get("startHr"), formData.get("startMin"), formData.get("startMeridiem"));
+  const endTime = getMinutes(formData.get("endHr"), formData.get("endMin"), formData.get("endMeridiem"));
+  const breakStart = getMinutes(formData.get("breakStartHr"), formData.get("breakStartMin"), formData.get("breakStartMeridiem"));
+  const breakEnd = getMinutes(formData.get("breakEndHr"), formData.get("breakEndMin"), formData.get("breakEndMeridiem"));
+
+  const buffer_time = Number(formData.get("buffer"));
+
+  if (!startTime || !endTime || !breakStart || !breakEnd || !buffer_time) return redirect("/edit-template")
+
+  try {
+    await db.execute({
+      sql: `UPDATE weekly_templates 
+            SET start_time = ?, end_time = ?, break_start = ?, break_end = ?, buffer_minutes = ?
+            WHERE id = ?`,
+      args: [startTime, endTime, breakStart, breakEnd, buffer_time, fetchTemplateId.rows[0].id]
+    });
+  } catch (e) {
+    console.error("Update failed:", e);
+    throw new Error("Could not update template");
+  }
+
+  //revalidatePath(`/edit-template/${docPubId}/${templatePubId}`);
+  redirect(`/edit-template/${docPubId}`);
+}
+`
+```
+
+## src/app/globals.css
+
+`
+```
+@import "tailwindcss";
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+  }
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+`
+```
+
+## src/app/layout.js
+
+`
+```
+import NavBar from "./components/Nav";
+import "./globals.css";
+
+
+export const metadata = {
+  title: "Create Next App",
+  description: "Generated by create next app",
+};
+
+export default function RootLayout({ children }) {
+
+  return (
+    <html lang="en" >
+      <body className="mb-46">
+        <NavBar />
+        {children}
+      </body>
+    </html>
+  );
+}
+
+`
+```
+
+## src/app/lib/generateTicketPdf.js
+
+`
+```
+// app/actions/generateTicketPdf.js
+"use server";
+
+import { db } from "@/app/lib/turso";
+import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
+import { getMonthName } from "@/app/utils/getDateData";
+import { minutesToMeridiem } from "@/app/utils/minutes-to-meridiem";
+
+export async function generateTicketPdf(bookingPubId) {
+    if (!bookingPubId) throw new Error("Missing bookingPubId");
+
+    const adminId = 1;
+
+    const result = await db.execute(
+        `
+    SELECT 
+      b.*,
+      d.name AS doctor_name,
+      d.qualifications,
+      d.department,
+      t.name AS treatment_name,
+      t.duration
+    FROM bookings b
+    LEFT JOIN doctors d ON b.doctor_id = d.id
+    LEFT JOIN treatments t ON b.treatment_id = t.id
+    WHERE b.public_id = ? AND b.admin_id = ?
+    `,
+        [bookingPubId, adminId]
+    );
+
+    if (result.rows.length === 0) throw new Error("Booking not found");
+
+    const booking = result.rows[0];
+
+    if (booking.status !== "verified") {
+        throw new Error("Not verified");
+    }
+
+    // ---- FORMAT LAYER (server responsibility) ----
+
+    const date = `${booking.date_number} ${getMonthName(
+        booking.month_number
+    )} ${booking.year}`;
+
+    const time = `${minutesToMeridiem(
+        booking.treatment_start,
+        true
+    )} - ${minutesToMeridiem(booking.treatment_end, true)}`;
+
+    const patientName = booking.patient_name
+        ?.split(" ")
+        .map((w) => w[0].toUpperCase() + w.slice(1))
+        .join(" ");
+
+    const doctorName = booking.doctor_name
+        ?.split(" ")
+        .map((w) => w[0].toUpperCase() + w.slice(1))
+        .join(" ");
+
+    const treatmentName = booking.treatment_name?.split("_").map((w) => w[0].toUpperCase() + w.slice(1)).join(" ");
+
+
+    // ---- PDF GENERATION ----
+
+    const pdfDoc = await PDFDocument.create();
+    const page = pdfDoc.addPage([420, 300]);
+
+    const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+    const { height } = page.getSize();
+
+    let y = height - 30;
+
+    function draw(text, size = 12) {
+        page.drawText(text, {
+            x: 20,
+            y,
+            size,
+            font,
+            color: rgb(0, 0, 0),
+        });
+        y -= size + 8;
+    }
+
+    // ---- STRUCTURED LAYOUT ----
+
+    draw("Appointment Ticket", 16);
+    draw("------------------------------");
+
+    draw(`Patient: ${patientName}`);
+    draw(`Email: ${booking.patient_email}`);
+    draw(`Phone: ${booking.patient_phone}`);
+
+    draw("------------------------------");
+
+    draw(`Doctor: ${doctorName.split(" ").map(word => word[0].toUpperCase() + word.slice(1)).join(" ")}`);
+    draw(`Department: ${booking.department || "-"}`);
+    draw(`Qualifications: ${JSON.parse(booking.qualifications).map(fn => fn.toUpperCase()).join(", ") || "-"}`);
+
+    draw("------------------------------");
+
+    draw(`Treatment: ${treatmentName}`);
+    draw(`Duration: ${booking.duration || "-"} mins`);
+
+    draw("------------------------------");
+
+    draw(`Date: ${date}`);
+    draw(`Time: ${time}`);
+
+    draw("------------------------------");
+
+    draw(`Booking ID: ${booking.public_id}`, 10);
+
+    const pdfBytes = await pdfDoc.save();
+
+    return pdfBytes;
+}
+`
+```
+
+## src/app/lib/getUser.js
+
+`
+```
+"use server";
+
+import { cookies } from "next/headers";
+import { db } from "./turso";
+
+export async function getUser() {
+    try {
+        const cookieStore = await cookies();
+        const token = cookieStore.get("token");
+        if (!token) return null;
+
+        const fetchSession = await db.execute("SELECT * FROM sessions WHERE session_id = ? AND expires_at > CURRENT_TIMESTAMP", [token.value]);
+        if (fetchSession.rows.length === 0) return null;
+
+        const fetchUser = await db.execute("SELECT * FROM users WHERE id = ?", [fetchSession.rows[0].user_id]);
+        if (fetchUser.rows.length === 0) return null;
+
+        const user = fetchUser;
+
+        return user.rows[0];
+
+    } catch (error) {
+        console.error(error);
+        throw error;
+    }
+}
+
+
+export async function getUserPlus() {
+    try {
+        const cookieStore = await cookies();
+        const token = cookieStore.get("token");
+        if (!token) return null;
+
+        const fetchSession = await db.execute("SELECT * FROM sessions WHERE session_id = ? AND expires_at > CURRENT_TIMESTAMP", [token.value]);
+        if (fetchSession.rows.length === 0) return null;
+
+        const fetchUser = await db.execute("SELECT * FROM users WHERE id = ?", [fetchSession.rows[0].user_id]);
+        if (fetchUser.rows.length === 0) return null;
+
+        const user = fetchUser.rows[0];
+
+        if (user.role === "admin") {
+            const fetchAdmin = await db.execute("SELECT * FROM admins WHERE id = ?", [user.admin_id]);
+            if (fetchAdmin.rows.length === 0) return null;
+            user.admin_details = fetchAdmin.rows[0];
+        }
+        if (user.role === "doctor") {
+            const fetchDoctor = await db.execute("SELECT * FROM doctors WHERE id = ?", [user.doctor_id]);
+            if (fetchDoctor.rows.length === 0) return null;
+            user.doctor_details = fetchDoctor.rows[0];
+        }
+
+        return user;
+
+
+
+    } catch (error) {
+        console.error(error);
+        throw error;
+    }
+}
+`
+```
+
+## src/app/lib/resend.js
+
+`
+```
+'use server';
+
+import { Resend } from "resend";
+
+const resend = new Resend(process.env.RESEND_API_KEY);
+
+export async function sendEmail({ to, subject, html }) {
+    try {
+        const response = await resend.emails.send({
+            from: "NomiDev <bookings@nomidev.com>",
+            to: [to],
+            subject,
+            html
+        });
+
+        return {
+            success: true,
+            id: response.id
+        };
+
+    } catch (error) {
+        return {
+            success: false,
+            error: error.message
+        };
+    }
+}
+export async function sendBulkCancelationEmails(payload = {}) {
+
+    if (!payload) return null;
+
+    for (const chunk in payload) {
+        const clause = payload[chunk].map(item => {
+            return {
+                from: `NomiDev <bookings@nomidev.com>`,
+                to: [item.patient_email],
+                subject: "Appointment Cancellation",
+                html: `
+                <p>Dear ${item.patient_name.split(" ").map(word => word[0].toUpperCase() + word.slice(1)).join(" ")}</p>
+                <p>This is to inform you that your scheduled appointment with Dr. ${item.doctor_name.split(" ").map(word => word[0].toUpperCase() + word.slice(1)).join(" ")} has been cancelled by the clinic.</p>
+                <p>Please Visit our website to schedule another appointment.</p>
+                `
+            }
+        });
+
+        await resend.batch.send(clause);
+    }
+
+
+
+
+    console.dir(payload, { depth: null });
+
+    // try {
+    //     const response = await resend.batch.send(payload);
+
+    //     return {
+    //         success: true,
+    //         data: response.data
+    //     };
+
+    // } catch (error) {
+    //     return {
+    //         success: false,
+    //         error: error.message
+    //     };
+    // }
+}
+`
+```
+
+## src/app/lib/resendingEmail.js
+
+`
+```
+"use server";
+
+import { hash } from "../utils/bcrypt";
+import { sendEmail } from "./resend";
+import { db } from "./turso";
+import crypto from "crypto";
+
+export async function resendingEmail(_, formData) {
+
+    const adminId = 1;
+
+    const bookingPubId = formData.get("bookingPubId");
+    if (!bookingPubId) throw new Error("Missing required fields.");
+
+    const new_email_token = crypto.randomBytes(16).toString("hex");
+    const hashed = await hash(new_email_token);
+
+    try {
+
+        const fetch = await db.execute(`SELECT patient_email FROM bookings WHERE public_id = ?`, [bookingPubId]);
+        if (fetch.rows.length === 0) throw new Error("Invalid booking.");
+
+        await db.execute(`UPDATE bookings SET email_token_hash = ?, email_token_created_at = CURRENT_TIMESTAMP WHERE admin_id = ? AND public_id = ?`, [hashed, adminId, bookingPubId]);
+
+
+
+        const subject = `Book Your Slot`;
+        const to = fetch?.rows[0]?.patient_email;
+        const html = `
+           <p>Click on button to verify your email address.</p>
+           <a href="https://portfolio-lw35.vercel.app/verify/${new_email_token}/${bookingPubId}">Verify Email</a>
+           `;
+
+        const res = await sendEmail({ to, subject, html });
+        if (res.success === false) throw new Error(res.error);
+
+        return { ok: true, message: "Email sent successfully." };
+
+
+    } catch (error) {
+        console.error(error);
+        return { ok: false, message: error.message || "An unexpected error occurred." };
+    }
+
+}
+`
+```
+
+## src/app/lib/rollingWindow.js
+
+`
+```
+"use server";
+
+import { nanoid } from "nanoid";
+import { initSlotsTable } from "../Models/initTables";
+import { getDayName } from "../utils/getDateData";
+import { db } from "./turso";
+import { getUserPlus } from "./getUser";
+
+export async function rollingWindow(win = 31, adminId = null) {
+    await initSlotsTable();
+    try {
+
+
+        const fetchAllTemplates = await db.execute(`SELECT * FROM weekly_templates WHERE admin_id = ?`, [adminId])
+        if (fetchAllTemplates.rows.length === 0) return null;
+
+        const slotsArr = [];
+
+        const d = new Date();
+        for (let i = 0; i < win; i++) {
+
+            const current = new Date(d);
+            current.setDate(d.getDate() + i);
+
+            const dateAtPeriod = current.getDate();
+            const monthAtPeriod = current.getMonth();
+            const yearAtPeriod = current.getFullYear();
+            const dayNumAtPeriod = current.getDay();
+
+            const fullDateAtPeriodInIso = current.toISOString();
+
+            const tempelateAtPediod = fetchAllTemplates.rows.filter(fn => fn.day_number === dayNumAtPeriod);
+
+            const flatenTemplate = tempelateAtPediod.map(temp => ({
+                ...temp,
+                date_number: dateAtPeriod,
+                month_number: monthAtPeriod,
+                year: yearAtPeriod,
+                slot_public_id: nanoid(12),
+                status: "active",
+                full_date_at_period: fullDateAtPeriodInIso,
+            }));
+
+            slotsArr.push(...flatenTemplate);
+        }
+
+        const slotsArrSorted = slotsArr.sort((a, b) =>
+            a.year - b.year ||
+            a.month_number - b.month_number ||
+            a.date_number - b.date_number
+        );
+
+        const columns = `public_id, status, admin_id, doctor_id, day_number, month_number, year, date_number, start_time, end_time, break_start, break_end, buffer_minutes, full_date_at_period`;
+
+        const placeHolder = slotsArrSorted.map(() => `(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ? )`).join(", ");
+        const values = slotsArrSorted.flatMap(slot => [
+            slot.slot_public_id,
+            slot.status,
+            slot.admin_id,
+            slot.doctor_id,
+            slot.day_number,
+            slot.month_number,
+            slot.year,
+            slot.date_number,
+            slot.start_time,
+            slot.end_time,
+            slot.break_start,
+            slot.break_end,
+            slot.buffer_minutes,
+            slot.full_date_at_period,
+        ]);
+
+        await db.execute(
+            `INSERT INTO slots (${columns}) VALUES ${placeHolder}
+                    ON CONFLICT (admin_id, doctor_id, month_number, year, date_number)
+                    DO NOTHING`,
+            values
+        );
+
+    } catch (error) {
+        console.error(error);
+        return null;
+    }
+}
+`
+```
+
+## src/app/lib/sendCancelationEmail.js
+
+`
+```
+"use server";
+
+import { sendBulkCancelationEmails } from "./resend";
+
+export async function sendCancelationEmails(payload = [], chunkSize = 100) {
+    try {
+        const segmentizedPayload = segmentizeBulkEmails(payload, chunkSize);
+        await sendBulkCancelationEmails(segmentizedPayload);
+    }
+    catch (error) {
+        console.error(error);
+        return null
+    }
+}
+
+
+
+
+function segmentizeBulkEmails(realPayload, chunkSize) {
+    try {
+        const dummyObj = {};
+
+        for (let i = 0; i < realPayload.length; i += chunkSize) {
+
+            const chunk = realPayload.slice(i, i + chunkSize);
+
+            dummyObj[`${chunkSize + i}`] = chunk
+        }
+
+        //console.dir(dummyObj, { depth: null });
+
+        return dummyObj;
+
+    } catch (error) {
+        console.log(error);
+        return null
+    }
+}
+`
+```
+
+## src/app/lib/turso.js
+
+`
+```
+import { createClient } from "@libsql/client";
+
+export const db = createClient({
+  url: process.env.TURSO_DATABASE_URL,
+  authToken: process.env.TURSO_AUTH_TOKEN,
+});
+`
+```
+
+## src/app/manage-generated-slots/Client.jsx
+
+`
+```
+"use client";
+import { useTransition, useState } from "react";
+import { useRouter } from "next/navigation";
+import { toggleSlotStatus } from "./sa";
+
+export function ToggleSlotButton({ slotPubId, status, numberOfBookings = 0 }) {
+    const [isPending, startTransition] = useTransition();
+    const [showConfirm, setShowConfirm] = useState(false);
+    const router = useRouter();
+
+    const isActive = status === "active";
+
+    const handleToggle = () => {
+        startTransition(async () => {
+            await toggleSlotStatus(slotPubId);
+            router.refresh();
+        });
+        setShowConfirm(false);
+    };
+
+    // Activate doesn't need confirmation
+    if (!isActive) {
+        return (
+            <button disabled={isPending} onClick={handleToggle}>
+                {isPending ? "Updating..." : "Activate"}
+            </button>
+        );
+    }
+
+    // Deactivate flow
+    if (!showConfirm) {
+        return (
+            <button onClick={() => setShowConfirm(true)} disabled={isPending}>
+                Deactivate
+            </button>
+        );
+    }
+
+    return (
+        <div>
+            {numberOfBookings > 0 && (
+                <p>
+                    ⚠️ There {numberOfBookings === 1 ? "is" : "are"}{" "}
+                    <strong>{numberOfBookings}</strong>{" "}
+                    {numberOfBookings === 1 ? "booking" : "bookings"} for this
+                    day. Inactivating this slot will notify the affected{" "}
+                    {numberOfBookings === 1 ? "patient" : "patients"} to
+                    reschedule.
+                </p>
+            )}
+            <p>Are you sure you want to deactivate this slot?</p>
+            <button disabled={isPending} onClick={handleToggle}>
+                {isPending ? "Updating..." : "Yes, deactivate"}
+            </button>
+            <button onClick={() => setShowConfirm(false)} disabled={isPending}>
+                Cancel
+            </button>
+        </div>
+    );
+};
+
+
+
+
+
+
+
+
+
+
+
+
+export function EditSlotButton({ slotPubId, numberOfBookings = 0 }) {
+    const [showConfirm, setShowConfirm] = useState(false);
+    const router = useRouter();
+
+    const handleConfirm = () => {
+        router.push(`/edit-slot/${slotPubId}`);
+    };
+
+    if (!showConfirm) {
+        return (
+            <button onClick={() => setShowConfirm(true)}>
+                Edit
+            </button>
+        );
+    }
+
+    return (
+        <div>
+            <p>
+                ⚠️ Editing this slot will permanently revoke all current bookings
+                {numberOfBookings > 0 && (
+                    <>
+                        {" "}(<strong>{numberOfBookings}</strong> {numberOfBookings === 1 ? "booking" : "bookings"})
+                    </>
+                )}
+                {" "}and notify {numberOfBookings === 1 ? "the affected patient" : "all affected patients"} to reschedule.
+            </p>
+            <p>Are you sure you want to proceed?</p>
+            <button onClick={handleConfirm}>
+                Yes, edit slot
+            </button>
+            <button onClick={() => setShowConfirm(false)}>
+                Cancel
+            </button>
+        </div>
+    );
+}
+`
+```
+
+## src/app/manage-generated-slots/page.jsx
+
+`
+```
+import Link from "next/link";
+import { rollingWindow } from "../lib/rollingWindow";
+import { db } from "../lib/turso";
+import { getDayName, getMonthName } from "../utils/getDateData";
+import { minutesToMeridiem } from "../utils/minutes-to-meridiem";
+import { ToggleSlotButton, EditSlotButton } from "./Client";
+import { getUser } from "../lib/getUser";
+import { redirect } from "next/navigation";
+
+export default async function GeneratedSlots() {
+
+
+    const currentUser = await getUser();
+    if (!currentUser || currentUser.role !== "admin" || !currentUser.admin_id) redirect("/login");
+    const adminId = currentUser.admin_id;
+
+    await rollingWindow(31, adminId);
+
+
+    const fetch = await db.execute(
+        `SELECT slots.*, GROUP_CONCAT(bookings.patient_email || ' ' || bookings.patient_name) AS patients FROM slots LEFT JOIN bookings ON bookings.admin_id = slots.admin_id AND bookings.date_number = slots.date_number AND bookings.month_number = slots.month_number AND bookings.year = slots.year AND bookings.doctor_id = slots.doctor_id AND bookings.status != 'revoked' WHERE slots.admin_id = ? AND full_date_at_period > DATE('now') GROUP BY slots.id ORDER BY full_date_at_period`,
+        [adminId]
+    );
+
+    //console.log(fetch.rows);
+
+
+
+    if (fetch.rows.length === 0) {
+        return <p>No slots available. Go to create template to generate.</p>;
+    }
+
+    const doctorIds = [...new Set(fetch.rows.map(doc => doc.doctor_id))];
+    const placeHolders = doctorIds.map(() => "?").join(',');
+
+    const doctorsResult = await db.execute(
+        `SELECT * FROM doctors WHERE id IN (${placeHolders})`,
+        doctorIds
+    );
+
+    const doctors = doctorsResult.rows;
+
+    return (
+        <>
+            {doctors.length > 0 &&
+                <div>
+                    {doctors.map(doc => (
+                        <div key={doc.public_id}>
+                            <h2>Dr. {doc.name[0].toUpperCase() + doc.name.slice(1)} From {doc.department} Department</h2>
+                            <details>
+                                <summary>Slots</summary>
+                                {fetch.rows.filter(fn1 => fn1.doctor_id === doc.id).map(fn2 => (
+                                    <div key={fn2.public_id} className="border-2">
+                                        <p>{getMonthName(fn2.month_number)} {fn2.date_number >= 10 ? fn2.date_number : `0${fn2.date_number}`} {getDayName(fn2.day_number)}</p>
+                                        <p>Clinic: {minutesToMeridiem(fn2.start_time, true)} - {minutesToMeridiem(fn2.end_time, true)}</p>
+                                        <p>Break: {minutesToMeridiem(fn2.break_start, true)} - {minutesToMeridiem(fn2.break_end, true)}</p>
+                                        <p>Buffer: {fn2.buffer_minutes ? fn2.buffer_minutes : 0} minutes</p>
+                                        <p>Status: {fn2.status[0].toUpperCase() + fn2.status.slice(1)}</p>
+                                        <p>Number of Bookings: {fn2.patients ? fn2.patients.split(',').length > 10 ? fn2.patients.split(',').length : "0" + fn2.patients.split(',').length : 0}</p>
+                                        <ToggleSlotButton slotPubId={fn2.public_id} status={fn2.status} numberOfBookings={fn2.patients?.split(',').length || 0} />
+                                        <div><EditSlotButton slotPubId={fn2.public_id} numberOfBookings={fn2.patients?.split(',').length || 0} /></div>
+                                    </div>
+                                ))}
+                            </details>
+                        </div>
+                    ))}
+                </div>}
+        </>
+    );
+}
+`
+```
+
+## src/app/manage-generated-slots/sa.js
+
+`
+```
+"use server";
+
+import { getUser } from "../lib/getUser";
+import { sendBulkCancelationEmails } from "../lib/resend";
+import { sendCancelationEmails } from "../lib/sendCancelationEmail";
+import { db } from "../lib/turso";
+
+
+export async function toggleSlotStatus(slotPubId) {
+    try {
+        if (!slotPubId) return null;
+
+        const currentUser = await getUser();
+        if (!currentUser || currentUser.role !== "admin" || !currentUser.admin_id) return null;
+
+        const adminId = currentUser.admin_id;
+
+        const fetchSlot = await db.execute(
+            "SELECT id, status, full_date_at_period FROM slots WHERE public_id = ? AND admin_id = ?",
+            [slotPubId, adminId]
+        );
+
+        if (fetchSlot.rows.length === 0) return null;
+
+        const currentSlot = fetchSlot.rows[0];
+
+        const slotDateIso = currentSlot.full_date_at_period.split("T")[0];
+
+        const getAndUpdateBookings = await db.execute(
+            `UPDATE bookings SET status = 'revoked' WHERE admin_id = ? AND booking_date_iso = ? AND status != 'revoked' RETURNING patient_email, patient_name, doctor_name`, [adminId, slotDateIso]);
+
+        if (getAndUpdateBookings.rows.length > 0) {
+            await sendCancelationEmails(getAndUpdateBookings.rows, 100);
+        }
+
+
+        const newStatus = currentSlot.status === 'active' ? 'inactive' : 'active';
+
+        await db.execute(
+            `UPDATE slots SET status = ? WHERE id = ? AND admin_id = ?`,
+            [newStatus, currentSlot.id, adminId]
+        );
+
+        return { ok: true, status: newStatus };
+    } catch (error) {
+        console.error(error);
+        return null;
+    }
+};
+
+
+
+
+
+
+
+
+`
+```
+
+## src/app/message/[bookingPubId]/[adminPubId]/client.jsx
+
+`
+```
+"use client";
+
+import { useState } from "react";
+import { generateTicketPdf } from "@/app/lib/generateTicketPdf";
+
+export default function DownloadTicketButton({ bookingPubId }) {
+    const [loading, setLoading] = useState(false);
+
+    async function handleDownload() {
+        try {
+            setLoading(true);
+
+            const pdfBytes = await generateTicketPdf(bookingPubId);
+
+            const blob = new Blob([pdfBytes], { type: "application/pdf" });
+            const url = URL.createObjectURL(blob);
+
+            const link = document.createElement("a");
+            link.href = url;
+            link.download = `ticket-${bookingPubId}.pdf`;
+            link.click();
+
+            URL.revokeObjectURL(url);
+        } finally {
+            setLoading(false);
+        }
+    }
+
+    return (
+        <button onClick={handleDownload} disabled={loading}>
+            {loading ? "Generating..." : "Download Ticket"}
+        </button>
+    );
+}
+`
+```
+
+## src/app/message/[bookingPubId]/[adminPubId]/page.jsx
+
+`
+```
+import EmailVerification from "@/app/components/emailVerification";
+import { db } from "@/app/lib/turso";
+import { getMonthName } from "@/app/utils/getDateData";
+import { minutesToMeridiem } from "@/app/utils/minutes-to-meridiem";
+import DownloadTicketButton from "./client";
+import { hash } from "@/app/utils/bcrypt";
+import { sendEmail } from "@/app/lib/resend";
+import crypto from "crypto";
+
+export default async function Message({ params }) {
+
+    const { bookingPubId, adminPubId } = await params;
+    if (!bookingPubId || !adminPubId) return <p>Broken link. Booking not found.</p>;
+
+    const fetchAdmin = await db.execute(`SELECT id FROM admins WHERE public_id = ?`, [adminPubId]);
+    if (fetchAdmin.rows.length === 0) return <p>Broken link. Booking not found.</p>;
+
+    const adminId = fetchAdmin.rows[0].id;
+
+    const fetch = await db.execute(`SELECT * FROM bookings WHERE admin_id = ? AND public_id = ?`, [adminId, bookingPubId]);
+    if (fetch.rows.length === 0) return <p>Broken link. Booking not found.</p>;
+
+    const booking = fetch.rows[0];
+
+    if (booking.status === "cancelled") return <p>Appointment has been cancelled. Book again.</p>;
+
+    if (booking.status === "verified" && !booking.cancel_token_hash) {
+
+        const cancel_token = crypto.randomBytes(32).toString("hex");
+        const hashed = await hash(cancel_token);
+
+        await db.execute(`UPDATE bookings SET cancel_token_hash = ?, cancel_token_created_at = CURRENT_TIMESTAMP WHERE admin_id = ? AND public_id = ?`, [hashed, adminId, bookingPubId]);
+
+
+        const subject = `Cancel Your Appointment`;
+        const to = booking.patient_email;
+        const html = `
+           <p>You can cancel your appointment.</p>
+           <p>Click on button to cancel your appointment.</p>
+           <a href="https://portfolio-lw35.vercel.app/cancel/${cancel_token}/${bookingPubId}/${adminPubId}">Cancel Appointment</a>
+           `;
+
+        await sendEmail({ to, subject, html });
+
+    }
+
+    return (<>
+        <p>Appointment Date: {booking.date_number > 10 ? booking.date_number : "0" + booking.date_number} {getMonthName(booking.month_number)} {booking.year}</p>
+        <p>Timing: {minutesToMeridiem(booking.treatment_start, true)} - {minutesToMeridiem(booking.treatment_end, true)}</p>
+        <p>Patient Name: {booking.patient_name?.split(" ").map(word => word[0].toUpperCase() + word.slice(1)).join(" ")}</p>
+        <p>Patient Email: {booking.patient_email}</p>
+        <p>Patient Phone: {booking.patient_phone}</p>
+        {booking.status !== "verified" && <p>You need to verify your email within 30 minutes to book the slot. Otherwise it will be avaliable for others to book again.</p>}
+        {booking.status !== "verified" && <EmailVerification bookingPubId={bookingPubId} />}
+        {booking.status === "verified" && <><p>Slot Booked Successfully.</p>
+            <DownloadTicketButton bookingPubId={bookingPubId} />
+        </>}
+    </>);
+}
+`
+```
+
+## src/app/Models/initTables.js
+
+`
+```
+import { db } from "../lib/turso";
+
+export async function initDoctorTable() {
+    try {
+        await db.execute(`
+            CREATE TABLE IF NOT EXISTS doctors (
+                id INTEGER PRIMARY KEY,
+                public_id TEXT,
+                admin_id INTEGER,
+                name TEXT,
+                qualifications TEXT,
+                department TEXT,
+                username TEXT UNIQUE,
+                password TEXT,
+                status TEXT DEFAULT 'active',
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+        `);
+    } catch (error) {
+        console.error(error);
+        throw error;
+    }
+}
+
+export async function initTreatmentTable() {
+    try {
+        await db.execute(`
+            CREATE TABLE IF NOT EXISTS treatments (
+                id INTEGER PRIMARY KEY,
+                public_id TEXT,
+                admin_id INTEGER,
+                name TEXT,
+                duration INTEGER,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+        `);
+    } catch (error) {
+        console.error(error);
+        throw error;
+    }
+};
+
+
+export async function initDoctorTreatmentsTable() {
+    try {
+        await db.execute(`
+            CREATE TABLE IF NOT EXISTS doctor_treatments (
+                public_id TEXT NOT NULL UNIQUE,
+                admin_id INTEGER,
+                doctor_id INTEGER,
+                treatment_id INTEGER,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                
+                PRIMARY KEY (admin_id, doctor_id, treatment_id),
+                
+                FOREIGN KEY (admin_id) REFERENCES admins (id) ON DELETE CASCADE,
+                FOREIGN KEY (doctor_id) REFERENCES doctors (id) ON DELETE CASCADE,
+                FOREIGN KEY (treatment_id) REFERENCES treatments (id) ON DELETE CASCADE
+            )
+        `);
+    } catch (error) {
+        console.error("Failed to initialize doctor_treatments table:", error);
+        throw error;
+    }
+};
+
+
+
+export async function initWeeklyTemplatesTable() {
+    try {
+        await db.execute(`
+            CREATE TABLE IF NOT EXISTS weekly_templates (
+                id INTEGER PRIMARY KEY,
+                public_id TEXT UNIQUE,
+                admin_id INTEGER,
+                doctor_id INTEGER,
+                day_number INTEGER,
+                start_time INTEGER,
+                end_time INTEGER,
+                break_start INTEGER,
+                break_end INTEGER,
+                buffer_minutes INTEGER,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+
+                UNIQUE(admin_id, doctor_id, day_number),
+                
+                FOREIGN KEY (doctor_id) REFERENCES doctors (id) ON DELETE CASCADE,
+                FOREIGN KEY (admin_id) REFERENCES admins (id) ON DELETE CASCADE
+            )
+        `);
+    } catch (error) {
+        console.error("Failed to initialize weekly_templates table:", error);
+        throw error;
+    }
+}
+export async function initSlotsTable() {
+    try {
+        await db.execute(`
+            CREATE TABLE IF NOT EXISTS slots (
+                id INTEGER PRIMARY KEY,
+                public_id TEXT UNIQUE,
+                status TEXT DEFAULT 'active',
+                admin_id INTEGER,
+                doctor_id INTEGER,
+                day_number INTEGER,
+                month_number INTEGER,
+                year INTEGER,
+                date_number INTEGER,
+                start_time INTEGER,
+                end_time INTEGER,
+                break_start INTEGER,
+                break_end INTEGER,
+                buffer_minutes INTEGER,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                full_date_at_period TEXT,
+
+
+                UNIQUE(admin_id, doctor_id, month_number, year, date_number) ON CONFLICT REPLACE,
+
+                FOREIGN KEY (doctor_id) REFERENCES doctors (id) ON DELETE CASCADE,
+                FOREIGN KEY (admin_id) REFERENCES admins (id) ON DELETE CASCADE
+            )
+        `);
+    } catch (error) {
+        console.error("Failed to initialize slots table:", error);
+        throw error;
+    }
+}
+
+// we will make now admin table following
+
+export async function initAdminTable() {
+    try {
+        await db.execute(`
+            CREATE TABLE IF NOT EXISTS admins (
+                id INTEGER PRIMARY KEY,
+                public_id TEXT,
+                admin_name TEXT,
+                admin_email TEXT UNIQUE,
+                admin_username TEXT UNIQUE,
+                clinic_name TEXT,
+                clinic_phone TEXT,
+                clinic_address TEXT,
+                password TEXT,
+                email_token_hash TEXT,
+                status TEXT DEFAULT 'unverified',
+                email_token_created_at DEFAULT NULL,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+        `);
+    } catch (error) {
+        console.error(error);
+        throw error;
+    }
+}
+
+
+
+
+export async function initBookingsTable() {
+    try {
+        await db.execute(`
+            CREATE TABLE IF NOT EXISTS bookings (
+                id INTEGER PRIMARY KEY,
+                public_id TEXT UNIQUE,
+                admin_id INTEGER,
+                doctor_id INTEGER,
+                doctor_name TEXT,
+                patient_name TEXT,
+                patient_email TEXT UNIQUE,
+                patient_phone TEXT,
+                treatment_start INTEGER,
+                treatment_end INTEGER,
+                day_number INTEGER,
+                date_number INTEGER,
+                month_number INTEGER,
+                year INTEGER,
+                booking_date_iso TEXT,
+                treatment_id INTEGER,
+                status TEXT DEFAULT 'pending',
+                email_token_hash TEXT,
+                email_token_created_at DEFAULT NULL,
+                cancel_token_hash TEXT,
+                cancel_token_created_at DEFAULT NULL,
+                booking_registered_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+
+                FOREIGN KEY (doctor_id) REFERENCES doctors(id) ON DELETE SET NULL,
+                FOREIGN KEY (treatment_id) REFERENCES treatments(id) ON DELETE SET NULL,
+                FOREIGN KEY (admin_id) REFERENCES admins(id) ON DELETE SET NULL,
+                
+                UNIQUE(
+                    doctor_id, 
+                    day_number, 
+                    date_number, 
+                    month_number, 
+                    year, 
+                    treatment_start, 
+                    treatment_end
+                ) ON CONFLICT IGNORE
+            )
+        `);
+
+        return { ok: true, message: "bookings table created" };
+
+    } catch (error) {
+        console.error("Database Init Error:", error);
+        return { ok: false, message: error instanceof Error ? error.message : String(error) };
+    }
+};
+
+
+
+
+
+export async function initUsersTable() {
+    try {
+        await db.execute(`
+            CREATE TABLE IF NOT EXISTS users (
+                id INTEGER PRIMARY KEY,
+                public_id TEXT,
+                admin_id INTEGER,
+                doctor_id INTEGER,
+                role TEXT,
+                username TEXT UNIQUE,
+                password TEXT,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                
+                FOREIGN KEY (admin_id) REFERENCES admins (id) ON DELETE CASCADE,
+                FOREIGN KEY (doctor_id) REFERENCES doctors (id) ON DELETE CASCADE
+            )
+        `);
+    } catch (error) {
+        console.error(error);
+        throw error;
+    }
+}
+
+
+
+
+export async function initSessionsTable() {
+    try {
+        await db.execute(`
+            CREATE TABLE IF NOT EXISTS sessions (
+                id INTEGER PRIMARY KEY,
+                session_id TEXT,
+                user_id INTEGER,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                expires_at DATETIME,
+                FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
+            )
+        `);
+    } catch (error) {
+        console.error(error);
+        throw error;
+    }
+}
+`
+```
+
+## src/app/page.js
+
+`
+```
+
+export default function Home() {
+    
+  return (<>
+  
+  </>
+  );
+}
+
+`
+```
+
+## src/app/settings/page.jsx
+
+`
+```
+import { redirect } from "next/navigation";
+import Form from "next/form";
+import { getUserPlus } from "../lib/getUser";
+import { updateAdmin, updateDoctor } from "./sa";
+
+export default async function Settings() {
+
+  const currentUser = await getUserPlus();
+  if (!currentUser?.id) return redirect("/login");
+
+  let user = null;
+  if (currentUser.role === "admin") {
+    user = currentUser.admin_details;
+    return <AdminComponent user={user} />
+  }
+  if (currentUser.role === "doctor") {
+    user = currentUser.doctor_details;
+    return <DoctorComponent user={user} />
+  }
+  return <p>Broken link. User not found. Try again or Logout then login again</p>;
+
+}
+
+
+
+
+
+function AdminComponent({ user }) {
+  return (<>
+    <Form action={updateAdmin}>
+      <input type="hidden" name="adminPubId" value={user.public_id} />
+      <input type="text" name="name" placeholder="Name" defaultValue={user.admin_name} />
+      <input type="text" name="username" placeholder="Username" defaultValue={user.admin_username} />
+      <input type="email" name="email" placeholder="example@ex.com" defaultValue={user.admin_email} />
+      <input type="text" name="clinic_name" placeholder="example@ex.com" defaultValue={user.clinic_name} />
+      <input type="tel" name="clinic_phone" placeholder="clinic@ex.com" defaultValue={user.clinic_phone} />
+      <input type="tel" name="clinic_address" placeholder="Street #00" defaultValue={user.clinic_address} />
+      <details>
+        <summary>Change Password</summary>
+        <input type="password" name="current_password" placeholder="Current Password" />
+        <input type="password" name="new_password" placeholder="New Password" />
+      </details>
+      <button type="submit">Update⬅</button>
+    </Form>
+  </>);
+};
+
+
+function DoctorComponent({ user }) {
+
+  let qualifications = "";
+  try {
+    qualifications = JSON.parse(user.qualifications || "[]").join(', ').toUpperCase();
+  } catch (e) { qualifications = ""; }
+
+
+  return (<>
+    <Form action={updateDoctor}>
+      <input type="hidden" name="docPublicId" value={user.public_id} />
+      <input type="text" name="name" placeholder="Name" defaultValue={user.name} />
+      <input type="text" name="username" placeholder="Username" defaultValue={user.username} />
+      <input type="text" name="qualifications" placeholder="Username" defaultValue={qualifications} />
+      <details>
+        <summary>Change Password</summary>
+        <input type="password" name="current_password" placeholder="Current Password" />
+        <input type="password" name="new_password" placeholder="New Password" />
+      </details>
+      <button type="submit">Update⬅</button>
+    </Form>
+  </>);
+};
+`
+```
+
+## src/app/settings/sa.js
+
+`
+```
+"use server";
+
+
+import { redirect } from "next/navigation";
+import { db } from "../lib/turso";
+import { compare, hash } from "../utils/bcrypt";
+import { getUserPlus } from "../lib/getUser";
+
+
+export async function updateAdmin(formData) {
+
+
+    const adminPubId = formData.get("adminPubId")?.trim();
+    const name = formData.get("name")?.trim();
+    const username = formData.get("username")?.trim();
+    const email = formData.get("email")?.trim();
+    const clinic_name = formData.get("clinic_name")?.trim();
+    const clinic_phone = formData.get("clinic_phone")?.trim();
+    const clinic_address = formData.get("clinic_address")?.trim();
+    const current_password = formData.get("current_password");
+    const new_password = formData.get("new_password");
+
+    if (!adminPubId) return null;
+
+    const getCurrentUser = await getUserPlus();
+    if (!getCurrentUser || getCurrentUser.role !== "admin") redirect("/login");
+    const currentUser = getCurrentUser.admin_details;
+    if (currentUser.public_id !== adminPubId) return null;
+
+    if (!name || !username || !email || !clinic_name || !clinic_phone || !clinic_address) return null;
+
+    let passwordMatch = null;
+    let new_passwordHash = null;
+
+    if (current_password || new_password) {
+        passwordMatch = await compare(current_password, currentUser.password);
+        new_passwordHash = await hash(new_password, 12);
+    }
+
+    if (new_password && current_password && !passwordMatch) return null;
+
+    if (new_password && passwordMatch) {
+        await db.execute("UPDATE admins SET admin_name = ?, admin_username = ?, admin_email = ?, clinic_name = ?, clinic_phone = ?, clinic_address = ?, password = ? WHERE id = ?", [name, username, email, clinic_name, clinic_phone, clinic_address, new_passwordHash, getCurrentUser.id]);
+
+        if (username !== currentUser.username) {
+            await db.execute(
+                "UPDATE users SET username = ?, password = ? WHERE id = ?",
+                [username, new_passwordHash, getCurrentUser.id]
+            );
+        }
+
+        redirect("/settings");
+    }
+
+    await db.execute("UPDATE admins SET admin_name = ?, admin_username = ?, admin_email = ?, clinic_name = ?, clinic_phone = ?, clinic_address = ? WHERE id = ?", [name, username, email, clinic_name, clinic_phone, clinic_address, getCurrentUser.id]);
+
+    if (username !== currentUser.username) {
+        await db.execute(
+            "UPDATE users SET username = ?, password = ? WHERE id = ?",
+            [username, new_passwordHash, getCurrentUser.id]
+        );
+    }
+
+    redirect("/settings");
+
+
+
+
+
+
+}
+
+
+
+export async function updateDoctor(formData) {
+
+    const docPublicId = formData.get("docPublicId")?.trim();
+    const name = formData.get("name")?.trim();
+    const username = formData.get("username")?.trim();
+    const current_password = formData.get("current_password");
+    const new_password = formData.get("new_password");
+    const qualificationsRaw = formData.get("qualifications")?.split(",")
+        .map((q) => q.trim().toUpperCase())
+        .filter(Boolean) || [];
+    const qualificationsJson = JSON.stringify(qualificationsRaw);
+
+    if (!docPublicId) return { error: "Missing doctor ID." };
+
+
+    const getCurrentUser = await getUserPlus();
+    if (!getCurrentUser || getCurrentUser.role !== "doctor") redirect("/login");
+
+    const currentUser = getCurrentUser.doctor_details;
+    if (currentUser.public_id !== docPublicId) return { error: "Unauthorized." };
+
+
+    let passwordMatch = null;
+    let new_passwordHash = null;
+
+    if (current_password && new_password) {
+        passwordMatch = await compare(current_password, currentUser.password_hash);
+        new_passwordHash = await hash(new_password, 12);
+    }
+
+    if (new_password && current_password && !passwordMatch) return { error: "Incorrect current password." };
+
+    if (new_password && passwordMatch) {
+        await db.execute("UPDATE doctors SET name = ?, username = ?, qualifications = ?, password = ? WHERE id = ?", [name, username, qualificationsJson, new_passwordHash, getCurrentUser.id]);
+
+        if (username !== currentUser.username) {
+            await db.execute(
+                "UPDATE users SET username = ?, password = ? WHERE id = ?",
+                [username, new_passwordHash, getCurrentUser.id]
+            );
+        }
+
+        redirect("/settings");
+    }
+
+    await db.execute("UPDATE doctors SET name = ?, username = ?, qualifications = ? WHERE id = ?", [name, username, qualificationsJson, getCurrentUser.id]);
+
+    if (username !== currentUser.username) {
+        await db.execute(
+            "UPDATE users SET username = ? , password = ? WHERE id = ?",
+            [username, new_passwordHash, getCurrentUser.id]
+        );
+    }
+
+    redirect("/settings");
+}
+`
+```
+
+## src/app/utils/bcrypt.js
+
+`
+```
+import bcrypt from "bcrypt";
+
+export async function hash(raw) {
+    const saltRounds = 10;
+    const hashed = await bcrypt.hash(raw, saltRounds);
+    return hashed;
+}
+
+export async function compare(raw, hashed) {
+    return await bcrypt.compare(raw, hashed);
+}
+`
+```
+
+## src/app/utils/getDateData.js
+
+`
+```
+const daysCode = [
+    { day: "Sunday", code: 0 },
+    { day: "Monday", code: 1 },
+    { day: "Tuesday", code: 2 },
+    { day: "Wednesday", code: 3 },
+    { day: "Thursday", code: 4 },
+    { day: "Friday", code: 5 },
+    { day: "Saturday", code: 6 }
+];
+
+const monthCode = [
+    { month: "January", code: 0 },
+    { month: "February", code: 1 },
+    { month: "March", code: 2 },
+    { month: "April", code: 3 },
+    { month: "May", code: 4 },
+    { month: "June", code: 5 },
+    { month: "July", code: 6 },
+    { month: "August", code: 7 },
+    { month: "September", code: 8 },
+    { month: "October", code: 9 },
+    { month: "November", code: 10 },
+    { month: "December", code: 11 }
+]
+
+
+export function getDayName(dayNumber = 0) {
+    const dayName = daysCode.find((day) => day.code === dayNumber).day;
+    return dayName;
+};
+
+export function getDayNumber(dayName = "Sunday") {
+    const dayNumber = daysCode.find((day) => day.day.toLowerCase() === dayName.toLowerCase()).code;
+    return dayNumber;
+};
+
+export function getMonthName(monthNumber = 0) {
+    const monthName = monthCode.find((month) => month.code === monthNumber).month;
+    return monthName;
+};
+
+export function getMonthNumber(monthName = "January") {
+    const monthNumber = monthCode.find((month) => month.month.toLowerCase() === monthName.toLowerCase()).code;
+    return monthNumber;
+};
+
+`
+```
+
+## src/app/utils/getMinutes.js
+
+`
+```
+export default function getMinutes(hr, min, meridiem) {
+    let h = Number(hr);
+    const m = Number(min);
+    if (meridiem === "PM" && h !== 12) h += 12;
+    if (meridiem === "AM" && h === 12) h = 0;
+    return (h * 60) + m;
+}
+`
+```
+
+## src/app/utils/minutes-to-meridiem.js
+
+`
+```
+
+
+export function minutesToMeridiem(totalMinutes = 0, fullString = false) {
+
+    const hrs24 = Math.floor(totalMinutes / 60);
+    const mins = totalMinutes % 60;
+
+    const meridiem = hrs24 >= 12 ? "PM" : "AM";
+
+    let hrs12 = hrs24 % 12;
+    if (hrs12 === 0) hrs12 = 12;
+
+    const hrsStr = hrs12 < 10 ? "0" + hrs12 : String(hrs12);
+    const minsStr = mins < 10 ? "0" + mins : String(mins);
+
+    const time = {
+        full: `${hrsStr}:${minsStr} ${meridiem}`,
+        hrs: hrsStr,
+        mins: minsStr,
+        meridiem
+    };
+
+    return fullString ? time.full : time;
+
+
+    
+
+}
+`
+```
+
+## src/app/verify/[emailToken]/[bookingPubId]/[adminPubId]/page.jsx
+
+`
+```
+import { db } from "@/app/lib/turso";
+import { compare } from "@/app/utils/bcrypt";
+import { redirect } from "next/navigation";
+
+export default async function VerifyEmail({ params }) {
+
+
+
+    const { emailToken, bookingPubId, adminPubId } = await params;
+
+    if (!emailToken || !bookingPubId || !adminPubId) return <p>Broken link. Email not found.</p>;
+
+    const fetchAdmin = await db.execute(`SELECT id FROM admins WHERE public_id = ?`, [adminPubId]);
+    if (fetchAdmin.rows.length === 0) return <p>Broken link. Email not found.</p>;
+
+    const adminId = fetchAdmin.rows[0].id;
+
+    try {
+
+        const fetch = await db.execute(`SELECT id, email_token_hash FROM bookings WHERE admin_id = ? AND public_id = ?`, [adminId, bookingPubId]);
+        if (fetch.rows.length === 0) return <p>Broken link. Email not found.</p>;
+
+        const verified = await compare(emailToken, fetch.rows[0].email_token_hash);
+        if (!verified) return <p>Broken link. Email not found.</p>;
+
+        await db.execute(`UPDATE bookings SET email_token_hash = NULL, status = 'verified', email_token_created_at = CURRENT_TIMESTAMP WHERE public_id = ? AND admin_id = ?`, [bookingPubId, adminId]);
+
+    } catch (error) {
+        console.error(error);
+        return <p>Broken link. Email not found.</p>;
+    }
+
+
+    redirect(`/message/${bookingPubId}/${adminPubId}`);
+
+}
+`
+```
+

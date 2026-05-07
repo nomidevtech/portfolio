@@ -22,12 +22,11 @@ export async function signupServerAction(_, formData) {
 
     const public_id = nanoid(12);
 
-    const hashedPassword = await hash(password);
-
-
     if (password !== confirm_password) {
         return { ok: false, message: "Passwords do not match" };
     }
+
+    const hashedPassword = await hash(password);
 
     try {
 

@@ -40,7 +40,7 @@ function AdminComponent({ user }) {
         <input type="password" name="current_password" placeholder="Current Password" />
         <input type="password" name="new_password" placeholder="New Password" />
       </details>
-      <button type="submit">Update⬅</button>
+      <button type="submit">Save Changes⬅</button>
     </Form>
   </>);
 };

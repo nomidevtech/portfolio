@@ -1,6 +1,7 @@
 import { db } from "../lib/turso";
 import ByDoctors from "../components/ByDoctors";
 import { getUserPlus } from "../lib/getUser";
+import { redirect } from "next/navigation";
 
 export default async function EditDoctors() {
 

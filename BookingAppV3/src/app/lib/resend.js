@@ -46,23 +46,4 @@ export async function sendBulkCancelationEmails(payload = {}) {
         await resend.batch.send(clause);
     }
 
-
-
-
-    console.dir(payload, { depth: null });
-
-    // try {
-    //     const response = await resend.batch.send(payload);
-
-    //     return {
-    //         success: true,
-    //         data: response.data
-    //     };
-
-    // } catch (error) {
-    //     return {
-    //         success: false,
-    //         error: error.message
-    //     };
-    // }
 }

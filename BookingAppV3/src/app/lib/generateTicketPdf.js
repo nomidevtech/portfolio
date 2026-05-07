@@ -6,10 +6,12 @@ import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 import { getMonthName } from "@/app/utils/getDateData";
 import { minutesToMeridiem } from "@/app/utils/minutes-to-meridiem";
 
-export async function generateTicketPdf(bookingPubId) {
-    if (!bookingPubId) throw new Error("Missing bookingPubId");
+export async function generateTicketPdf(bookingPubId, adminPubId) {
+    if (!bookingPubId || !adminPubId) throw new Error("Missing required fields.");
 
-    const adminId = 1;
+    const fetchAdmin = await db.execute("SELECT id FROM admins WHERE public_id = ?", [adminPubId]);
+    if (fetchAdmin.rows.length === 0) throw new Error("Invalid admin.");
+    const adminId = fetchAdmin.rows[0].id;
 
     const result = await db.execute(
         `

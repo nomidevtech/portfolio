@@ -3,14 +3,14 @@
 import { useState } from "react";
 import { generateTicketPdf } from "@/app/lib/generateTicketPdf";
 
-export default function DownloadTicketButton({ bookingPubId }) {
+export default function DownloadTicketButton({ bookingPubId, adminPubId }) {
     const [loading, setLoading] = useState(false);
 
     async function handleDownload() {
         try {
             setLoading(true);
 
-            const pdfBytes = await generateTicketPdf(bookingPubId);
+            const pdfBytes = await generateTicketPdf(bookingPubId, adminPubId);
 
             const blob = new Blob([pdfBytes], { type: "application/pdf" });
             const url = URL.createObjectURL(blob);
