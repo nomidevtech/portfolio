@@ -5,8 +5,7 @@ export function GET(request) {
     const cronSecret = process.env.CRON_SECRET;
     console.log("API route was called after env before check");
 
-    console.log("authHeader:", authHeader);
-    console.log("cronSecret:", cronSecret);
+    
 
     if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
         return new Response('Unauthorized', {
