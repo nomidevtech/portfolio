@@ -8,6 +8,11 @@ export default async function Settings() {
   const currentUser = await getUserPlus();
   if (!currentUser?.id) return redirect("/login");
 
+
+  if (currentUser.role === "admin" && currentUser.status !== "verified") return redirect(`/verification/${currentUser.admin_details.public_id}`);
+
+  if (currentUser.status !== "verified") return <p>Your account is not verified. Contact your admin or check your email.</p>
+
   let user = null;
   if (currentUser.role === "admin") {
     user = currentUser.admin_details;

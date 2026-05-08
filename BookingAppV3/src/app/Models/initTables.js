@@ -225,6 +225,7 @@ export async function initUsersTable() {
                 role TEXT,
                 username TEXT UNIQUE,
                 password TEXT,
+                status TEXT DEFAULT 'unverified',
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                 
                 FOREIGN KEY (admin_id) REFERENCES admins (id) ON DELETE CASCADE,

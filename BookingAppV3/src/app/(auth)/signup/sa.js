@@ -1,9 +1,11 @@
 "use server";
 
+import { sendEmail } from "@/app/lib/resend";
 import { db } from "@/app/lib/turso";
 import { initAdminTable, initUsersTable } from "@/app/Models/initTables";
 import { hash } from "@/app/utils/bcrypt";
 import { nanoid } from "nanoid";
+import crypto from "crypto";
 import { redirect } from "next/navigation";
 
 export async function signupServerAction(_, formData) {
@@ -56,9 +58,21 @@ export async function signupServerAction(_, formData) {
             hashedPassword]
         );
 
+        const email_token = crypto.randomBytes(32).toString("hex");
+        const hashed = await hash(email_token);
+
+        await db.execute(`UPDATE admins SET email_token_hash = ?, email_token_created_at = CURRENT_TIMESTAMP WHERE id = ?`, [hashed, res.rows[0].id]);
+
+        const to = admin_email;
+        const subject = "Account Activation";
+        const html = `<p>Click on button to activate your account.</p><a href="${process.env.NEXT_PUBLIC_APP_URL}/activation/${email_token}/${public_id}">Activate Account</a>`;
+
+        await sendEmail({ to, subject, html });
+        
+
     } catch (error) {
         console.error(error);
         return { ok: false, message: "Registration failed. Username might already exist." };
     }
-    redirect("/login");
+    redirect(`/verification/${public_id}`);
 }
