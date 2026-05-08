@@ -11,7 +11,8 @@ import { redirect } from "next/navigation";
 export default async function DoctorCreateTemplate({ params }) {
 
     const currentUser = await getUserPlus();
-    if (!currentUser || currentUser.role !== "admin" || !currentUser.admin_id) redirect("/login");
+    if (!currentUser) return redirect("/login");
+    if (!currentUser || currentUser.role !== "admin" || !currentUser.admin_id || currentUser.status !== "verified") redirect(`/verification/${currentUser?.admin_details?.public_id}`);
     const adminId = currentUser.admin_id;
 
     const { docPubId } = await params;
@@ -21,7 +22,7 @@ export default async function DoctorCreateTemplate({ params }) {
 
     const { name, id } = fetchDoctor.rows[0];
 
-    const fetchExisTemplates = await db.execute(`SELECT * FROM weekly_templates WHERE doctor_id = ? AND admin_id = ?`, [id , adminId]);
+    const fetchExisTemplates = await db.execute(`SELECT * FROM weekly_templates WHERE doctor_id = ? AND admin_id = ?`, [id, adminId]);
 
     let currentTemplates = fetchExisTemplates.rows.length > 0 ? fetchExisTemplates.rows : [];
 
