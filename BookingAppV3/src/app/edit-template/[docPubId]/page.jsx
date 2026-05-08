@@ -3,6 +3,7 @@ import Link from "next/link";
 import { minutesToMeridiem } from "@/app/utils/minutes-to-meridiem";
 import { getDayName } from "@/app/utils/getDateData";
 import { getUserPlus } from "@/app/lib/getUser";
+import { redirect } from "next/navigation";
 
 
 export default async function DoctorEditTemplates({ params }) {

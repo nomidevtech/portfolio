@@ -1,6 +1,7 @@
+import { initBookingsTable } from "./Models/initTables";
 
-export default function Home() {
-    
+export default async function Home() {
+    await initBookingsTable();
   return (<>
   
   </>

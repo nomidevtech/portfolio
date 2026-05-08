@@ -6,7 +6,6 @@ import { db } from "./turso";
 
 
 export async function rollingWindow(win = 31) {
-    await initSlotsTable();
     try {
 
 

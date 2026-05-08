@@ -53,7 +53,7 @@ export async function reserveSlot(_, formData) {
             db.execute(
                 `SELECT 1 FROM bookings
                  WHERE admin_id = ? AND doctor_id = ? AND date_number = ? AND month_number = ? AND year = ?
-                 AND treatment_end > ? AND treatment_start < ?
+                 AND treatment_end > ? AND treatment_start < ? AND status NOT IN('cancelled', 'revoked')
                  LIMIT 1`,
                 [adminId, docId, date_number, month_number, year, patient_selected_treatment_start, patient_selected_treatment_end]
             ),

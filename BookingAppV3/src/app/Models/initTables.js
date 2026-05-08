@@ -195,7 +195,9 @@ export async function initBookingsTable() {
                     month_number, 
                     year, 
                     treatment_start, 
-                    treatment_end
+                    treatment_end,
+                    status,
+                    admin_id
                 ) ON CONFLICT IGNORE
             )
         `);

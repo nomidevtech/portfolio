@@ -4,9 +4,9 @@ import { redirect } from "next/navigation";
 
 
 
-export default function SignUp() {
+export default async function SignUp() {
 
-    const getCurrentUser = getUser();
+    const getCurrentUser = await getUser();
     if (getCurrentUser?.id) return redirect("/settings");
 
 

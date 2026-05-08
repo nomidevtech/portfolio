@@ -50,12 +50,12 @@ export default async function GeneratedSlots() {
                                 <summary>Slots</summary>
                                 {fetch.rows.filter(fn1 => fn1.doctor_id === doc.id).map(fn2 => (
                                     <div key={fn2.public_id} className="border-2">
-                                        <p>{getMonthName(fn2.month_number)} {fn2.date_number >= 10 ? fn2.date_number : `0${fn2.date_number}`} {getDayName(fn2.day_number)}</p>
+                                        <p>{getMonthName(fn2.month_number)} {fn2.date_number > 9 ? fn2.date_number : `0${fn2.date_number}`} {getDayName(fn2.day_number)}</p>
                                         <p>Clinic: {minutesToMeridiem(fn2.start_time, true)} - {minutesToMeridiem(fn2.end_time, true)}</p>
                                         <p>Break: {minutesToMeridiem(fn2.break_start, true)} - {minutesToMeridiem(fn2.break_end, true)}</p>
                                         <p>Buffer: {fn2.buffer_minutes ? fn2.buffer_minutes : 0} minutes</p>
                                         <p>Status: {fn2.status[0].toUpperCase() + fn2.status.slice(1)}</p>
-                                        <p>Number of Bookings: {fn2.patients ? fn2.patients.split(',').length > 10 ? fn2.patients.split(',').length : "0" + fn2.patients.split(',').length : 0}</p>
+                                        <p>Number of Bookings: {fn2.patients ? fn2.patients.split(',').length > 9 ? fn2.patients.split(',').length : "0" + fn2.patients.split(',').length : 0}</p>
                                         <ToggleSlotButton slotPubId={fn2.public_id} status={fn2.status} numberOfBookings={fn2.patients?.split(',').length || 0} />
                                         <div><EditSlotButton slotPubId={fn2.public_id} numberOfBookings={fn2.patients?.split(',').length || 0} /></div>
                                     </div>

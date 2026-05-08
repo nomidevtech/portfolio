@@ -1,4 +1,5 @@
-import { db } from "@/app/lib/db";
+import { db } from "@/app/lib/turso";
+
 
 export async function GET(request) {
 

@@ -30,10 +30,10 @@ function AdminComponent({ user }) {
     <Form action={updateAdmin}>
       <input type="hidden" name="adminPubId" value={user.public_id} />
       <input type="text" name="name" placeholder="Name" defaultValue={user.admin_name} />
-      <input type="text" name="username" placeholder="Username" defaultValue={user.admin_username} />
+      <input type="text" name="username" placeholder="username" defaultValue={user.admin_username} />
       <input type="email" name="email" placeholder="example@ex.com" defaultValue={user.admin_email} />
-      <input type="text" name="clinic_name" placeholder="example@ex.com" defaultValue={user.clinic_name} />
-      <input type="tel" name="clinic_phone" placeholder="clinic@ex.com" defaultValue={user.clinic_phone} />
+      <input type="text" name="clinic_name" placeholder="Clinic Name" defaultValue={user.clinic_name} />
+      <input type="tel" name="clinic_phone" placeholder="+1 000 000 0000" defaultValue={user.clinic_phone} />
       <input type="text" name="clinic_address" placeholder="Street #00" defaultValue={user.clinic_address} />
       <details>
         <summary>Change Password</summary>
@@ -59,7 +59,7 @@ function DoctorComponent({ user }) {
       <input type="hidden" name="docPublicId" value={user.public_id} />
       <input type="text" name="name" placeholder="Name" defaultValue={user.name} />
       <input type="text" name="username" placeholder="Username" defaultValue={user.username} />
-      <input type="text" name="qualifications" placeholder="Username" defaultValue={qualifications} />
+      <input type="text" name="qualifications" placeholder="Qualifications (e.g. MBBS, MD)" defaultValue={qualifications} />
       <details>
         <summary>Change Password</summary>
         <input type="password" name="current_password" placeholder="Current Password" />

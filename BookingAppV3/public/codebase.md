@@ -1,6 +1,6 @@
 # Project Codebase (src/app)
 
-Generated on 2026-05-07T15:25:24.119Z
+Generated on 2026-05-07T21:31:19.090Z
 
 ## src/app/(auth)/login/Client.jsx
 
@@ -116,9 +116,9 @@ export async function loginSA(_, formData) {  // ← prevState added for useActi
         if (fetchUser.rows.length === 0) return { ok: false, message: "User not found" };
 
         const user = fetchUser.rows[0];
-        const passowrdHash = user.password;
+        const passwordHash = user.password;
 
-        const isPasswordValid = await compare(password, passowrdHash);
+        const isPasswordValid = await compare(password, passwordHash);
         if (!isPasswordValid) return { ok: false, message: "Invalid password" };
 
 
@@ -178,7 +178,7 @@ export default async function Login() {
 `
 ```
 
-## src/app/(auth)/signup/page.jsx
+## src/app/(auth)/signup/client.jsx
 
 `
 ```
@@ -188,7 +188,7 @@ import { useActionState } from "react";
 import { signupServerAction } from "./sa";
 
 
-export default function SignUp() {
+export default function ClientSignUp() {
 
     const [state, action, isPending] = useActionState(signupServerAction, { ok: false, message: null })
 
@@ -205,6 +205,32 @@ export default function SignUp() {
             <input type="text" name="clinic_address" placeholder="Clinic Address" />
             <button type="submit">Sign Up</button>
         </Form>
+    </>)
+}
+
+
+
+`
+```
+
+## src/app/(auth)/signup/page.jsx
+
+`
+```
+import { getUser } from "@/app/lib/getUser";
+import ClientSignUp from "./client";
+import { redirect } from "next/navigation";
+
+
+
+export default function SignUp() {
+
+    const getCurrentUser = getUser();
+    if (getCurrentUser?.id) return redirect("/settings");
+
+
+    return (<>
+        <ClientSignUp />
     </>)
 }
 
@@ -291,23 +317,15 @@ export async function signupServerAction(_, formData) {
 ```
 import Form from "next/form";
 import { db } from "../lib/turso";
-import { initDoctorTreatmentsTable, initDoctorTable, initTreatmentTable, initBookingsTable, initWeeklyTemplatesTable, initSlotsTable } from "../Models/initTables";
 import { addDoctorServerAction } from "./SA";
 import Link from "next/link";
 import { getUserPlus } from "../lib/getUser";
 import { redirect } from "next/navigation";
-import { sendBulkEmails } from "../lib/resend";
+
 
 
 export default async function AddDoctor() {
-    // await initBookingsTable();
-    // await initTreatmentTable();
-    // await initDoctorTable();
-    // await initTreatmentTable();
-    // await initDoctorTreatmentsTable();
-    // await initWeeklyTemplatesTable();
-    // await initSlotsTable();
-
+   
     
 
     const currentUser = await getUserPlus();
@@ -330,7 +348,7 @@ export default async function AddDoctor() {
     return (<>
         <Form action={addDoctorServerAction}>
             <input type="text" name="name" placeholder="Name" />
-            <input type="text" name="username" placeholder="userame" />
+            <input type="text" name="username" placeholder="username" />
             <input type="password" name="password" placeholder="Password" />
             <input type="text" name="qualification" placeholder="Qualifications: MD, Surgeon" />
             <input list="departments" name="department" placeholder="Department" />
@@ -371,7 +389,6 @@ export default async function AddDoctor() {
 import { redirect } from "next/navigation";
 import { db } from "../lib/turso";
 import { nanoid } from "nanoid";
-import { initDoctorTable } from "../Models/initTables";
 import { hash } from "../utils/bcrypt";
 import { getUserPlus } from "../lib/getUser";
 
@@ -379,13 +396,9 @@ export async function addDoctorServerAction(formData) {
     let success = false;
 
     try {
-        await initDoctorTable();
-
         const currentUser = await getUserPlus();
         if (!currentUser || currentUser.role !== "admin" || !currentUser.admin_id) redirect("/login");
         const adminId = currentUser.admin_id;
-
-        console.log(adminId);
 
         const name = formData.get("name")?.toString() || "";
         const username = formData.get("username")?.toString() || "";
@@ -513,7 +526,7 @@ export async function addTreatmentServerAction(formData) {
 
     } catch (error) {
         console.error(error);
-        throw error;
+       return null;
     }
     redirect("/add-treatment");
 }
@@ -524,15 +537,17 @@ export async function addTreatmentServerAction(formData) {
 
 `
 ```
+import { rollingWindow } from "@/app/lib/rollingWindow";
 
 
-export function GET(request) {
+export async function GET(request) {
     const authHeader = request.headers.get('authorization');
     const cronSecret = process.env.CRON_SECRET;
     console.log("API route was called after env before check");
     console.log("AUTH HEADER:", authHeader);
     console.log("CRON SECRET EXISTS:", !!cronSecret);
     console.log("CRON SECRET LENGTH:", cronSecret?.length);
+    console.log(`cron ran at ${Date.now()}`);
 
 
     if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
@@ -541,22 +556,49 @@ export function GET(request) {
         });
     }
 
-    console.log("API route was called after env");
+    await rollingWindow();
 
-    return Response.json({ success: true, message: "Hello from API" });
+    console.log("API route was called after env");
+    console.log(`cron ran after rollong window at ${Date.now()}`);
+
+    return Response.json({ success: true, message: `cron ran at ${Date.now()}` });
 }
 
 
 
 
 
-// export default async function GET() {
-//     console.log("API route was called");
+`
+```
 
-//     return Response.json({
-//         message: "Hello from API"
-//     });
-// }
+## src/app/api/ghost-bookings/route.js
+
+`
+```
+import { db } from "@/app/lib/db";
+
+export async function GET(request) {
+
+    const authHeader = request.headers.get("authorization");
+    const cronSecret = process.env.CRON_SECRET;
+
+    if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
+        return new Response("Unauthorized", {
+            status: 401,
+        });
+    }
+
+    await db.execute(`
+        DELETE FROM bookings
+        WHERE status = 'pending'
+        AND booking_registered_at <= DATETIME('now', '-30 minutes')
+    `);
+
+    return Response.json({
+        success: true,
+        message: "Ghost bookings cleaned",
+    });
+}
 `
 ```
 
@@ -682,7 +724,7 @@ export async function appointmentRegisterationServerAction(_, formData) {
         const to = email;
         const html = `
         <p>Click on button to verify your email address.</p>
-        <a href="https://portfolio-lw35.vercel.app/verify/${email_token}/${bookingPubId}/${adminPubId}">Verify Email</a>
+        <a href="${process.env.NEXT_PUBLIC_APP_URL}/verify/${email_token}/${bookingPubId}/${adminPubId}">Verify Email</a>
         `;
 
         const res = await sendEmail({ to, subject, html });
@@ -716,9 +758,9 @@ export default async function AllClinics() {
     return (<>
         {fetchAllClinics.rows.map(fn => (
             <div key={fn.public_id} className="border-2 border-amber-50" >
-                <p>Clinic Name: {fn.clinic_name.split(" ").map(word => word[0].toUpperCase() + word.slice(1)).join(" ")}</p>
+                <p>Clinic Name: {fn.clinic_name.split("-").map(word => word[0].toUpperCase() + word.slice(1)).join(" ")}</p>
                 <p>Phone: {fn.clinic_phone}</p>
-                <p>Address: {fn.clinic_address.split(" ").map(word => word[0].toUpperCase() + word.slice(1)).join(" ")}</p>
+                <p>Address: {fn.clinic_address.split("-").map(word => word[0].toUpperCase() + word.slice(1)).join(" ")}</p>
                 <Link href={`/bookings/${fn.public_id}`}>Bookings⬅</Link>
             </div>
         ))}
@@ -740,10 +782,10 @@ export default async function ClinicAdminAllBookings({ params }) {
 
     const { clinic_admin_pubId } = await params;
 
-    const fetchAmindData = await db.execute(`SELECT * FROM admins WHERE public_id = ?`, [clinic_admin_pubId]);
-    if (fetchAmindData.rows.length === 0) return <p>Link is broken.</p>;
+    const fetchAminData = await db.execute(`SELECT * FROM admins WHERE public_id = ?`, [clinic_admin_pubId]);
+    if (fetchAminData.rows.length === 0) return <p>Link is broken.</p>;
 
-    const adminId = fetchAmindData.rows[0].id;
+    const adminId = fetchAminData.rows[0].id;
 
 
     const fetch = await db.execute(`SELECT doctor_id FROM slots WHERE admin_id = ? AND full_date_at_period > DATE('now') ORDER BY full_date_at_period`, [adminId]);
@@ -855,7 +897,7 @@ export default function ClientBookASlot(
     const [state, action, isPending] = useActionState(reserveSlot, { ok: null, message: null });
 
     return (<>
-        {/* {state.message && <p>{state.message}</p>} */}
+        {state.message && <p>{state.message}</p>}
         <p>{minutesToMeridiem(subSlot.start, true)} - {minutesToMeridiem(subSlot.end, true)}</p>
         <Form action={action}>
             <input type="hidden" name="adminPubId" value={adminPubId} />
@@ -867,7 +909,7 @@ export default function ClientBookASlot(
             <input type="hidden" name="treatmentPubId" value={treatmentPubId} />
             <input type="hidden" name="treatment_start" value={treatment_start} />
             <input type="hidden" name="treatment_end" value={treatment_end} />
-            <button type="submit" className="btn btn-primary">Reserve Slot⬅</button>
+            <button type="submit" className="btn btn-primary">{isPending ? "Loading..." : "Reserve Slot"}⬅</button>
         </Form>
     </>);
 }
@@ -889,7 +931,7 @@ export default async function DoctorBookings({ params }) {
 
 
     const { clinic_admin_pubId, docName, docPubId, treatmentPubId } = await params;
-    if (!clinic_admin_pubId || !docPubId || !docName || !treatmentPubId) return <p>1Broken Link. Please try again.</p>;
+    if (!clinic_admin_pubId || !docPubId || !docName || !treatmentPubId) return <p>Broken Link. Please try again.</p>;
 
     const fetchAdmin = await db.execute(`SELECT * FROM admins WHERE public_id = ?`, [clinic_admin_pubId]);
     if (fetchAdmin.rows.length === 0) return <p>Broken Link. Please try again.</p>;
@@ -1026,7 +1068,7 @@ export async function reserveSlot(_, formData) {
 
     const adminPubId = formData.get("adminPubId");
     const fetchAdmin = await db.execute(`SELECT * FROM admins WHERE public_id = ?`, [adminPubId]);
-    if (fetchAdmin.rows.length === 0) throw new Error("Invalid admin.");
+    if (fetchAdmin.rows.length === 0) return { ok: false, message: "Invalid admin." }
 
     const adminId = fetchAdmin.rows[0].id;
 
@@ -1043,15 +1085,15 @@ export async function reserveSlot(_, formData) {
 
     try {
 
-        if (!docPubId || !date_number || !month_number || !year || !treatmentPubId || !patient_selected_treatment_start || !patient_selected_treatment_end) throw new Error("Missing required fields.");
+        if (!docPubId || !date_number || !month_number || !year || !treatmentPubId || !patient_selected_treatment_start || !patient_selected_treatment_end) return { ok: false, message: "Missing required fields" };
 
         const [fetchDoctor, fetchTreatment] = await Promise.all([
             db.execute(`SELECT * FROM doctors where admin_id = ? AND public_id = ?`, [adminId, docPubId]),
             db.execute(`SELECT * FROM treatments where admin_id = ? AND public_id = ?`, [adminId, treatmentPubId]),
         ]);
 
-        if (fetchDoctor.rows.length === 0) throw new Error("Invalid doctor.");
-        if (fetchTreatment.rows.length === 0) throw new Error("Invalid treatment.");
+        if (fetchDoctor.rows.length === 0) return { ok: false, message: "Invalid doctor." };
+        if (fetchTreatment.rows.length === 0) return { ok: false, message: "Invalid treatment." };
 
         const docId = fetchDoctor?.rows[0]?.id;
         const docName = fetchDoctor?.rows[0]?.name;
@@ -1059,7 +1101,7 @@ export async function reserveSlot(_, formData) {
         const treatmentDuration = fetchTreatment?.rows[0]?.duration;
 
         const validTreatmentDuration = patient_selected_treatment_end - patient_selected_treatment_start === treatmentDuration;
-        if (!validTreatmentDuration) throw new Error("Invalid treatment duration.");
+        if (!validTreatmentDuration) return { ok: false, message: "Invalid treatment duration." };
 
         const [fetchRecord, fetchBookings] = await Promise.all([
             db.execute(
@@ -1075,8 +1117,8 @@ export async function reserveSlot(_, formData) {
             ),
         ]);
 
-        if (fetchRecord.rows.length === 0) throw new Error("Invalid doctor-treatment combination.");
-        if (fetchBookings.rows.length > 0) throw new Error("Slot already reserved by someone.");
+        if (fetchRecord.rows.length === 0) return { ok: false, message: "Invalid treatment." };
+        if (fetchBookings.rows.length > 0) return { ok: false, message: "Slot already reserved by someone." };
 
         const bookingDate = `${year}-${String(month_number + 1).padStart(2, '0')}-${String(date_number).padStart(2, '0')}`;
 
@@ -1087,13 +1129,13 @@ export async function reserveSlot(_, formData) {
             [adminId, nanoid(12), docName, docId, treatmentId, day_number, date_number, month_number, year, bookingDate, patient_selected_treatment_start, patient_selected_treatment_end]
         );
 
-        if (res.rows.length === 0) throw new Error("Slot already reserved by someone.");
+        if (res.rows.length === 0) return { ok: false, message: "Failed to reserve slot." };
 
         bookingPublicId = res.rows[0].public_id;
 
     } catch (error) {
         console.error(error);
-        return { ok: false, message: error.message };
+        return { ok: false, message: "Failed to reserve slot." };
     }
 
     redirect(`/appointment-registeration/${bookingPublicId}/${adminPubId}`);
@@ -1333,6 +1375,7 @@ import { getDayName } from "@/app/utils/getDateData";
 import { minutesToMeridiem } from "@/app/utils/minutes-to-meridiem";
 import Link from "next/link";
 import { getUserPlus } from "@/app/lib/getUser";
+import { redirect } from "next/navigation";
 
 
 export default async function DoctorCreateTemplate({ params }) {
@@ -1674,7 +1717,7 @@ export async function createTemplateServerAction(formData) {
             buffer
         ]);
 
-        await rollingWindow(31, adminId);
+        await rollingWindow();
 
     } catch (error) {
         console.error(error);
@@ -2286,6 +2329,7 @@ import { db } from "@/app/lib/turso";
 import { addDoctorTreatment, deleteDoctor, editDoctorServerAction, removeDoctorTreatment } from "./sa";
 import Form from "next/form";
 import { getUserPlus } from "@/app/lib/getUser";
+import { redirect } from "next/navigation";
 
 export default async function EditDoctor({ params }) {
 
@@ -3003,7 +3047,7 @@ export async function updateWeeklyTemplateServerAction(formData) {
 
   const buffer_time = Number(formData.get("buffer"));
 
-  if (!startTime || !endTime || !breakStart || !breakEnd || !buffer_time) return redirect("/edit-template")
+  if (startTime === null || endTime === null || breakStart === null || breakEnd === null || isNaN(buffer_time)) return redirect("/edit-template");
 
   try {
     await db.execute({
@@ -3410,7 +3454,7 @@ export async function resendingEmail(_, formData) {
         const to = fetch?.rows[0]?.patient_email;
         const html = `
            <p>Click on button to verify your email address.</p>
-           <a href="https://portfolio-lw35.vercel.app/verify/${new_email_token}/${bookingPubId}">Verify Email</a>
+           <a href="https://portfolio-lw35.vercel.app/verify/${new_email_token}/${bookingPubId}/${adminPubId}">Verify Email</a>
            `;
 
         const res = await sendEmail({ to, subject, html });
@@ -3436,16 +3480,15 @@ export async function resendingEmail(_, formData) {
 
 import { nanoid } from "nanoid";
 import { initSlotsTable } from "../Models/initTables";
-import { getDayName } from "../utils/getDateData";
 import { db } from "./turso";
-import { getUserPlus } from "./getUser";
 
-export async function rollingWindow(win = 31, adminId = null) {
+
+export async function rollingWindow(win = 31) {
     await initSlotsTable();
     try {
 
 
-        const fetchAllTemplates = await db.execute(`SELECT * FROM weekly_templates WHERE admin_id = ?`, [adminId])
+        const fetchAllTemplates = await db.execute(`SELECT * FROM weekly_templates`);
         if (fetchAllTemplates.rows.length === 0) return null;
 
         const slotsArr = [];
@@ -3510,6 +3553,9 @@ export async function rollingWindow(win = 31, adminId = null) {
                     DO NOTHING`,
             values
         );
+
+
+        await db.execute(`DELETE FROM slots WHERE DATE(full_date_at_period) < DATE('now')`);
 
     } catch (error) {
         console.error(error);
@@ -3713,7 +3759,6 @@ export default async function GeneratedSlots() {
     if (!currentUser || currentUser.role !== "admin" || !currentUser.admin_id) redirect("/login");
     const adminId = currentUser.admin_id;
 
-    await rollingWindow(31, adminId);
 
 
     const fetch = await db.execute(
@@ -3918,7 +3963,7 @@ export default async function Message({ params }) {
         const html = `
            <p>You can cancel your appointment.</p>
            <p>Click on button to cancel your appointment.</p>
-           <a href="https://portfolio-lw35.vercel.app/cancel/${cancel_token}/${bookingPubId}/${adminPubId}">Cancel Appointment</a>
+           <a href="${process.env.NEXT_PUBLIC_APP_URL}/cancel/${cancel_token}/${bookingPubId}/${adminPubId}">Cancel Appointment</a>
            `;
 
         await sendEmail({ to, subject, html });
@@ -4261,7 +4306,7 @@ function AdminComponent({ user }) {
       <input type="email" name="email" placeholder="example@ex.com" defaultValue={user.admin_email} />
       <input type="text" name="clinic_name" placeholder="example@ex.com" defaultValue={user.clinic_name} />
       <input type="tel" name="clinic_phone" placeholder="clinic@ex.com" defaultValue={user.clinic_phone} />
-      <input type="tel" name="clinic_address" placeholder="Street #00" defaultValue={user.clinic_address} />
+      <input type="text" name="clinic_address" placeholder="Street #00" defaultValue={user.clinic_address} />
       <details>
         <summary>Change Password</summary>
         <input type="password" name="current_password" placeholder="Current Password" />
@@ -4326,23 +4371,29 @@ export async function updateAdmin(formData) {
     const getCurrentUser = await getUserPlus();
     if (!getCurrentUser || getCurrentUser.role !== "admin") redirect("/login");
 
-    const currentUser = getCurrentUser.admin_details;
-    if (currentUser.public_id !== adminPubId) return { error: "Unauthorized" };
+    const adminIdInAdminTable = getCurrentUser.admin_id;
+    const userIdInUsersTable = getCurrentUser.id;
+
+    if (getCurrentUser.admin_details.public_id !== adminPubId) return { error: "Unauthorized" };
 
     try {
         let new_passwordHash = null;
         if (new_password && current_password) {
-            const passwordMatch = await compare(current_password, currentUser.password);
+            const passwordMatch = await compare(current_password, getCurrentUser.admin_details.password);
             if (!passwordMatch) return { error: "Password mismatch" };
             new_passwordHash = await hash(new_password, 12);
         }
 
         if (new_passwordHash) {
-            await db.execute("UPDATE admins SET admin_name = ?, admin_username = ?, admin_email = ?, clinic_name = ?, clinic_phone = ?, clinic_address = ?, password = ? WHERE id = ?", [name, username, email, clinic_name, clinic_phone, clinic_address, new_passwordHash, getCurrentUser.id]);
-            await db.execute("UPDATE users SET username = ?, password = ? WHERE id = ?", [username, new_passwordHash, getCurrentUser.id]);
+            await db.execute("UPDATE admins SET admin_name = ?, admin_username = ?, admin_email = ?, clinic_name = ?, clinic_phone = ?, clinic_address = ?, password = ? WHERE id = ?",
+                [name, username, email, clinic_name, clinic_phone, clinic_address, new_passwordHash, adminIdInAdminTable]);
+            await db.execute("UPDATE users SET username = ?, password = ? WHERE id = ?",
+                [username, new_passwordHash, userIdInUsersTable]);
         } else {
-            await db.execute("UPDATE admins SET admin_name = ?, admin_username = ?, admin_email = ?, clinic_name = ?, clinic_phone = ?, clinic_address = ? WHERE id = ?", [name, username, email, clinic_name, clinic_phone, clinic_address, getCurrentUser.id]);
-            await db.execute("UPDATE users SET username = ? WHERE id = ?", [username, getCurrentUser.id]);
+            await db.execute("UPDATE admins SET admin_name = ?, admin_username = ?, admin_email = ?, clinic_name = ?, clinic_phone = ?, clinic_address = ? WHERE id = ?",
+                [name, username, email, clinic_name, clinic_phone, clinic_address, adminIdInAdminTable]);
+            await db.execute("UPDATE users SET username = ? WHERE id = ?",
+                [username, userIdInUsersTable]);
         }
     } catch (e) {
         return { error: "Update failed" };
@@ -4365,23 +4416,29 @@ export async function updateDoctor(formData) {
     const getCurrentUser = await getUserPlus();
     if (!getCurrentUser || getCurrentUser.role !== "doctor") redirect("/login");
 
-    const currentUser = getCurrentUser.doctor_details;
-    if (currentUser.public_id !== docPublicId) return { error: "Unauthorized" };
+    const doctorIdInTable = getCurrentUser.doctor_id;
+    const userIdInUsersTable = getCurrentUser.id;
+
+    if (getCurrentUser.doctor_details.public_id !== docPublicId) return { error: "Unauthorized" };
 
     try {
         let new_passwordHash = null;
         if (current_password && new_password) {
-            const passwordMatch = await compare(current_password, currentUser.password_hash);
+            const passwordMatch = await compare(current_password, getCurrentUser.doctor_details.password);
             if (!passwordMatch) return { error: "Password mismatch" };
             new_passwordHash = await hash(new_password, 12);
         }
 
         if (new_passwordHash) {
-            await db.execute("UPDATE doctors SET name = ?, username = ?, qualifications = ?, password = ? WHERE id = ?", [name, username, qualificationsJson, new_passwordHash, getCurrentUser.id]);
-            await db.execute("UPDATE users SET username = ?, password = ? WHERE id = ?", [username, new_passwordHash, getCurrentUser.id]);
+            await db.execute("UPDATE doctors SET name = ?, username = ?, qualifications = ?, password = ? WHERE id = ?",
+                [name, username, qualificationsJson, new_passwordHash, doctorIdInTable]);
+            await db.execute("UPDATE users SET username = ?, password = ? WHERE id = ?",
+                [username, new_passwordHash, userIdInUsersTable]);
         } else {
-            await db.execute("UPDATE doctors SET name = ?, username = ?, qualifications = ? WHERE id = ?", [name, username, qualificationsJson, getCurrentUser.id]);
-            await db.execute("UPDATE users SET username = ? WHERE id = ?", [username, getCurrentUser.id]);
+            await db.execute("UPDATE doctors SET name = ?, username = ?, qualifications = ? WHERE id = ?",
+                [name, username, qualificationsJson, doctorIdInTable]);
+            await db.execute("UPDATE users SET username = ? WHERE id = ?",
+                [username, userIdInUsersTable]);
         }
     } catch (e) {
         return { error: "Update failed" };
@@ -4398,9 +4455,8 @@ export async function updateDoctor(formData) {
 ```
 import bcrypt from "bcrypt";
 
-export async function hash(raw) {
-    const saltRounds = 10;
-    const hashed = await bcrypt.hash(raw, saltRounds);
+export async function hash(raw, rounds = 10) {
+    const hashed = await bcrypt.hash(raw, rounds);
     return hashed;
 }
 

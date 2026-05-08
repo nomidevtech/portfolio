@@ -18,11 +18,9 @@ export async function addDoctorServerAction(formData) {
         const username = formData.get("username")?.toString() || "";
         const password = formData.get("password")?.toString() || "";
         const department = formData.get("department")?.toString() || "";
+        const treatmentPubId = formData.get("treatmentPubId")?.toString() || "";
         const treatmentString = formData.get("treatment")?.toString() || "";
 
-        const treamentArr = treatmentString.split(' - ');
-        const treatmentName = treamentArr[0]?.trim().replace(/\s/g, "").toLowerCase();
-        const treatmentDuration = Number(treamentArr[1]?.split("min")[0]?.trim());
 
         const qualification = formData.get("qualification")
             ?.toString()
@@ -31,8 +29,8 @@ export async function addDoctorServerAction(formData) {
             .map(q => q.trim().toLowerCase());
 
         const fetchTreatment = await db.execute(
-            `SELECT id FROM treatments WHERE name = ? AND duration = ?`,
-            [treatmentName, treatmentDuration]
+            "SELECT id FROM treatments WHERE admin_id = ? AND public_id = ?",
+            [adminId, treatmentPubId]
         );
 
         if (fetchTreatment.rows.length === 0) return null;

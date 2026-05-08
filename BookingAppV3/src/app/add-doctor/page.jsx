@@ -8,8 +8,8 @@ import { redirect } from "next/navigation";
 
 
 export default async function AddDoctor() {
-   
-    
+
+
 
     const currentUser = await getUserPlus();
     if (!currentUser || currentUser.role !== "admin" || !currentUser.admin_id) redirect("/login");
@@ -21,8 +21,18 @@ export default async function AddDoctor() {
     departments = departments.map(dep => dep.department[0].toUpperCase() + dep.department.slice(1).toLowerCase());
     departments = [...new Set(departments)];
 
-    const fetchTreatments = await db.execute(`SELECT name, duration FROM treatments WHERE admin_id = ?`, [adminId]);
-    const treatments = fetchTreatments?.rows.map(fn => fn.name[0].toUpperCase() + fn.name.slice(1).toLowerCase() + " - " + fn.duration + "min");
+    const { rows } = await db.execute(
+        `SELECT public_id, name, duration FROM treatments WHERE admin_id = ?`,
+        [adminId]
+    );
+
+    const treatments = rows.map(t => ({
+        treatmentPubId: t.public_id,
+        string: `${t.name
+            .split("_")
+            .map(w => w[0].toUpperCase() + w.slice(1))
+            .join(" ")} ${t.duration > 9 ? t.duration + " min" : `0${t.duration} min`}`,
+    }));
 
     const fetchAllDoctors = await db.execute(`SELECT * FROM doctors WHERE admin_id = ?`, [adminId]);
     const allDoctors = fetchAllDoctors.rows;
@@ -38,8 +48,9 @@ export default async function AddDoctor() {
             <datalist id="departments">
                 {departments?.map((dep, idx) => <option key={idx} value={dep} />)}
             </datalist>
-            <select name="treatment" placeholder="Treatments" >
-                {treatments?.map((treatment, idx) => <option key={idx} value={treatment}>{treatment}</option>)}
+            <select name="treatmentPubId">
+                <option value="">Select Treatment</option>
+                {treatments?.map((treatment, idx) => <option key={idx} value={treatment.treatmentPubId}>{treatment.string}</option>)}
             </select>
             <input type="submit" value="Submit" />
         </Form>
