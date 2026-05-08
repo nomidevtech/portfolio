@@ -19,7 +19,7 @@ export async function addDoctorServerAction(formData) {
         const password = formData.get("password")?.toString() || "";
         const department = formData.get("department")?.toString() || "";
         const treatmentPubId = formData.get("treatmentPubId")?.toString() || "";
-        const treatmentString = formData.get("treatment")?.toString() || "";
+        
 
 
         const qualification = formData.get("qualification")

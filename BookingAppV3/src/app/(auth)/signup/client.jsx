@@ -16,7 +16,6 @@ export default function ClientSignUp() {
             <input type="password" name="password" placeholder="Password" />
             <input type="password" name="confirm_password" placeholder="Confirm Password" />
             <input type="text" name="clinic_name" placeholder="Clinic Name" />
-            <input type="text" name="clinic_email" placeholder="clinic@email.com" />
             <input type="tel" name="clinic_phone" placeholder="Clinic phone" />
             <input type="text" name="clinic_address" placeholder="Clinic Address" />
             <button type="submit">Sign Up</button>

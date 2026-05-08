@@ -7,12 +7,12 @@ import { getUserPlus } from "../lib/getUser";
 
 export async function updateAdmin(formData) {
     const adminPubId = formData.get("adminPubId")?.trim();
-    const name = formData.get("name")?.trim();
+    const name = formData.get("name")?.trim().replace(/\s/g, "-").toLowerCase();
     const username = formData.get("username")?.trim();
     const email = formData.get("email")?.trim();
-    const clinic_name = formData.get("clinic_name")?.trim();
+    const clinic_name = formData.get("clinic_name")?.trim().replace(/\s/g, "-").toLowerCase();
     const clinic_phone = formData.get("clinic_phone")?.trim();
-    const clinic_address = formData.get("clinic_address")?.trim();
+    const clinic_address = formData.get("clinic_address")?.trim().replace(/\s/g, "-").toLowerCase();
     const current_password = formData.get("current_password");
     const new_password = formData.get("new_password");
 
@@ -54,7 +54,7 @@ export async function updateAdmin(formData) {
 
 export async function updateDoctor(formData) {
     const docPublicId = formData.get("docPublicId")?.trim();
-    const name = formData.get("name")?.trim();
+    const name = formData.get("name")?.trim().replace(/\s/g, "-").toLowerCase();
     const username = formData.get("username")?.trim();
     const current_password = formData.get("current_password");
     const new_password = formData.get("new_password");

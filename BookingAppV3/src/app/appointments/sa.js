@@ -33,8 +33,9 @@ export async function adminRevokeBookings(_, formData) {
         const getAndUpdateBookings = await db.execute(
             `UPDATE bookings SET status = 'revoked' WHERE admin_id = ? AND booking_date_iso = ? AND status != 'revoked' RETURNING patient_email, patient_name, doctor_name`, [admin.id, bookingsDate]);
 
-        if (getAndUpdateBookings.rows.length > 0) {
-            await sendCancelationEmails(getAndUpdateBookings.rows, 100);
+        const rowsWithEmail = getAndUpdateBookings.rows.filter(row => row.patient_email);
+        if (rowsWithEmail.length > 0) {
+            await sendCancelationEmails(rowsWithEmail, 100);
         }
 
 
@@ -93,7 +94,7 @@ export async function adminRevokeBooking(_, formData) {
                 <p>Please Visit our website to schedule another appointment.</p>
                 `;
 
-        await sendEmail({ to, subject, html });
+        if (to) await sendEmail({ to, subject, html });
 
     } catch (error) {
         console.error("adminRevokeBooking error:", error);
@@ -131,8 +132,9 @@ export async function doctorRevokeBookings(_, formData) {
             [doctor.id, bookingsDate]
         );
 
-        if (res.rows.length > 0) {
-            await sendCancelationEmails(res.rows, 100);
+        const rowsWithEmail = res.rows.filter(row => row.patient_email);
+        if (rowsWithEmail.length > 0) {
+            await sendCancelationEmails(rowsWithEmail, 100);
         }
 
     } catch (error) {
@@ -191,7 +193,7 @@ export async function doctorRevokeBooking(_, formData) {
                 <p>Please Visit our website to schedule another appointment.</p>
                 `;
 
-        await sendEmail({ to, subject, html });
+        if (to) await sendEmail({ to, subject, html });
 
     } catch (error) {
         console.error("doctorRevokeBooking error:", error);

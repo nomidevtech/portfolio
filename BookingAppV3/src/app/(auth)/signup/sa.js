@@ -18,7 +18,6 @@ export async function signupServerAction(_, formData) {
     const confirm_password = formData.get("confirm_password");
 
     const clinic_name = formData.get("clinic_name")?.replace(/\s+/g, '-').toLowerCase();
-    const clinic_email = formData.get("clinic_email");
     const clinic_phone = formData.get("clinic_phone");
     const clinic_address = formData.get("clinic_address")?.replace(/\s+/g, '-').toLowerCase();
 
@@ -28,12 +27,14 @@ export async function signupServerAction(_, formData) {
         return { ok: false, message: "Passwords do not match" };
     }
 
-    const hashedPassword = await hash(password);
+
 
     try {
 
         const isUsernameAvailable = await db.execute("SELECT username FROM users WHERE username = ?", [username]);
-        if (isUsernameAvailable.rows.length > 0) return { ok: false, message: "Username already exists" }
+        if (isUsernameAvailable.rows.length > 0) return { ok: false, message: "Username already exists" };
+
+        const hashedPassword = await hash(password);
 
         const res = await db.execute(`INSERT INTO admins ( public_id, admin_name, admin_email, admin_username, 
                 clinic_name, clinic_phone, clinic_address, password ) VALUES (?, ?, ?, ?, ?, ?, ?, ?) RETURNING id`,
@@ -68,7 +69,7 @@ export async function signupServerAction(_, formData) {
         const html = `<p>Click on button to activate your account.</p><a href="${process.env.NEXT_PUBLIC_APP_URL}/activation/${email_token}/${public_id}">Activate Account</a>`;
 
         await sendEmail({ to, subject, html });
-        
+
 
     } catch (error) {
         console.error(error);

@@ -56,7 +56,7 @@ export async function createTemplateServerAction(formData) {
             buffer
         ]);
 
-        await rollingWindow();
+        await rollingWindow(adminId);
 
     } catch (error) {
         console.error(error);

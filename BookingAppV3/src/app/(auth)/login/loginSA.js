@@ -31,6 +31,8 @@ export async function loginSA(_, formData) {  // ← prevState added for useActi
         const isPasswordValid = await compare(password, passwordHash);
         if (!isPasswordValid) return { ok: false, message: "Invalid password" };
 
+        if (user.status !== "verified") return { ok: false, message: "Please verify your email before logging in." };
+
 
         const sessionToken = crypto.randomBytes(64).toString("hex");
 

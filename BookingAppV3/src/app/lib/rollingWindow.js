@@ -5,11 +5,14 @@ import { initSlotsTable } from "../Models/initTables";
 import { db } from "./turso";
 
 
-export async function rollingWindow(win = 31) {
+export async function rollingWindow(adminId = null, win = 31) {
     try {
 
 
-        const fetchAllTemplates = await db.execute(`SELECT * FROM weekly_templates`);
+        const fetchAllTemplates = adminId ?
+            await db.execute("SELECT * FROM templates WHERE admin_id = ?", [adminId]) :
+            await db.execute("SELECT * FROM templates");
+
         if (fetchAllTemplates.rows.length === 0) return null;
 
         const slotsArr = [];
@@ -25,7 +28,7 @@ export async function rollingWindow(win = 31) {
             const yearAtPeriod = current.getFullYear();
             const dayNumAtPeriod = current.getDay();
 
-            const fullDateAtPeriodInIso = current.toISOString();
+            const fullDateAtPeriodInIso = current.toISOString().split("T")[0];
 
             const tempelateAtPediod = fetchAllTemplates.rows.filter(fn => fn.day_number === dayNumAtPeriod);
 
