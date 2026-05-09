@@ -143,6 +143,8 @@ export async function initAdminTable() {
                 clinic_address TEXT,
                 password TEXT,
                 email_token_hash TEXT,
+                recovery_token_hash TEXT,
+                recovery_token_created_at DEFAULT NULL,
                 status TEXT DEFAULT 'unverified',
                 email_token_created_at DEFAULT NULL,
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP

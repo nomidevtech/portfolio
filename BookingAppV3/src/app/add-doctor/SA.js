@@ -14,12 +14,12 @@ export async function addDoctorServerAction(formData) {
         if (!currentUser || currentUser.role !== "admin" || !currentUser.admin_id) redirect("/login");
         const adminId = currentUser.admin_id;
 
-        const name = formData.get("name")?.toString() || "";
+        const name = formData.get("name")?.toString().replace(/\s/g, "-").toLowerCase() || "";
         const username = formData.get("username")?.toString() || "";
         const password = formData.get("password")?.toString() || "";
-        const department = formData.get("department")?.toString() || "";
+        const department = formData.get("department")?.toString().replace(/\s/g, "-").toLowerCase() || "";
         const treatmentPubId = formData.get("treatmentPubId")?.toString() || "";
-        
+
 
 
         const qualification = formData.get("qualification")

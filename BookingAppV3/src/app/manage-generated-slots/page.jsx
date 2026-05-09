@@ -1,10 +1,9 @@
-import Link from "next/link";
-import { rollingWindow } from "../lib/rollingWindow";
+import { getUserPlus } from "../lib/getUser";
 import { db } from "../lib/turso";
 import { getDayName, getMonthName } from "../utils/getDateData";
 import { minutesToMeridiem } from "../utils/minutes-to-meridiem";
 import { ToggleSlotButton, EditSlotButton } from "./Client";
-import { getUser } from "../lib/getUser";
+
 import { redirect } from "next/navigation";
 
 export default async function GeneratedSlots() {

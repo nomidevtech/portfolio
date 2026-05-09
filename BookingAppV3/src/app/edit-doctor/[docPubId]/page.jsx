@@ -28,12 +28,12 @@ export default async function EditDoctor({ params }) {
     let departments = fetchDepartments?.rows.map(dep => dep.department[0].toUpperCase() + dep.department.slice(1).toLowerCase());
     departments = [...new Set(departments)];
 
-    const fetchTreatments = await db.execute(`SELECT name, duration FROM treatments WHERE admin_id = ?`, [adminId]);
+    const fetchTreatments = await db.execute(`SELECT public_id, name, duration FROM treatments WHERE admin_id = ?`, [adminId]);
 
     const fetchDetails = await db.execute(`
         SELECT 
-            doctors.name AS doctor_name,
-            GROUP_CONCAT(treatments.name || ' - ' || treatments.duration || 'min', ' , ') AS treatments,
+            doctors.name AS doctor_name, doctors.username AS doctor_username,
+            GROUP_CONCAT(treatments.public_id) AS treatments,
             doctors.*
         FROM doctors
         LEFT JOIN doctor_treatments ON doctors.id = doctor_treatments.doctor_id 
@@ -44,16 +44,23 @@ export default async function EditDoctor({ params }) {
 
     const doctorData = fetchDetails.rows[0];
 
-    const treatmentsArr = doctorData.treatments
-        ? doctorData.treatments.split(',').map(t => {
-            const [name, dur] = t.split(' - ');
-            return name[0].toUpperCase() + name.slice(1).toLowerCase() + ' - ' + dur;
-        })
-        : [];
+    const treatmentPubIds = doctorData.treatments ? doctorData.treatments.split(",") : [];
 
-    const treatments = fetchTreatments?.rows
-        .map(fn => fn.name[0].toUpperCase() + fn.name.slice(1).toLowerCase() + " - " + fn.duration + "min")
-        .filter(t => !treatmentsArr.includes(t));
+    const formatTreatment = (t) => ({
+        name: t.name,
+        duration: t.duration,
+        public_id: t.public_id,
+        string: t.name.split("_").map(w => w[0].toUpperCase() + w.slice(1)).join(" ") +
+            " " + (t.duration > 9 ? t.duration + " min" : `0${t.duration} min`)
+    });
+
+    const assignedTreatments = fetchTreatments?.rows
+        ?.filter(t => treatmentPubIds.includes(t.public_id))
+        ?.map(formatTreatment);
+
+    const availableTreatments = fetchTreatments?.rows
+        ?.filter(t => !treatmentPubIds.includes(t.public_id))
+        ?.map(formatTreatment);
 
     const qualifications = doctorData.qualifications ? JSON.parse(doctorData.qualifications) : [];
 
@@ -66,7 +73,7 @@ export default async function EditDoctor({ params }) {
                 <input type="hidden" name="doctor_pubId" value={docPubId} />
                 <select name="treatment">
                     <option>Select Additional Treatments</option>
-                    {treatments?.map((treatment, idx) => <option key={idx} value={treatment}>{treatment}</option>)}
+                    {availableTreatments?.map((fn, idx) => <option key={idx} value={fn.public_id}>{fn.string}</option>)}
                 </select>
                 <button type="submit">Add</button>
             </Form>
@@ -76,7 +83,7 @@ export default async function EditDoctor({ params }) {
                 <input type="hidden" name="doctor_pubId" value={docPubId} />
                 <select name="remove_treatment">
                     <option>Select Treatments to Remove</option>
-                    {treatmentsArr?.map((treatment, idx) => <option key={idx} value={treatment}>{treatment}</option>)}
+                    {assignedTreatments?.map((fn, idx) => <option key={idx} value={fn.public_id}>{fn.string}</option>)}
                 </select>
                 <button type="submit">Remove</button>
             </Form>
@@ -84,6 +91,8 @@ export default async function EditDoctor({ params }) {
             <Form action={editDoctorServerAction}>
                 <input type="hidden" name="doctor_pubId" value={docPubId} />
                 <input type="text" name="name" placeholder="Name" defaultValue={doctorData.doctor_name[0].toUpperCase() + doctorData.doctor_name.slice(1)} />
+                <input type="text" name="username" placeholder="userame" defaultValue={doctorData.doctor_username} />
+                <input type="text" name="new_password" placeholder="New Password" />
                 <input list="departments" name="department" placeholder="Department" defaultValue={doctorData.department[0].toUpperCase() + doctorData.department.slice(1)} />
                 <datalist id="departments">
                     {departments?.map((dep, idx) => <option key={idx} value={dep} />)}
@@ -96,7 +105,7 @@ export default async function EditDoctor({ params }) {
                 <p>Name: {doctorData.doctor_name[0].toUpperCase() + doctorData.doctor_name.slice(1)}</p>
                 <p>Department: {doctorData.department[0].toUpperCase() + doctorData.department.slice(1)}</p>
                 <p>Qualifications: {qualifications.join(", ").toUpperCase() || "None"}</p>
-                <p>Treatments: {doctorData.treatments || 'None'}</p>
+                <p>Treatments: {assignedTreatments?.length > 0 ? assignedTreatments.map(t => t.string).join(", ") : "None"}</p>
             </div>
 
             <Form action={deleteDoctor}>

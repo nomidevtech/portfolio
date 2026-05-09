@@ -5,6 +5,7 @@ import Form from "next/form";
 import Link from "next/link";
 import { updateWeeklyTemplateServerAction } from "./SA";
 import { getUserPlus } from "@/app/lib/getUser";
+import { redirect } from "next/navigation";
 
 export default async function EditDoctorTemplate({ params }) {
 

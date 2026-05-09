@@ -10,8 +10,8 @@ export async function rollingWindow(adminId = null, win = 31) {
 
 
         const fetchAllTemplates = adminId ?
-            await db.execute("SELECT * FROM templates WHERE admin_id = ?", [adminId]) :
-            await db.execute("SELECT * FROM templates");
+            await db.execute("SELECT * FROM weekly_templates WHERE admin_id = ?", [adminId]) :
+            await db.execute("SELECT * FROM weekly_templates");
 
         if (fetchAllTemplates.rows.length === 0) return null;
 

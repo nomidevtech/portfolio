@@ -3,6 +3,7 @@
 import Form from "next/form";
 import { loginSA } from "./loginSA";
 import { useActionState } from "react";
+import Link from "next/link";
 
 export default function Client() {
     const initialState = { ok: null, message: "" };
@@ -43,11 +44,10 @@ export default function Client() {
                         </div>
 
                         {state.message && (
-                            <p className={`text-sm px-4 py-3 rounded-xl border ${
-                                state.ok
+                            <p className={`text-sm px-4 py-3 rounded-xl border ${state.ok
                                     ? "text-green-700 bg-green-50 border-green-200"
                                     : "text-red-600 bg-red-50 border-red-200"
-                            }`}>
+                                }`}>
                                 {state.ok ? "Login successful! Redirecting…" : state.message}
                             </p>
                         )}
@@ -64,9 +64,14 @@ export default function Client() {
 
                 <p className="text-sm text-gray-500 text-center mt-6">
                     Don't have an account?{" "}
-                    <a href="/signup" className="font-semibold text-gray-900 hover:underline">
+                    <Link href="/signup" className="font-semibold text-gray-900 hover:underline">
                         Sign up
-                    </a>
+                    </Link>
+                </p>
+                <p className="text-sm text-gray-500 text-center mt-6">Forgot password? 
+                    <Link href="/recovery" className="font-semibold text-gray-900 hover:underline">
+                        Click Here
+                    </Link>
                 </p>
             </div>
         </div>

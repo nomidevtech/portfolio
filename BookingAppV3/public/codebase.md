@@ -79,26 +79,25 @@ export default async function Activations({ params }) {
     const { emailToken, adminPubId } = await params;
     if (!emailToken || !adminPubId) return <p>Broken link</p>
 
-    const fetchAdmib = await db.execute("SELECT * FROM admins WHERE public_id = ?", [adminPubId]);
-    if (fetchAdmib.rows.length === 0) return <p>Admin not found</p>
+    const fetchAdmin = await db.execute("SELECT * FROM admins WHERE public_id = ?", [adminPubId]);
+    if (fetchAdmin.rows.length === 0) return <p>Admin not found</p>
 
-    if (fetchAdmib.rows[0].status === "verified") redirect("/");
+    if (fetchAdmin.rows[0].status === "verified") redirect("/");
 
-    console.log("------------>", fetchAdmib.rows[0]);
+    try {
+        const success = await compare(emailToken, fetchAdmin.rows[0].email_token_hash);
+        if (!success) return <p>Failed to activate. Please resend email and try again.</p>
 
-    const success = await compare(emailToken, fetchAdmib.rows[0].email_token_hash);
-    if (!success) return <p>Failed to activate. Please resend email and try again.</p>
+        await Promise.all([
+            db.execute("UPDATE admins SET status = 'verified', email_token_hash = NULL, email_token_created_at = NULL WHERE id = ?", [fetchAdmin.rows[0].id]),
+            db.execute("UPDATE users SET status = 'verified' WHERE admin_id = ?", [fetchAdmin.rows[0].id])
+        ]);
 
-    await Promise.all([
-        db.execute("UPDATE admins SET status = 'verified', email_token_hash = NULL, email_token_created_at = NULL WHERE id = ?", [fetchAdmib.rows[0].id]),
-        db.execute("UPDATE users SET status = 'verified' WHERE admin_id = ?", [fetchAdmib.rows[0].id])
-    ]);
+    } catch (error) {
+        return <p>Failed to activate. Please resend email and try again.</p>
+    }
 
     redirect("/");
-
-    return (<>
-        <div>broken link</div>
-    </>);
 }
 ```
 ---
@@ -216,6 +215,8 @@ export async function loginSA(_, formData) {  // ← prevState added for useActi
         const isPasswordValid = await compare(password, passwordHash);
         if (!isPasswordValid) return { ok: false, message: "Invalid password" };
 
+        if (user.status !== "verified") return { ok: false, message: "Please verify your email before logging in." };
+
 
         const sessionToken = crypto.randomBytes(64).toString("hex");
 
@@ -289,7 +290,6 @@ export default function ClientSignUp() {
             <input type="password" name="password" placeholder="Password" />
             <input type="password" name="confirm_password" placeholder="Confirm Password" />
             <input type="text" name="clinic_name" placeholder="Clinic Name" />
-            <input type="text" name="clinic_email" placeholder="clinic@email.com" />
             <input type="tel" name="clinic_phone" placeholder="Clinic phone" />
             <input type="text" name="clinic_address" placeholder="Clinic Address" />
             <button type="submit">Sign Up</button>
@@ -346,7 +346,6 @@ export async function signupServerAction(_, formData) {
     const confirm_password = formData.get("confirm_password");
 
     const clinic_name = formData.get("clinic_name")?.replace(/\s+/g, '-').toLowerCase();
-    const clinic_email = formData.get("clinic_email");
     const clinic_phone = formData.get("clinic_phone");
     const clinic_address = formData.get("clinic_address")?.replace(/\s+/g, '-').toLowerCase();
 
@@ -356,12 +355,14 @@ export async function signupServerAction(_, formData) {
         return { ok: false, message: "Passwords do not match" };
     }
 
-    const hashedPassword = await hash(password);
+
 
     try {
 
         const isUsernameAvailable = await db.execute("SELECT username FROM users WHERE username = ?", [username]);
-        if (isUsernameAvailable.rows.length > 0) return { ok: false, message: "Username already exists" }
+        if (isUsernameAvailable.rows.length > 0) return { ok: false, message: "Username already exists" };
+
+        const hashedPassword = await hash(password);
 
         const res = await db.execute(`INSERT INTO admins ( public_id, admin_name, admin_email, admin_username, 
                 clinic_name, clinic_phone, clinic_address, password ) VALUES (?, ?, ?, ?, ?, ?, ?, ?) RETURNING id`,
@@ -396,7 +397,7 @@ export async function signupServerAction(_, formData) {
         const html = `<p>Click on button to activate your account.</p><a href="${process.env.NEXT_PUBLIC_APP_URL}/activation/${email_token}/${public_id}">Activate Account</a>`;
 
         await sendEmail({ to, subject, html });
-        
+
 
     } catch (error) {
         console.error(error);
@@ -586,7 +587,7 @@ export async function addDoctorServerAction(formData) {
         const password = formData.get("password")?.toString() || "";
         const department = formData.get("department")?.toString() || "";
         const treatmentPubId = formData.get("treatmentPubId")?.toString() || "";
-        const treatmentString = formData.get("treatment")?.toString() || "";
+        
 
 
         const qualification = formData.get("qualification")
@@ -851,10 +852,10 @@ import { sendEmail } from "@/app/lib/resend";
 export async function appointmentRegisterationServerAction(_, formData) {
 
     const adminPubId = formData.get("adminPubId");
-    if (!adminPubId) throw new Error("Invalid admin.");
+    if (!adminPubId) return { ok: false, message: "Invalid admin." };
 
     const fetchAdmin = await db.execute(`SELECT id FROM admins WHERE public_id = ?`, [adminPubId]);
-    if (fetchAdmin.rows.length === 0) throw new Error("Invalid admin.");
+    if (fetchAdmin.rows.length === 0) return { ok: false, message: "Invalid admin." };
 
     const adminId = fetchAdmin.rows[0].id;
 
@@ -862,23 +863,28 @@ export async function appointmentRegisterationServerAction(_, formData) {
     const name = formData.get("name");
     const email = formData.get("email");
     const phone = formData.get("phone");
-    if (!bookingPubId || !name || !email || !phone) throw new Error("Missing required fields.");
+    if (!bookingPubId || !name || !email || !phone) return { ok: false, message: "Missing required fields." };
 
+    if ((!name.match(/^[a-zA-Z\s]+$/)) || name.length > 20 || name.length < 3)
+        return { ok: false, message: "Name should only contain letters and spaces and should be 3-20 characters long." };
 
-    if ((!name.match(/^[a-zA-Z\s]+$/)) || name.length > 20 || name.length < 3) return { ok: false, message: "Name should only contain letters and spaces and should be 3-20 characters long." };
+    if (!email.match(/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/))
+        return { ok: false, message: "Invalid email address." };
 
-    if (!email.match(/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/)) throw new Error("Invalid email.");
-
-    if (phone.length > 15 || phone.length < 7) throw new Error("Invalid phone number.");
+    if (phone.length > 15 || phone.length < 7)
+        return { ok: false, message: "Invalid phone number." };
 
     const email_token = crypto.randomBytes(16).toString("hex");
     const hashed = await hash(email_token);
 
     try {
         const fetch = await db.execute(`SELECT id FROM bookings WHERE public_id = ? AND admin_id = ?`, [bookingPubId, adminId]);
-        if (fetch.rows.length === 0) throw new Error("Invalid booking.");
+        if (fetch.rows.length === 0) return { ok: false, message: "Booking not found." };
 
-        await db.execute(`UPDATE bookings SET patient_name = ?, patient_email = ?, patient_phone = ?, status = ?, email_token_hash = ?, email_token_created_at = CURRENT_TIMESTAMP WHERE id = ? AND admin_id = ?`, [name, email, phone, "unverified", hashed, fetch.rows[0].id, adminId]);
+        await db.execute(
+            `UPDATE bookings SET patient_name = ?, patient_email = ?, patient_phone = ?, status = ?, email_token_hash = ?, email_token_created_at = CURRENT_TIMESTAMP WHERE id = ? AND admin_id = ?`,
+            [name, email, phone, "unverified", hashed, fetch.rows[0].id, adminId]
+        );
 
         const subject = `Book Your Slot`;
         const to = email;
@@ -888,16 +894,15 @@ export async function appointmentRegisterationServerAction(_, formData) {
         `;
 
         const res = await sendEmail({ to, subject, html });
-        if (res.success === false) throw new Error(res.error);
-
+        if (res.success === false) return { ok: false, message: "Failed to send verification email. Please try again." };
 
     } catch (error) {
         console.error(error);
-        return { ok: false, message: error.message || "An unexpected error occurred." };
+        return { ok: false, message: "An unexpected error occurred." };
     }
+
     redirect(`/message/${bookingPubId}/${adminPubId}`);
 }
-
 ```
 ---
 ## src\app\appointments\admin-component.jsx
@@ -1290,8 +1295,9 @@ export async function adminRevokeBookings(_, formData) {
         const getAndUpdateBookings = await db.execute(
             `UPDATE bookings SET status = 'revoked' WHERE admin_id = ? AND booking_date_iso = ? AND status != 'revoked' RETURNING patient_email, patient_name, doctor_name`, [admin.id, bookingsDate]);
 
-        if (getAndUpdateBookings.rows.length > 0) {
-            await sendCancelationEmails(getAndUpdateBookings.rows, 100);
+        const rowsWithEmail = getAndUpdateBookings.rows.filter(row => row.patient_email);
+        if (rowsWithEmail.length > 0) {
+            await sendCancelationEmails(rowsWithEmail, 100);
         }
 
 
@@ -1350,7 +1356,7 @@ export async function adminRevokeBooking(_, formData) {
                 <p>Please Visit our website to schedule another appointment.</p>
                 `;
 
-        await sendEmail({ to, subject, html });
+        if (to) await sendEmail({ to, subject, html });
 
     } catch (error) {
         console.error("adminRevokeBooking error:", error);
@@ -1388,8 +1394,9 @@ export async function doctorRevokeBookings(_, formData) {
             [doctor.id, bookingsDate]
         );
 
-        if (res.rows.length > 0) {
-            await sendCancelationEmails(res.rows, 100);
+        const rowsWithEmail = res.rows.filter(row => row.patient_email);
+        if (rowsWithEmail.length > 0) {
+            await sendCancelationEmails(rowsWithEmail, 100);
         }
 
     } catch (error) {
@@ -1448,7 +1455,7 @@ export async function doctorRevokeBooking(_, formData) {
                 <p>Please Visit our website to schedule another appointment.</p>
                 `;
 
-        await sendEmail({ to, subject, html });
+        if (to) await sendEmail({ to, subject, html });
 
     } catch (error) {
         console.error("doctorRevokeBooking error:", error);
@@ -2419,7 +2426,7 @@ export async function createTemplateServerAction(formData) {
             buffer
         ]);
 
-        await rollingWindow();
+        await rollingWindow(adminId);
 
     } catch (error) {
         console.error(error);
@@ -3133,11 +3140,10 @@ export default async function EditDoctorTemplate({ params }) {
 "use server";
 
 import { db } from "@/app/lib/turso";
-import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import getMinutes from "@/app/utils/getMinutes"; // Adjust path if needed
 import { getUserPlus } from "@/app/lib/getUser";
-import { rollingWindow } from "@/app/lib/rollingWindow";
+
 
 export async function updateWeeklyTemplateServerAction(formData) {
 
@@ -3565,11 +3571,14 @@ import { initSlotsTable } from "../Models/initTables";
 import { db } from "./turso";
 
 
-export async function rollingWindow(win = 31) {
+export async function rollingWindow(adminId = null, win = 31) {
     try {
 
 
-        const fetchAllTemplates = await db.execute(`SELECT * FROM weekly_templates`);
+        const fetchAllTemplates = adminId ?
+            await db.execute("SELECT * FROM templates WHERE admin_id = ?", [adminId]) :
+            await db.execute("SELECT * FROM templates");
+
         if (fetchAllTemplates.rows.length === 0) return null;
 
         const slotsArr = [];
@@ -3585,7 +3594,7 @@ export async function rollingWindow(win = 31) {
             const yearAtPeriod = current.getFullYear();
             const dayNumAtPeriod = current.getDay();
 
-            const fullDateAtPeriodInIso = current.toISOString();
+            const fullDateAtPeriodInIso = current.toISOString().split("T")[0];
 
             const tempelateAtPediod = fetchAllTemplates.rows.filter(fn => fn.day_number === dayNumAtPeriod);
 
@@ -4392,12 +4401,12 @@ import { getUserPlus } from "../lib/getUser";
 
 export async function updateAdmin(formData) {
     const adminPubId = formData.get("adminPubId")?.trim();
-    const name = formData.get("name")?.trim();
+    const name = formData.get("name")?.trim().replace(/\s/g, "-").toLowerCase();
     const username = formData.get("username")?.trim();
     const email = formData.get("email")?.trim();
-    const clinic_name = formData.get("clinic_name")?.trim();
+    const clinic_name = formData.get("clinic_name")?.trim().replace(/\s/g, "-").toLowerCase();
     const clinic_phone = formData.get("clinic_phone")?.trim();
-    const clinic_address = formData.get("clinic_address")?.trim();
+    const clinic_address = formData.get("clinic_address")?.trim().replace(/\s/g, "-").toLowerCase();
     const current_password = formData.get("current_password");
     const new_password = formData.get("new_password");
 
@@ -4439,7 +4448,7 @@ export async function updateAdmin(formData) {
 
 export async function updateDoctor(formData) {
     const docPublicId = formData.get("docPublicId")?.trim();
-    const name = formData.get("name")?.trim();
+    const name = formData.get("name")?.trim().replace(/\s/g, "-").toLowerCase();
     const username = formData.get("username")?.trim();
     const current_password = formData.get("current_password");
     const new_password = formData.get("new_password");
