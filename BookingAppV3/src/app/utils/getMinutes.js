@@ -1,4 +1,7 @@
 export default function getMinutes(hr, min, meridiem) {
+
+    if (!hr || !min || !meridiem) return null;
+
     let h = Number(hr);
     const m = Number(min);
     if (meridiem === "PM" && h !== 12) h += 12;

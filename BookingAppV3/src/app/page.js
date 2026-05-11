@@ -1,9 +1,10 @@
-import { initBookingsTable } from "./Models/initTables";
+import { initBookingsTable, initSlotsTable } from "./Models/initTables";
 
 export default async function Home() {
-    await initBookingsTable();
+  await initBookingsTable();
+  await initSlotsTable();
   return (<>
-  
+
   </>
   );
 }

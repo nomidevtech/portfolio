@@ -32,7 +32,7 @@ function segmentizeBulkEmails(realPayload, chunkSize) {
         return dummyObj;
 
     } catch (error) {
-        console.log(error);
+        console.error(error);
         return null
     }
 }

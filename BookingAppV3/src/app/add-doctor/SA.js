@@ -35,11 +35,11 @@ export async function addDoctorServerAction(formData) {
 
         if (fetchTreatment.rows.length === 0) return null;
 
-        const passowrdHash = await hash(password);
+        const passwordHash = await hash(password);
 
         const result = await db.execute(
             `INSERT INTO doctors (admin_id, name, username, password, department, public_id, qualifications) VALUES (?, ?, ?, ?, ?, ?, ?) RETURNING id`,
-            [adminId, name.toLowerCase(), username, passowrdHash, department.toLowerCase(), nanoid(12), JSON.stringify(qualification)]
+            [adminId, name.toLowerCase(), username, passwordHash, department.toLowerCase(), nanoid(12), JSON.stringify(qualification)]
         );
 
         const doctorId = result.rows[0]?.id;
@@ -56,7 +56,7 @@ export async function addDoctorServerAction(formData) {
             doctorId,
             "doctor",
             username,
-            passowrdHash
+            passwordHash
         ]);
 
         success = true;

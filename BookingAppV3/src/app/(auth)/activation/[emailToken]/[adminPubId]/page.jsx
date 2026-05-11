@@ -1,5 +1,6 @@
 import { db } from "@/app/lib/turso";
 import { compare } from "@/app/utils/bcrypt";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 
 export default async function Activations({ params }) {
@@ -11,6 +12,9 @@ export default async function Activations({ params }) {
     if (fetchAdmin.rows.length === 0) return <p>Admin not found</p>
 
     if (fetchAdmin.rows[0].status === "verified") redirect("/");
+
+    const tokenAge = Date.now() - new Date(fetchAdmin.rows[0].email_token_created_at).getTime();
+    if (tokenAge > 1000 * 60 * 60 * 24) return <><p>Link expired. Please request a new one <Link href={`/verification/${fetchAdmin.rows[0].public_id}`}>here</Link>.</p></>
 
     try {
         const success = await compare(emailToken, fetchAdmin.rows[0].email_token_hash);

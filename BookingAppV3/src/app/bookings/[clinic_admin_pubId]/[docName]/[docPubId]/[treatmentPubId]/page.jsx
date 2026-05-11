@@ -20,8 +20,8 @@ export default async function DoctorBookings({ params }) {
         db.execute(`SELECT * FROM treatments where public_id = ? AND admin_id = ?`, [treatmentPubId, adminId])
     ]);
 
-    if (fetchDoctor.rows.length === 0) return <p>1Broken Link. Please try again.</p>;
-    if (fetchTreatment.rows.length === 0) return <p>3Broken Link. Please try again.</p>;
+    if (fetchDoctor.rows.length === 0) return <p>Broken Link. Please try again.</p>;
+    if (fetchTreatment.rows.length === 0) return <p>Broken Link. Please try again.</p>;
 
     const docId = fetchDoctor?.rows[0]?.id;
     const treatmentId = fetchTreatment?.rows[0]?.id;
@@ -33,7 +33,7 @@ export default async function DoctorBookings({ params }) {
         db.execute(`SELECT * FROM bookings WHERE admin_id = ? AND doctor_id = ? AND status NOT IN('cancelled', 'revoked')`, [adminId, docId])
     ]);
 
-    if (fetchRecord.rows.length === 0) return <p>4Broken Link. Please try again.</p>;
+    if (fetchRecord.rows.length === 0) return <p>Broken Link. Please try again.</p>;
     if (fetchSlots.rows.length === 0) return <p>No slots available.</p>;
 
     const allVirtualSlots = fetchSlots.rows || [];
@@ -80,15 +80,6 @@ export default async function DoctorBookings({ params }) {
             }
         }
     }
-
-
-
-
-    //console.dir(allVirtualSlots, { depth: null });
-    // console.dir(fetchBookings.rows, { depth: null });
-    // console.log(fetchSlots.rows);
-    // await initBookingsTable();
-    // await rollingWindow();
 
 
 

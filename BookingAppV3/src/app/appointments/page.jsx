@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { getUser, getUserPlus } from "../lib/getUser";
+import { getUserPlus } from "../lib/getUser";
 import AdminComponent from "./admin-component";
 import DoctorComponent from "./doctor-component";
 
@@ -8,7 +8,7 @@ export default async function Appointments() {
     const currentUser = await getUserPlus();
     if (!currentUser?.id) return redirect("/login");
 
-    console.log("currentUser", currentUser);
+
 
     if (currentUser.role === "doctor") return <DoctorComponent currentUser={currentUser} />
 

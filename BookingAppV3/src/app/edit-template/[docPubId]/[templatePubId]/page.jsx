@@ -28,7 +28,6 @@ export default async function EditDoctorTemplate({ params }) {
 
     let template = fetchTemplate.rows[0];
 
-    console.log(template)
 
     const dummyHrs = [];
     for (let i = 1; i <= 12; i++) {

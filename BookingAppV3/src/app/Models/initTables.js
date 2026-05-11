@@ -65,7 +65,6 @@ export async function initDoctorTreatmentsTable() {
 };
 
 
-
 export async function initWeeklyTemplatesTable() {
     try {
         await db.execute(`
@@ -93,6 +92,8 @@ export async function initWeeklyTemplatesTable() {
         throw error;
     }
 }
+
+
 export async function initSlotsTable() {
     try {
         await db.execute(`
@@ -115,7 +116,7 @@ export async function initSlotsTable() {
                 full_date_at_period TEXT,
 
 
-                UNIQUE(admin_id, doctor_id, month_number, year, date_number) ON CONFLICT REPLACE,
+                UNIQUE(admin_id, doctor_id, month_number, year, date_number) ON CONFLICT IGNORE,
 
                 FOREIGN KEY (doctor_id) REFERENCES doctors (id) ON DELETE CASCADE,
                 FOREIGN KEY (admin_id) REFERENCES admins (id) ON DELETE CASCADE
@@ -127,7 +128,6 @@ export async function initSlotsTable() {
     }
 }
 
-// we will make now admin table following
 
 export async function initAdminTable() {
     try {
@@ -157,60 +157,79 @@ export async function initAdminTable() {
 }
 
 
-
-
 export async function initBookingsTable() {
     try {
+
         await db.execute(`
             CREATE TABLE IF NOT EXISTS bookings (
                 id INTEGER PRIMARY KEY,
                 public_id TEXT UNIQUE,
+
                 admin_id INTEGER,
                 doctor_id INTEGER,
+                treatment_id INTEGER,
+
                 doctor_name TEXT,
+
                 patient_name TEXT,
                 patient_email TEXT,
                 patient_phone TEXT,
+
                 treatment_start INTEGER,
                 treatment_end INTEGER,
+
                 day_number INTEGER,
                 date_number INTEGER,
                 month_number INTEGER,
                 year INTEGER,
+
                 booking_date_iso TEXT,
-                treatment_id INTEGER,
+
                 status TEXT DEFAULT 'pending',
+
                 email_token_hash TEXT,
-                email_token_created_at DEFAULT NULL,
+                email_token_created_at DATETIME DEFAULT NULL,
+
                 cancel_token_hash TEXT,
-                cancel_token_created_at DEFAULT NULL,
+                cancel_token_created_at DATETIME DEFAULT NULL,
+
                 booking_registered_at DATETIME DEFAULT CURRENT_TIMESTAMP,
 
                 FOREIGN KEY (doctor_id) REFERENCES doctors(id) ON DELETE SET NULL,
                 FOREIGN KEY (treatment_id) REFERENCES treatments(id) ON DELETE SET NULL,
-                FOREIGN KEY (admin_id) REFERENCES admins(id) ON DELETE SET NULL,
-                
-                UNIQUE(
-                    doctor_id, 
-                    day_number, 
-                    date_number, 
-                    month_number, 
-                    year, 
-                    treatment_start, 
-                    treatment_end,
-                    status,
-                    admin_id
-                ) ON CONFLICT IGNORE
-            )
+                FOREIGN KEY (admin_id) REFERENCES admins(id) ON DELETE SET NULL
+            );
         `);
 
-        return { ok: true, message: "bookings table created" };
+        await db.execute(`
+            CREATE UNIQUE INDEX IF NOT EXISTS unique_active_booking 
+            ON bookings(
+                admin_id,
+                doctor_id,
+                booking_date_iso,
+                treatment_start,
+                treatment_end
+            )
+            WHERE status IN ('pending', 'verified');
+        `);
+
+        return {
+            ok: true,
+            message: "bookings table created"
+        };
 
     } catch (error) {
+
         console.error("Database Init Error:", error);
-        return { ok: false, message: error instanceof Error ? error.message : String(error) };
+
+        return {
+            ok: false,
+            message: error instanceof Error
+                ? error.message
+                : String(error)
+        };
     }
-};
+}
 
 
 

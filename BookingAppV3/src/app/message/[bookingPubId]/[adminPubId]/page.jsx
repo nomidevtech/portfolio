@@ -1,4 +1,4 @@
-import EmailVerification from "@/app/components/emailVerification";
+import { PatientEmailVerification } from "@/app/components/emailVerification";
 import { db } from "@/app/lib/turso";
 import { getMonthName } from "@/app/utils/getDateData";
 import { minutesToMeridiem } from "@/app/utils/minutes-to-meridiem";
@@ -51,7 +51,7 @@ export default async function Message({ params }) {
         <p>Patient Email: {booking.patient_email}</p>
         <p>Patient Phone: {booking.patient_phone}</p>
         {booking.status !== "verified" && <p>You need to verify your email within 30 minutes to book the slot. Otherwise it will be avaliable for others to book again.</p>}
-        {booking.status !== "verified" && <EmailVerification bookingPubId={bookingPubId} adminPubId={adminPubId} />}
+        {booking.status !== "verified" && <PatientEmailVerification bookingPubId={bookingPubId} adminPubId={adminPubId} />}
         {booking.status === "verified" && <><p>Slot Booked Successfully.</p>
             <DownloadTicketButton bookingPubId={bookingPubId} adminPubId={adminPubId} />
         </>}

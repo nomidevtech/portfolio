@@ -3,16 +3,15 @@
 import crypto from "crypto";
 import { db } from "@/app/lib/turso";
 import { cookies, headers } from "next/headers";
-//import { redis } from "@/app/lib/redis";
-import { redirect } from "next/navigation";  // ← fixed import
+import { redirect } from "next/navigation";  
 import { compare, hash } from "@/app/utils/bcrypt";
 import { initSessionsTable } from "@/app/Models/initTables";
-//import { initSessionsTable } from "@/app/models/table-inits";
 
 
 
 
-export async function loginSA(_, formData) {  // ← prevState added for useActionState
+
+export async function loginSA(_, formData) {
     try {
 
         await initSessionsTable();

@@ -19,9 +19,9 @@ export default async function NavBar() {
 
             <div className="flex items-center gap-3">
                 <ul className="border-2 border-amber-200 my-2 flex gap-2">
-                    <Link href="/"><li>Home</li></Link>
-                    <Link href="/about"><li>About</li></Link>
-                    <Link href="/contact"><li>Contact</li></Link>
+                    <li><Link href="/">Home</Link></li>
+                    <li><Link href="/about">About</Link></li>
+                    <li><Link href="/contact">Contact</Link></li>
                 </ul>
                 <div className="bg-green-900 px-2 py-0.5 rounded">
                     <Link href="/bookings">Bookings</Link>

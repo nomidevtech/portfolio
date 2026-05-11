@@ -61,7 +61,7 @@ export async function resendingPatientEmail(_, formData) {
 
     try {
 
-        const fetch = await db.execute(`SELECT patient_email FROM bookings WHERE public_id = ?`, [bookingPubId]);
+        const fetch = await db.execute(`SELECT patient_email FROM bookings WHERE admin_id = ? AND public_id = ?`, [adminId, bookingPubId]);
         if (fetch.rows.length === 0) throw new Error("Invalid booking.");
 
         await db.execute(`UPDATE bookings SET email_token_hash = ?, email_token_created_at = CURRENT_TIMESTAMP WHERE admin_id = ? AND public_id = ?`, [hashed, adminId, bookingPubId]);

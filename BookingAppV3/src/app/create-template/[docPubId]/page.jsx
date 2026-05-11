@@ -26,7 +26,6 @@ export default async function DoctorCreateTemplate({ params }) {
 
     let currentTemplates = fetchExisTemplates.rows.length > 0 ? fetchExisTemplates.rows : [];
 
-    console.log(currentTemplates)
 
     currentTemplates = currentTemplates?.sort((a, b) => a.day_number - b.day_number);
 

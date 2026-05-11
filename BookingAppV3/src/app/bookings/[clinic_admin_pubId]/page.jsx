@@ -63,7 +63,7 @@ export default async function ClinicAdminAllBookings({ params }) {
             <div key={dep} className="border-2 border-amber-950 my-4" >
                 <h2>Department: {dep[0].toUpperCase() + dep.slice(1)}</h2>
                 <details>
-                    <summary>Show Avaialbe Doctors</summary>
+                    <summary>Show Available Doctors</summary>
                     {doctors.filter(doc => doc.department === dep).map(doc => {
                         const doctorWithTreatments = arr.find(d => d.doctor_id === doc.id);
                         return (

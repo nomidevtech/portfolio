@@ -10,6 +10,9 @@ export default async function NewPassword({ params }) {
     const fetchData = await db.execute("SELECT * FROM admins WHERE public_id = ?", [adminPubId]);
     if (fetchData.rows.length === 0) return <div>Admin not found.</div>;
 
+    const tokenAge = Date.now() - new Date(fetchAdmin.rows[0].email_token_created_at).getTime();
+    if (tokenAge > 1000 * 60 * 60 * 24) return <><p>Link expired. Please request a new one <Link href="/recovery">here</Link>.</p></>
+
     const admin = fetchData.rows[0];
 
     const match = await compare(recoveryToken, admin.recovery_token_hash);

@@ -3,8 +3,7 @@ import { getDayName, getMonthName } from "@/app/utils/getDateData";
 import { minutesToMeridiem } from "@/app/utils/minutes-to-meridiem";
 import Form from "next/form";
 import { editSlotServerAction } from "./sa";
-import { rollingWindow } from "@/app/lib/rollingWindow";
-import { getUser, getUserPlus } from "@/app/lib/getUser";
+import { getUserPlus } from "@/app/lib/getUser";
 import { redirect } from "next/navigation";
 
 export default async function EditSlot({ params }) {
