@@ -2,15 +2,13 @@
 
 import { sendEmail } from "@/app/lib/resend";
 import { db } from "@/app/lib/turso";
-import { initAdminTable, initUsersTable } from "@/app/Models/initTables";
 import { hash } from "@/app/utils/bcrypt";
 import { nanoid } from "nanoid";
 import crypto from "crypto";
 import { redirect } from "next/navigation";
 
 export async function signupServerAction(_, formData) {
-    await initAdminTable();
-    await initUsersTable();
+   
     const admin_name = formData.get("full_name")?.replace(/\s+/g, '-').toLowerCase();
     const admin_email = formData.get("admin_email");
     const username = formData.get("username")?.replace(/\s+/g, '-');

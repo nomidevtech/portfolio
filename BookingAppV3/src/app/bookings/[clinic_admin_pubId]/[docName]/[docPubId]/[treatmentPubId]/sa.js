@@ -1,7 +1,6 @@
 "use server";
 
 import { db } from "@/app/lib/turso";
-import { initBookingsTable } from "@/app/Models/initTables";
 import { nanoid } from "nanoid";
 import { redirect } from "next/navigation";
 
@@ -28,6 +27,13 @@ export async function reserveSlot(_, formData) {
     try {
 
         if (!docPubId || !date_number || typeof month_number !== "number" || !year || !treatmentPubId || !patient_selected_treatment_start || !patient_selected_treatment_end) return { ok: false, message: "Missing required fields" };
+
+        const fetchSlot = await db.execute(
+            `SELECT status FROM slots WHERE admin_id = ? AND doctor_id = ? AND date_number = ? AND month_number = ? AND year = ?`,
+            [adminId, docId, date_number, month_number, year]
+        );
+        if (fetchSlot.rows.length === 0 || fetchSlot.rows[0].status !== 'active')
+            return { ok: false, message: "This slot is no longer available." };
 
         const [fetchDoctor, fetchTreatment] = await Promise.all([
             db.execute(`SELECT * FROM doctors where admin_id = ? AND public_id = ?`, [adminId, docPubId]),

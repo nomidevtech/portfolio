@@ -88,7 +88,7 @@ export async function adminRevokeBooking(_, formData) {
 
         const booking = fetchBooking.rows[0];
         const to = booking?.patient_email;
-        const name = booking?.patient_name.split(" ").map(word => word[0].toUpperCase() + word.slice(1)).join(" ") ?? "Visitor";
+        const name = booking?.patient_name?.split(" ").map(word => word[0].toUpperCase() + word.slice(1)).join(" ") ?? "Visitor";
         const subject = "Your booking has been revoked.";
         const html = `
                 <p>Dear ${name}</p>
@@ -187,7 +187,7 @@ export async function doctorRevokeBooking(_, formData) {
         );
 
         const booking = fetchBooking.rows[0];
-        const patientName = booking?.patient_name?.split(" ").map(word => word[0].toUpperCase() + word.slice(1)).join(" ") ?? " Visiter";
+        const patientName = booking?.patient_name?.split(" ").map(word => word[0].toUpperCase() + word.slice(1)).join(" ") ?? "Visitor";
         const to = booking.patient_email;
         const subject = "Your booking has been revoked.";
         const html = `

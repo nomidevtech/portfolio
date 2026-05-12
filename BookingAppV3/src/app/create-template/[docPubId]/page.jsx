@@ -95,7 +95,7 @@ export default async function DoctorCreateTemplate({ params }) {
         <h1>Create New Template for Dr. {name[0].toUpperCase() + name.slice(1)}</h1>
         <Form action={createTemplateServerAction} className="space-y-6 p-6 bg-gray-50 dark:bg-gray-900 rounded-md">
             <input type="hidden" name="doctorPublicId" value={docPubId} />
-            <select type="hidden" name="day" >
+            <select name="day" >
                 {days.map((day) => (
                     <option value={day} key={day}>
                         {day}

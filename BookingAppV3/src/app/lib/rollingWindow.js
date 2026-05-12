@@ -1,7 +1,6 @@
 "use server";
 
 import { nanoid } from "nanoid";
-import { initSlotsTable } from "../Models/initTables";
 import { db } from "./turso";
 
 

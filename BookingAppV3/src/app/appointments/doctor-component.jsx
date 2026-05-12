@@ -43,7 +43,7 @@ export default async function DoctorComponent({ currentUser }) {
 
                     {groupedBookings[dateIso].map(booking => (
                         <div key={booking.public_id} className="border-2 border-amber-950 my-2">
-                            <p>Appointment Date: {booking.date_number > 10 ? booking.date_number : "0" + booking.date_number} {getMonthName(booking.month_number)} {booking.year}</p>
+                            <p>Appointment Date: {booking.date_number > 9 ? booking.date_number : "0" + booking.date_number} {getMonthName(booking.month_number)} {booking.year}</p>
                             <p>Timing: {minutesToMeridiem(booking.treatment_start, true)} - {minutesToMeridiem(booking.treatment_end, true)}</p>
                             <p>Patient: {booking.patient_name}</p>
                             <p>Treatment: {booking.treatment_name}</p>

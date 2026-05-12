@@ -45,7 +45,7 @@ export default async function Message({ params }) {
     }
 
     return (<>
-        <p>Appointment Date: {booking.date_number > 10 ? booking.date_number : "0" + booking.date_number} {getMonthName(booking.month_number)} {booking.year}</p>
+        <p>Appointment Date: {booking.date_number > 9 ? booking.date_number : "0" + booking.date_number} {getMonthName(booking.month_number)} {booking.year}</p>
         <p>Timing: {minutesToMeridiem(booking.treatment_start, true)} - {minutesToMeridiem(booking.treatment_end, true)}</p>
         <p>Patient Name: {booking.patient_name?.split(" ").map(word => word[0].toUpperCase() + word.slice(1)).join(" ")}</p>
         <p>Patient Email: {booking.patient_email}</p>

@@ -3,7 +3,6 @@
 import { getUserPlus } from "@/app/lib/getUser";
 import { rollingWindow } from "@/app/lib/rollingWindow";
 import { db } from "@/app/lib/turso";
-import { initAdminTable, initDoctorTable, initWeeklyTemplatesTable } from "@/app/Models/initTables";
 import { getDayNumber } from "@/app/utils/getDateData";
 import getMinutes from "@/app/utils/getMinutes";
 import { nanoid } from "nanoid";

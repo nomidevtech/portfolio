@@ -2,10 +2,10 @@
 
 import crypto from "crypto";
 import { db } from "@/app/lib/turso";
-import { cookies, headers } from "next/headers";
-import { redirect } from "next/navigation";  
-import { compare, hash } from "@/app/utils/bcrypt";
-import { initSessionsTable } from "@/app/Models/initTables";
+import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
+import { compare, } from "@/app/utils/bcrypt";
+
 
 
 
@@ -14,7 +14,7 @@ import { initSessionsTable } from "@/app/Models/initTables";
 export async function loginSA(_, formData) {
     try {
 
-        await initSessionsTable();
+        
         const username = formData.get("username")?.trim();
         const password = formData.get("password");
 

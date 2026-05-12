@@ -28,7 +28,7 @@ export default async function AppointmentRegisteration({ params }) {
     if (fetchDoctor.rows.length === 0 || fetchTreatment.rows.length === 0) return <p>Broken link. Booking not found.</p>;
 
     return (<>
-        <p>Appointment Date: {booking.date_number > 10 ? booking.date_number : "0" + booking.date_number} {getMonthName(booking.month_number)} {booking.year}</p>
+        <p>Appointment Date: {booking.date_number > 9 ? booking.date_number : "0" + booking.date_number} {getMonthName(booking.month_number)} {booking.year}</p>
         <p>Timing: {minutesToMeridiem(booking.treatment_start, true)} - {minutesToMeridiem(booking.treatment_end, true)}</p>
         <p>Doctor: {fetchDoctor.rows[0].name.split(" ").map(word => word[0].toUpperCase() + word.slice(1)).join(" ")}</p><p>Treatment: {fetchTreatment.rows[0].name.split("_").map(word => word[0].toUpperCase() + word.slice(1)).join(" ")}</p>
         <p>Session Duration: {fetchTreatment.rows[0].duration} minutes</p>

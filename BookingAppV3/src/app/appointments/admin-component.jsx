@@ -29,10 +29,10 @@ export default async function AdminComponent({ currentUser }) {
         <AdminRevokeBookings adminPubId={currentUser.admin_details.public_id} bookingDate={dateIso} />
 
         <details>
-          <summary>Bookings : {groupedBooking[dateIso].length > 10 ? groupedBooking[dateIso].length : "0" + groupedBooking[dateIso].length}</summary>
+          <summary>Bookings : {groupedBooking[dateIso].length > 9 ? groupedBooking[dateIso].length : "0" + groupedBooking[dateIso].length}</summary>
           {groupedBooking[dateIso].map(booking => (
             <div key={booking.public_id} className="border-2 border-amber-950 my-2" >
-              <p>Appointment Date: {booking.date_number > 10 ? booking.date_number : "0" + booking.date_number} {getMonthName(booking.month_number)} {booking.year}</p>
+              <p>Appointment Date: {booking.date_number > 9 ? booking.date_number : "0" + booking.date_number} {getMonthName(booking.month_number)} {booking.year}</p>
               <p>Timing: {minutesToMeridiem(booking.treatment_start, true)} - {minutesToMeridiem(booking.treatment_end, true)}</p>
               <p>Doctor: {booking.doctor_name.split(" ").map(word => word[0].toUpperCase() + word.slice(1)).join(" ")}</p><p>Treatment: {booking.treatment_name.split("_").map(word => word[0].toUpperCase() + word.slice(1)).join(" ")}</p>
               <p>Session Duration: {booking.treatment_duration} minutes</p>

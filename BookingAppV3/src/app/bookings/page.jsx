@@ -3,7 +3,7 @@ import { db } from "../lib/turso";
 
 export default async function AllClinics() {
 
-    const fetchAllClinics = await db.execute(`SELECT public_id, clinic_name, clinic_phone, clinic_address FROM admins`);
+    const fetchAllClinics = await db.execute(`SELECT public_id, clinic_name, clinic_phone, clinic_address FROM admins WHERE status = 'verified'`);
     if (fetchAllClinics.rows.length === 0) return <p>No clinics found</p>
 
 

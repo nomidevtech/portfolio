@@ -68,8 +68,8 @@ export default async function ClinicAdminAllBookings({ params }) {
                         const doctorWithTreatments = arr.find(d => d.doctor_id === doc.id);
                         return (
                             <div key={doc.public_id} className="border-2">
-                                <p>Dr. {doc.name[0].toUpperCase() + doc.name.slice(1)}</p>
-                                <p>Qualifications: {JSON.parse(doc.qualifications).join(', ').toUpperCase()}</p>
+                                <p>Dr. {doc.name ? doc.name[0].toUpperCase() + doc.name.slice(1) : "Unknown"}</p>
+                                <p>Qualifications: {doc.qualifications ? JSON.parse(doc.qualifications).join(', ').toUpperCase() : "N/A"}</p>
 
                                 {doctorWithTreatments?.treatments.map(tr => (
                                     <span key={tr.public_id} className="border-2 p-2">

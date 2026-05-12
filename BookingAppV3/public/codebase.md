@@ -56,12 +56,12 @@ export default function RootLayout({ children }) {
 ---
 ## src\app\page.js
 ```
-import { initBookingsTable } from "./Models/initTables";
+
 
 export default async function Home() {
-    await initBookingsTable();
+ 
   return (<>
-  
+
   </>
   );
 }
@@ -72,6 +72,7 @@ export default async function Home() {
 ```
 import { db } from "@/app/lib/turso";
 import { compare } from "@/app/utils/bcrypt";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 
 export default async function Activations({ params }) {
@@ -83,6 +84,9 @@ export default async function Activations({ params }) {
     if (fetchAdmin.rows.length === 0) return <p>Admin not found</p>
 
     if (fetchAdmin.rows[0].status === "verified") redirect("/");
+
+    const tokenAge = Date.now() - new Date(fetchAdmin.rows[0].email_token_created_at).getTime();
+    if (tokenAge > 1000 * 60 * 60 * 24) return <><p>Link expired. Please request a new one <Link href={`/verification/${fetchAdmin.rows[0].public_id}`}>here</Link>.</p></>
 
     try {
         const success = await compare(emailToken, fetchAdmin.rows[0].email_token_hash);
@@ -191,20 +195,19 @@ export default function Client() {
 
 import crypto from "crypto";
 import { db } from "@/app/lib/turso";
-import { cookies, headers } from "next/headers";
-//import { redis } from "@/app/lib/redis";
-import { redirect } from "next/navigation";  // ← fixed import
-import { compare, hash } from "@/app/utils/bcrypt";
-import { initSessionsTable } from "@/app/Models/initTables";
-//import { initSessionsTable } from "@/app/models/table-inits";
+import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
+import { compare, } from "@/app/utils/bcrypt";
 
 
 
 
-export async function loginSA(_, formData) {  // ← prevState added for useActionState
+
+
+export async function loginSA(_, formData) {
     try {
 
-        await initSessionsTable();
+        
         const username = formData.get("username")?.trim();
         const password = formData.get("password");
 
@@ -364,6 +367,7 @@ export async function findEMail(_, formData) {
 ## src\app\(auth)\recovery\[recoveryToken]\[adminPubId]\page.jsx
 ```
 import Form from "next/form";
+import Link from "next/link";
 import { db } from "@/app/lib/turso";
 import { compare } from "@/app/utils/bcrypt";
 import { updateAdminPassword } from "./sa";
@@ -375,7 +379,12 @@ export default async function NewPassword({ params }) {
     const fetchData = await db.execute("SELECT * FROM admins WHERE public_id = ?", [adminPubId]);
     if (fetchData.rows.length === 0) return <div>Admin not found.</div>;
 
+    const tokenAge = Date.now() - new Date(fetchData.rows[0].recovery_token_created_at).getTime();
+    if (tokenAge > 1000 * 60 * 60 * 24) return <><p>Link expired. Please request a new one <Link href="/recovery">here</Link>.</p></>
+
     const admin = fetchData.rows[0];
+
+    if (!admin.recovery_token_hash) return <div>Invalid or expired link.</div>;
 
     const match = await compare(recoveryToken, admin.recovery_token_hash);
     if (!match) return <div>Failed to verify. Please try again.</div>;
@@ -496,15 +505,13 @@ export default async function SignUp() {
 
 import { sendEmail } from "@/app/lib/resend";
 import { db } from "@/app/lib/turso";
-import { initAdminTable, initUsersTable } from "@/app/Models/initTables";
 import { hash } from "@/app/utils/bcrypt";
 import { nanoid } from "nanoid";
 import crypto from "crypto";
 import { redirect } from "next/navigation";
 
 export async function signupServerAction(_, formData) {
-    await initAdminTable();
-    await initUsersTable();
+   
     const admin_name = formData.get("full_name")?.replace(/\s+/g, '-').toLowerCase();
     const admin_email = formData.get("admin_email");
     const username = formData.get("username")?.replace(/\s+/g, '-');
@@ -769,11 +776,11 @@ export async function addDoctorServerAction(formData) {
 
         if (fetchTreatment.rows.length === 0) return null;
 
-        const passowrdHash = await hash(password);
+        const passwordHash = await hash(password);
 
         const result = await db.execute(
             `INSERT INTO doctors (admin_id, name, username, password, department, public_id, qualifications) VALUES (?, ?, ?, ?, ?, ?, ?) RETURNING id`,
-            [adminId, name.toLowerCase(), username, passowrdHash, department.toLowerCase(), nanoid(12), JSON.stringify(qualification)]
+            [adminId, name.toLowerCase(), username, passwordHash, department.toLowerCase(), nanoid(12), JSON.stringify(qualification)]
         );
 
         const doctorId = result.rows[0]?.id;
@@ -790,7 +797,7 @@ export async function addDoctorServerAction(formData) {
             doctorId,
             "doctor",
             username,
-            passowrdHash
+            passwordHash
         ]);
 
         success = true;
@@ -810,13 +817,11 @@ export async function addDoctorServerAction(formData) {
 import Form from "next/form";
 import { addTreatmentServerAction } from "./SA";
 import { db } from "../lib/turso";
-import { initTreatmentTable } from "../Models/initTables";
 import { getUserPlus } from "../lib/getUser";
 import { redirect } from "next/navigation";
 
 export default async function AddTreatment() {
 
-    //await initTreatmentTable();
 
     const currentUser = await getUserPlus();
     if(!currentUser) return redirect("/login");
@@ -849,7 +854,6 @@ export default async function AddTreatment() {
 import { redirect } from "next/navigation";
 import { db } from "../lib/turso";
 import { nanoid } from "nanoid";
-import { initTreatmentTable } from "../Models/initTables";
 import { getUserPlus } from "../lib/getUser";
 
 export async function addTreatmentServerAction(formData) {
@@ -861,7 +865,6 @@ export async function addTreatmentServerAction(formData) {
         const name = formData.get("name")?.toLowerCase().replace(/\s/g, "_");
         const duration = Number(formData.get("duration")) || 0;
 
-        await initTreatmentTable();
 
         await db.execute(`INSERT INTO treatments (admin_id, name, duration, public_id) VALUES (?, ?, ?, ?)`, [adminId, name.toLowerCase(), duration, nanoid(12)]);
 
@@ -995,7 +998,7 @@ export default async function AppointmentRegisteration({ params }) {
     if (fetchDoctor.rows.length === 0 || fetchTreatment.rows.length === 0) return <p>Broken link. Booking not found.</p>;
 
     return (<>
-        <p>Appointment Date: {booking.date_number > 10 ? booking.date_number : "0" + booking.date_number} {getMonthName(booking.month_number)} {booking.year}</p>
+        <p>Appointment Date: {booking.date_number > 9 ? booking.date_number : "0" + booking.date_number} {getMonthName(booking.month_number)} {booking.year}</p>
         <p>Timing: {minutesToMeridiem(booking.treatment_start, true)} - {minutesToMeridiem(booking.treatment_end, true)}</p>
         <p>Doctor: {fetchDoctor.rows[0].name.split(" ").map(word => word[0].toUpperCase() + word.slice(1)).join(" ")}</p><p>Treatment: {fetchTreatment.rows[0].name.split("_").map(word => word[0].toUpperCase() + word.slice(1)).join(" ")}</p>
         <p>Session Duration: {fetchTreatment.rows[0].duration} minutes</p>
@@ -1080,7 +1083,7 @@ import { AdminRevokeBooking, AdminRevokeBookings } from "./client";
 
 export default async function AdminComponent({ currentUser }) {
 
-  console.log("currentUser", currentUser);
+
 
   const fetch = await db.execute(`SELECT bookings.*, treatments.name AS treatment_name, treatments.duration AS treatment_duration FROM bookings LEFT JOIN treatments ON bookings.treatment_id = treatments.id WHERE bookings.admin_id = ? AND status != 'revoked' ORDER BY date_number ASC`, [currentUser.admin_id]);
 
@@ -1094,8 +1097,6 @@ export default async function AdminComponent({ currentUser }) {
     return acc;
   }, {});
 
-  //console.log("allBooking", allBooking);
-  //console.log("groupedBooking", groupedBooking);
 
   return (<>
     {Object.keys(groupedBooking).map(dateIso => (
@@ -1106,10 +1107,10 @@ export default async function AdminComponent({ currentUser }) {
         <AdminRevokeBookings adminPubId={currentUser.admin_details.public_id} bookingDate={dateIso} />
 
         <details>
-          <summary>Bookings : {groupedBooking[dateIso].length > 10 ? groupedBooking[dateIso].length : "0" + groupedBooking[dateIso].length}</summary>
+          <summary>Bookings : {groupedBooking[dateIso].length > 9 ? groupedBooking[dateIso].length : "0" + groupedBooking[dateIso].length}</summary>
           {groupedBooking[dateIso].map(booking => (
             <div key={booking.public_id} className="border-2 border-amber-950 my-2" >
-              <p>Appointment Date: {booking.date_number > 10 ? booking.date_number : "0" + booking.date_number} {getMonthName(booking.month_number)} {booking.year}</p>
+              <p>Appointment Date: {booking.date_number > 9 ? booking.date_number : "0" + booking.date_number} {getMonthName(booking.month_number)} {booking.year}</p>
               <p>Timing: {minutesToMeridiem(booking.treatment_start, true)} - {minutesToMeridiem(booking.treatment_end, true)}</p>
               <p>Doctor: {booking.doctor_name.split(" ").map(word => word[0].toUpperCase() + word.slice(1)).join(" ")}</p><p>Treatment: {booking.treatment_name.split("_").map(word => word[0].toUpperCase() + word.slice(1)).join(" ")}</p>
               <p>Session Duration: {booking.treatment_duration} minutes</p>
@@ -1378,7 +1379,7 @@ export default async function DoctorComponent({ currentUser }) {
 
                     {groupedBookings[dateIso].map(booking => (
                         <div key={booking.public_id} className="border-2 border-amber-950 my-2">
-                            <p>Appointment Date: {booking.date_number > 10 ? booking.date_number : "0" + booking.date_number} {getMonthName(booking.month_number)} {booking.year}</p>
+                            <p>Appointment Date: {booking.date_number > 9 ? booking.date_number : "0" + booking.date_number} {getMonthName(booking.month_number)} {booking.year}</p>
                             <p>Timing: {minutesToMeridiem(booking.treatment_start, true)} - {minutesToMeridiem(booking.treatment_end, true)}</p>
                             <p>Patient: {booking.patient_name}</p>
                             <p>Treatment: {booking.treatment_name}</p>
@@ -1401,7 +1402,7 @@ export default async function DoctorComponent({ currentUser }) {
 ## src\app\appointments\page.jsx
 ```
 import { redirect } from "next/navigation";
-import { getUser, getUserPlus } from "../lib/getUser";
+import { getUserPlus } from "../lib/getUser";
 import AdminComponent from "./admin-component";
 import DoctorComponent from "./doctor-component";
 
@@ -1410,9 +1411,12 @@ export default async function Appointments() {
     const currentUser = await getUserPlus();
     if (!currentUser?.id) return redirect("/login");
 
-    console.log("currentUser", currentUser);
 
-    if (currentUser.role === "doctor") return <DoctorComponent currentUser={currentUser} />
+
+    if (currentUser.role === "doctor") {
+        if (currentUser.status !== "verified") return <p>Your account is not verified to continue please contact the admin.</p>
+        return <DoctorComponent currentUser={currentUser} />
+    }
 
 
     if (currentUser.role !== "admin" || !currentUser.admin_id || currentUser.status !== "verified") redirect(`/verification/${currentUser?.admin_details?.public_id}`);
@@ -1514,10 +1518,12 @@ export async function adminRevokeBooking(_, formData) {
             [bookingPubId, admin.id]
         );
 
-        const to = fetchBooking.rows[0].patient_email;
+        const booking = fetchBooking.rows[0];
+        const to = booking?.patient_email;
+        const name = booking?.patient_name.split(" ").map(word => word[0].toUpperCase() + word.slice(1)).join(" ") ?? "Visitor";
         const subject = "Your booking has been revoked.";
         const html = `
-                <p>Dear ${fetchBooking.rows[0].patient_name.split(" ").map(word => word[0].toUpperCase() + word.slice(1)).join(" ")}</p>
+                <p>Dear ${name}</p>
                 <p>This is to inform you that your scheduled appointment with Dr. ${fetchBooking.rows[0].doctor_name.split(" ").map(word => word[0].toUpperCase() + word.slice(1)).join(" ")} has been cancelled by the clinic.</p>
                 <p>Please Visit our website to schedule another appointment.</p>
                 `;
@@ -1613,10 +1619,11 @@ export async function doctorRevokeBooking(_, formData) {
         );
 
         const booking = fetchBooking.rows[0];
+        const patientName = booking?.patient_name?.split(" ").map(word => word[0].toUpperCase() + word.slice(1)).join(" ") ?? "Visitor";
         const to = booking.patient_email;
         const subject = "Your booking has been revoked.";
         const html = `
-                <p>Dear ${booking.patient_name.split(" ").map(word => word[0].toUpperCase() + word.slice(1)).join(" ")}</p>
+                <p>Dear ${patientName}</p>
                 <p>This is to inform you that your scheduled appointment with Dr. ${booking.doctor_name.split(" ").map(word => word[0].toUpperCase() + word.slice(1)).join(" ")} has been cancelled by the clinic.</p>
                 <p>Please Visit our website to schedule another appointment.</p>
                 `;
@@ -1639,10 +1646,9 @@ import { db } from "../lib/turso";
 
 export default async function AllClinics() {
 
-    const fetchAllClinics = await db.execute(`SELECT public_id, clinic_name, clinic_phone, clinic_address FROM admins`);
+    const fetchAllClinics = await db.execute(`SELECT public_id, clinic_name, clinic_phone, clinic_address FROM admins WHERE status = 'verified'`);
     if (fetchAllClinics.rows.length === 0) return <p>No clinics found</p>
 
-    console.log(fetchAllClinics.rows);
 
     return (<>
         {fetchAllClinics.rows.map(fn => (
@@ -1724,13 +1730,13 @@ export default async function ClinicAdminAllBookings({ params }) {
             <div key={dep} className="border-2 border-amber-950 my-4" >
                 <h2>Department: {dep[0].toUpperCase() + dep.slice(1)}</h2>
                 <details>
-                    <summary>Show Avaialbe Doctors</summary>
+                    <summary>Show Available Doctors</summary>
                     {doctors.filter(doc => doc.department === dep).map(doc => {
                         const doctorWithTreatments = arr.find(d => d.doctor_id === doc.id);
                         return (
                             <div key={doc.public_id} className="border-2">
-                                <p>Dr. {doc.name[0].toUpperCase() + doc.name.slice(1)}</p>
-                                <p>Qualifications: {JSON.parse(doc.qualifications).join(', ').toUpperCase()}</p>
+                                <p>Dr. {doc.name ? doc.name[0].toUpperCase() + doc.name.slice(1) : "Unknown"}</p>
+                                <p>Qualifications: {doc.qualifications ? JSON.parse(doc.qualifications).join(', ').toUpperCase() : "N/A"}</p>
 
                                 {doctorWithTreatments?.treatments.map(tr => (
                                     <span key={tr.public_id} className="border-2 p-2">
@@ -1801,9 +1807,8 @@ export default function ClientBookASlot(
 ---
 ## src\app\bookings\[clinic_admin_pubId]\[docName]\[docPubId]\[treatmentPubId]\page.jsx
 ```
-import { rollingWindow } from "@/app/lib/rollingWindow";
+
 import { db } from "@/app/lib/turso";
-import { initBookingsTable } from "@/app/Models/initTables";
 import { getDayName, getMonthName } from "@/app/utils/getDateData";
 import ClientBookASlot from "./Client";
 
@@ -1823,8 +1828,8 @@ export default async function DoctorBookings({ params }) {
         db.execute(`SELECT * FROM treatments where public_id = ? AND admin_id = ?`, [treatmentPubId, adminId])
     ]);
 
-    if (fetchDoctor.rows.length === 0) return <p>1Broken Link. Please try again.</p>;
-    if (fetchTreatment.rows.length === 0) return <p>3Broken Link. Please try again.</p>;
+    if (fetchDoctor.rows.length === 0) return <p>Broken Link. Please try again.</p>;
+    if (fetchTreatment.rows.length === 0) return <p>Broken Link. Please try again.</p>;
 
     const docId = fetchDoctor?.rows[0]?.id;
     const treatmentId = fetchTreatment?.rows[0]?.id;
@@ -1836,7 +1841,7 @@ export default async function DoctorBookings({ params }) {
         db.execute(`SELECT * FROM bookings WHERE admin_id = ? AND doctor_id = ? AND status NOT IN('cancelled', 'revoked')`, [adminId, docId])
     ]);
 
-    if (fetchRecord.rows.length === 0) return <p>4Broken Link. Please try again.</p>;
+    if (fetchRecord.rows.length === 0) return <p>Broken Link. Please try again.</p>;
     if (fetchSlots.rows.length === 0) return <p>No slots available.</p>;
 
     const allVirtualSlots = fetchSlots.rows || [];
@@ -1886,15 +1891,6 @@ export default async function DoctorBookings({ params }) {
 
 
 
-
-    //console.dir(allVirtualSlots, { depth: null });
-    // console.dir(fetchBookings.rows, { depth: null });
-    // console.log(fetchSlots.rows);
-    // await initBookingsTable();
-    // await rollingWindow();
-
-
-
     return (<>
         <div className="p-6">
             {allVirtualSlots.map((slot, index1) => (
@@ -1936,7 +1932,6 @@ export default async function DoctorBookings({ params }) {
 "use server";
 
 import { db } from "@/app/lib/turso";
-import { initBookingsTable } from "@/app/Models/initTables";
 import { nanoid } from "nanoid";
 import { redirect } from "next/navigation";
 
@@ -2031,10 +2026,10 @@ export default async function cancelAppointment({ params }) {
 
     const { cancelToken, bookingPubId, adminPubId } = await params;
 
-    if (!cancelToken || !bookingPubId || !adminPubId) return <p>1 Broken link. Email not found.</p>;
+    if (!cancelToken || !bookingPubId || !adminPubId) return <p>Broken link. Email not found.</p>;
 
     const fetchAdmin = await db.execute(`SELECT id FROM admins WHERE public_id = ?`, [adminPubId]);
-    if (fetchAdmin.rows.length === 0) return <p>2 Broken link. Email not found.</p>;
+    if (fetchAdmin.rows.length === 0) return <p>Broken link. Email not found.</p>;
 
     const adminId = fetchAdmin.rows[0].id;
 
@@ -2042,16 +2037,19 @@ export default async function cancelAppointment({ params }) {
         const fetch = await db.execute(`SELECT id, cancel_token_hash FROM bookings WHERE admin_id = ? AND public_id = ?`, [adminId, bookingPubId]);
         if (fetch.rows.length === 0) return <p>Broken link. Email not found.</p>;
 
-        console.log(fetch.rows[0].cancel_token_hash, "<------------------");
+        if (!fetch.rows[0].cancel_token_hash) {
+            redirect(`/message/${bookingPubId}/${adminPubId}`);
+        }
+
 
         const verified = await compare(cancelToken, fetch.rows[0].cancel_token_hash);
-        if (!verified) return <p> 2 Broken link. Email not found.</p>;
+        if (!verified) return <p>Broken link. Email not found.</p>;
 
         await db.execute(`UPDATE bookings SET cancel_token_hash = NULL, status = 'cancelled' WHERE admin_id = ? AND public_id = ?`, [adminId, bookingPubId]);
 
     } catch (error) {
         console.error(error);
-        return <p>3 Broken link. Email not found.</p>;
+        return <p>Broken link. Email not found.</p>;
     }
 
 
@@ -2155,9 +2153,9 @@ export default async function NavBar() {
 
             <div className="flex items-center gap-3">
                 <ul className="border-2 border-amber-200 my-2 flex gap-2">
-                    <Link href="/"><li>Home</li></Link>
-                    <Link href="/about"><li>About</li></Link>
-                    <Link href="/contact"><li>Contact</li></Link>
+                    <li><Link href="/">Home</Link></li>
+                    <li><Link href="/about">About</Link></li>
+                    <li><Link href="/contact">Contact</Link></li>
                 </ul>
                 <div className="bg-green-900 px-2 py-0.5 rounded">
                     <Link href="/bookings">Bookings</Link>
@@ -2181,44 +2179,49 @@ import { logout } from "../lib/logout";
 import Form from "next/form";
 
 export default function SideNav({ user }) {
-
     const [open, setOpen] = useState(false);
 
-
-    return (<>
-        {open &&
-            <aside className="w-85 border-amber-900 border-2 h-screen fixed top-0 left-0 z-50 bg-gray-600 shadow-lg  p-4">
-                <button className="absolute top-2 right-2" onClick={() => setOpen(false)}>⬅</button>
-                <div className="flex flex-col justify-between h-full">
-                    <ul className="flex flex-col gap-2">
-                        <Link href="/dashboard"><li>Dashboard</li></Link>
-                        <Link href="/appointments"><li>{user?.role === "admin" ? "Appointments" : "My Appointments"}</li></Link>
-                        {user.role === "admin" && <>
-                            <Link href="/add-doctor"><li>Add Doctor</li></Link>
-                            <Link href="/edit-doctor"><li>Edit Doctor</li></Link>
-                            <Link href="/add-treatment"><li>Add Treatment</li></Link>
-                            <Link href="/create-template"><li> Create Template</li></Link>
-                            <Link href="/edit-template"><li> Edit Template</li></Link>
-                            <Link href="/manage-generated-slots"><li> Manage Generated Slots</li></Link>
-                        </>}
-                        <Link href="/settings"><li> Settings</li></Link>
-
-                    </ul>
-                    <div className="flex justify-between mb-10 items-center">
-                        <div className="flex items-center gap-2">
-                            <p className="w-10 h-10 rounded-full bg-gray-800 text-white flex items-center justify-center text-sm font-semibold">{user?.name?.[0]?.toUpperCase() || "?"}</p>
-                            <p>{user?.name ? user.name.split("-").map(word => word[0].toUpperCase() + word.slice(1)).join(" ") : ""} ({user?.role ? user.role[0].toUpperCase() + user.role.slice(1) : ""})</p>
+    return (
+        <>
+            {open && (
+                <aside className="w-85 border-amber-900 border-2 h-screen fixed top-0 left-0 z-50 bg-gray-600 shadow-lg p-4">
+                    <button className="absolute top-2 right-2" onClick={() => setOpen(false)}>⬅</button>
+                    <div className="flex flex-col justify-between h-full">
+                        <ul className="flex flex-col gap-2">
+                            <li><Link href="/dashboard">Dashboard</Link></li>
+                            <li><Link href="/appointments">{user?.role === "admin" ? "Appointments" : "My Appointments"}</Link></li>
+                            {user?.role === "admin" && (
+                                <>
+                                    <li><Link href="/add-doctor">Add Doctor</Link></li>
+                                    <li><Link href="/edit-doctor">Edit Doctor</Link></li>
+                                    <li><Link href="/add-treatment">Add Treatment</Link></li>
+                                    <li><Link href="/create-template">Create Template</Link></li>
+                                    <li><Link href="/edit-template">Edit Template</Link></li>
+                                    <li><Link href="/manage-generated-slots">Manage Generated Slots</Link></li>
+                                </>
+                            )}
+                            <li><Link href="/settings">Settings</Link></li>
+                        </ul>
+                        <div className="flex justify-between mb-10 items-center">
+                            <div className="flex items-center gap-2">
+                                <p className="w-10 h-10 rounded-full bg-gray-800 text-white flex items-center justify-center text-sm font-semibold">
+                                    {user?.name?.[0]?.toUpperCase() || "?"}
+                                </p>
+                                <p>
+                                    {user?.name ? user.name.split("-").map(word => word[0].toUpperCase() + word.slice(1)).join(" ") : ""} ({user?.role ? user.role[0].toUpperCase() + user.role.slice(1) : ""})
+                                </p>
+                            </div>
+                            <Form action={logout}>
+                                <button type="submit">Logout</button>
+                            </Form>
                         </div>
-                        <Form action={logout}>
-                            <button type="submit">Logout</button>
-                        </Form>
                     </div>
-                </div>
-            </aside >}
-        <button onClick={() => setOpen(true)}>➡</button>
-    </>);
+                </aside>
+            )}
+            <button onClick={() => setOpen(true)}>➡</button>
+        </>
+    );
 }
-
 ```
 ---
 ## src\app\create-template\page.jsx
@@ -2273,7 +2276,6 @@ export default async function DoctorCreateTemplate({ params }) {
 
     let currentTemplates = fetchExisTemplates.rows.length > 0 ? fetchExisTemplates.rows : [];
 
-    console.log(currentTemplates)
 
     currentTemplates = currentTemplates?.sort((a, b) => a.day_number - b.day_number);
 
@@ -2343,7 +2345,7 @@ export default async function DoctorCreateTemplate({ params }) {
         <h1>Create New Template for Dr. {name[0].toUpperCase() + name.slice(1)}</h1>
         <Form action={createTemplateServerAction} className="space-y-6 p-6 bg-gray-50 dark:bg-gray-900 rounded-md">
             <input type="hidden" name="doctorPublicId" value={docPubId} />
-            <select type="hidden" name="day" >
+            <select name="day" >
                 {days.map((day) => (
                     <option value={day} key={day}>
                         {day}
@@ -2539,7 +2541,6 @@ export default async function DoctorCreateTemplate({ params }) {
 import { getUserPlus } from "@/app/lib/getUser";
 import { rollingWindow } from "@/app/lib/rollingWindow";
 import { db } from "@/app/lib/turso";
-import { initAdminTable, initDoctorTable, initWeeklyTemplatesTable } from "@/app/Models/initTables";
 import { getDayNumber } from "@/app/utils/getDateData";
 import getMinutes from "@/app/utils/getMinutes";
 import { nanoid } from "nanoid";
@@ -2911,8 +2912,7 @@ import { getDayName, getMonthName } from "@/app/utils/getDateData";
 import { minutesToMeridiem } from "@/app/utils/minutes-to-meridiem";
 import Form from "next/form";
 import { editSlotServerAction } from "./sa";
-import { rollingWindow } from "@/app/lib/rollingWindow";
-import { getUser, getUserPlus } from "@/app/lib/getUser";
+import { getUserPlus } from "@/app/lib/getUser";
 import { redirect } from "next/navigation";
 
 export default async function EditSlot({ params }) {
@@ -3191,7 +3191,6 @@ export default async function EditDoctorTemplate({ params }) {
 
     let template = fetchTemplate.rows[0];
 
-    console.log(template)
 
     const dummyHrs = [];
     for (let i = 1; i <= 12; i++) {
@@ -3641,7 +3640,7 @@ export async function sendBulkCancelationEmails(payload = {}) {
 
     if (!payload) return null;
 
-    for (const chunk in payload) {
+    for (const chunk of Object.keys(payload)) {
         const clause = payload[chunk].map(item => {
             return {
                 from: `NomiDev <bookings@nomidev.com>`,
@@ -3715,10 +3714,10 @@ export async function resendingPatientEmail(_, formData) {
 
     const bookingPubId = formData.get("bookingPubId");
     const adminPubId = formData.get("adminPubId");
-    if (!bookingPubId || !adminPubId) throw new Error("Missing required fields.");
+    if (!bookingPubId || !adminPubId) return { ok: false, message: "Missing required fields." };
 
     const fetchAdmin = await db.execute(`SELECT id FROM admins WHERE public_id = ?`, [adminPubId]);
-    if (fetchAdmin.rows.length === 0) throw new Error("Invalid admin.");
+    if (fetchAdmin.rows.length === 0) return { ok: false, message: "Invalid admin." };
     const adminId = fetchAdmin.rows[0].id;
 
     const new_email_token = crypto.randomBytes(16).toString("hex");
@@ -3726,7 +3725,7 @@ export async function resendingPatientEmail(_, formData) {
 
     try {
 
-        const fetch = await db.execute(`SELECT patient_email FROM bookings WHERE public_id = ?`, [bookingPubId]);
+        const fetch = await db.execute(`SELECT patient_email FROM bookings WHERE admin_id = ? AND public_id = ?`, [adminId, bookingPubId]);
         if (fetch.rows.length === 0) throw new Error("Invalid booking.");
 
         await db.execute(`UPDATE bookings SET email_token_hash = ?, email_token_created_at = CURRENT_TIMESTAMP WHERE admin_id = ? AND public_id = ?`, [hashed, adminId, bookingPubId]);
@@ -3759,7 +3758,6 @@ export async function resendingPatientEmail(_, formData) {
 "use server";
 
 import { nanoid } from "nanoid";
-import { initSlotsTable } from "../Models/initTables";
 import { db } from "./turso";
 
 
@@ -3882,7 +3880,7 @@ function segmentizeBulkEmails(realPayload, chunkSize) {
         return dummyObj;
 
     } catch (error) {
-        console.log(error);
+        console.error(error);
         return null
     }
 }
@@ -4032,11 +4030,9 @@ export default async function GeneratedSlots() {
 
 
     const fetch = await db.execute(
-        `SELECT slots.*, GROUP_CONCAT(bookings.patient_email || ' ' || bookings.patient_name) AS patients FROM slots LEFT JOIN bookings ON bookings.admin_id = slots.admin_id AND bookings.date_number = slots.date_number AND bookings.month_number = slots.month_number AND bookings.year = slots.year AND bookings.doctor_id = slots.doctor_id AND bookings.status != 'revoked' WHERE slots.admin_id = ? AND full_date_at_period > DATE('now') GROUP BY slots.id ORDER BY full_date_at_period`,
+        `SELECT slots.*, GROUP_CONCAT(bookings.patient_email, ' | ') AS patients FROM slots LEFT JOIN bookings ON bookings.admin_id = slots.admin_id AND bookings.date_number = slots.date_number AND bookings.month_number = slots.month_number AND bookings.year = slots.year AND bookings.doctor_id = slots.doctor_id AND bookings.status != 'revoked' WHERE slots.admin_id = ? AND full_date_at_period >= DATE('now') GROUP BY slots.id ORDER BY full_date_at_period`,
         [adminId]
     );
-
-    //console.log(fetch.rows);
 
 
 
@@ -4070,9 +4066,9 @@ export default async function GeneratedSlots() {
                                         <p>Break: {minutesToMeridiem(fn2.break_start, true)} - {minutesToMeridiem(fn2.break_end, true)}</p>
                                         <p>Buffer: {fn2.buffer_minutes ? fn2.buffer_minutes : 0} minutes</p>
                                         <p>Status: {fn2.status[0].toUpperCase() + fn2.status.slice(1)}</p>
-                                        <p>Number of Bookings: {fn2.patients ? fn2.patients.split(',').length > 9 ? fn2.patients.split(',').length : "0" + fn2.patients.split(',').length : 0}</p>
-                                        <ToggleSlotButton slotPubId={fn2.public_id} status={fn2.status} numberOfBookings={fn2.patients?.split(',').length || 0} />
-                                        <div><EditSlotButton slotPubId={fn2.public_id} numberOfBookings={fn2.patients?.split(',').length || 0} /></div>
+                                        <p>Number of Bookings: {fn2.patients ? fn2.patients.split('|').length > 9 ? fn2.patients.split('|').length : "0" + fn2.patients.split('|').length : 0}</p>
+                                        <ToggleSlotButton slotPubId={fn2.public_id} status={fn2.status} numberOfBookings={fn2.patients ? fn2.patients.split('|').length : 0} />
+                                        <div><EditSlotButton slotPubId={fn2.public_id} numberOfBookings={fn2.patients ? fn2.patients.split('|').length : 0} /></div>
                                     </div>
                                 ))}
                             </details>
@@ -4176,7 +4172,7 @@ export default function DownloadTicketButton({ bookingPubId, adminPubId }) {
 ---
 ## src\app\message\[bookingPubId]\[adminPubId]\page.jsx
 ```
-import EmailVerification from "@/app/components/emailVerification";
+import { PatientEmailVerification } from "@/app/components/emailVerification";
 import { db } from "@/app/lib/turso";
 import { getMonthName } from "@/app/utils/getDateData";
 import { minutesToMeridiem } from "@/app/utils/minutes-to-meridiem";
@@ -4223,13 +4219,13 @@ export default async function Message({ params }) {
     }
 
     return (<>
-        <p>Appointment Date: {booking.date_number > 10 ? booking.date_number : "0" + booking.date_number} {getMonthName(booking.month_number)} {booking.year}</p>
+        <p>Appointment Date: {booking.date_number > 9 ? booking.date_number : "0" + booking.date_number} {getMonthName(booking.month_number)} {booking.year}</p>
         <p>Timing: {minutesToMeridiem(booking.treatment_start, true)} - {minutesToMeridiem(booking.treatment_end, true)}</p>
         <p>Patient Name: {booking.patient_name?.split(" ").map(word => word[0].toUpperCase() + word.slice(1)).join(" ")}</p>
         <p>Patient Email: {booking.patient_email}</p>
         <p>Patient Phone: {booking.patient_phone}</p>
         {booking.status !== "verified" && <p>You need to verify your email within 30 minutes to book the slot. Otherwise it will be avaliable for others to book again.</p>}
-        {booking.status !== "verified" && <EmailVerification bookingPubId={bookingPubId} adminPubId={adminPubId} />}
+        {booking.status !== "verified" && <PatientEmailVerification bookingPubId={bookingPubId} adminPubId={adminPubId} />}
         {booking.status === "verified" && <><p>Slot Booked Successfully.</p>
             <DownloadTicketButton bookingPubId={bookingPubId} adminPubId={adminPubId} />
         </>}
@@ -4306,7 +4302,6 @@ export async function initDoctorTreatmentsTable() {
 };
 
 
-
 export async function initWeeklyTemplatesTable() {
     try {
         await db.execute(`
@@ -4334,6 +4329,8 @@ export async function initWeeklyTemplatesTable() {
         throw error;
     }
 }
+
+
 export async function initSlotsTable() {
     try {
         await db.execute(`
@@ -4356,7 +4353,7 @@ export async function initSlotsTable() {
                 full_date_at_period TEXT,
 
 
-                UNIQUE(admin_id, doctor_id, month_number, year, date_number) ON CONFLICT REPLACE,
+                UNIQUE(admin_id, doctor_id, month_number, year, date_number) ON CONFLICT IGNORE,
 
                 FOREIGN KEY (doctor_id) REFERENCES doctors (id) ON DELETE CASCADE,
                 FOREIGN KEY (admin_id) REFERENCES admins (id) ON DELETE CASCADE
@@ -4368,7 +4365,6 @@ export async function initSlotsTable() {
     }
 }
 
-// we will make now admin table following
 
 export async function initAdminTable() {
     try {
@@ -4398,60 +4394,79 @@ export async function initAdminTable() {
 }
 
 
-
-
 export async function initBookingsTable() {
     try {
+
         await db.execute(`
             CREATE TABLE IF NOT EXISTS bookings (
                 id INTEGER PRIMARY KEY,
                 public_id TEXT UNIQUE,
+
                 admin_id INTEGER,
                 doctor_id INTEGER,
+                treatment_id INTEGER,
+
                 doctor_name TEXT,
+
                 patient_name TEXT,
                 patient_email TEXT,
                 patient_phone TEXT,
+
                 treatment_start INTEGER,
                 treatment_end INTEGER,
+
                 day_number INTEGER,
                 date_number INTEGER,
                 month_number INTEGER,
                 year INTEGER,
+
                 booking_date_iso TEXT,
-                treatment_id INTEGER,
+
                 status TEXT DEFAULT 'pending',
+
                 email_token_hash TEXT,
-                email_token_created_at DEFAULT NULL,
+                email_token_created_at DATETIME DEFAULT NULL,
+
                 cancel_token_hash TEXT,
-                cancel_token_created_at DEFAULT NULL,
+                cancel_token_created_at DATETIME DEFAULT NULL,
+
                 booking_registered_at DATETIME DEFAULT CURRENT_TIMESTAMP,
 
                 FOREIGN KEY (doctor_id) REFERENCES doctors(id) ON DELETE SET NULL,
                 FOREIGN KEY (treatment_id) REFERENCES treatments(id) ON DELETE SET NULL,
-                FOREIGN KEY (admin_id) REFERENCES admins(id) ON DELETE SET NULL,
-                
-                UNIQUE(
-                    doctor_id, 
-                    day_number, 
-                    date_number, 
-                    month_number, 
-                    year, 
-                    treatment_start, 
-                    treatment_end,
-                    status,
-                    admin_id
-                ) ON CONFLICT IGNORE
-            )
+                FOREIGN KEY (admin_id) REFERENCES admins(id) ON DELETE SET NULL
+            );
         `);
 
-        return { ok: true, message: "bookings table created" };
+        await db.execute(`
+            CREATE UNIQUE INDEX IF NOT EXISTS unique_active_booking 
+            ON bookings(
+                admin_id,
+                doctor_id,
+                booking_date_iso,
+                treatment_start,
+                treatment_end
+            )
+            WHERE status IN ('pending', 'verified');
+        `);
+
+        return {
+            ok: true,
+            message: "bookings table created"
+        };
 
     } catch (error) {
+
         console.error("Database Init Error:", error);
-        return { ok: false, message: error instanceof Error ? error.message : String(error) };
+
+        return {
+            ok: false,
+            message: error instanceof Error
+                ? error.message
+                : String(error)
+        };
     }
-};
+}
 
 
 
@@ -4752,6 +4767,9 @@ export function getMonthNumber(monthName = "January") {
 ## src\app\utils\getMinutes.js
 ```
 export default function getMinutes(hr, min, meridiem) {
+
+    if (!hr || !min || !meridiem) return null;
+
     let h = Number(hr);
     const m = Number(min);
     if (meridiem === "PM" && h !== 12) h += 12;
@@ -4816,10 +4834,15 @@ export default async function VerifyEmail({ params }) {
         const fetch = await db.execute(`SELECT id, email_token_hash FROM bookings WHERE admin_id = ? AND public_id = ?`, [adminId, bookingPubId]);
         if (fetch.rows.length === 0) return <p>Broken link. Email not found.</p>;
 
+
+        if (!fetch.rows[0].email_token_hash) {
+            redirect(`/message/${bookingPubId}/${adminPubId}`);
+        }
+
         const verified = await compare(emailToken, fetch.rows[0].email_token_hash);
         if (!verified) return <p>Broken link. Email not found.</p>;
 
-        await db.execute(`UPDATE bookings SET email_token_hash = NULL, status = 'verified', email_token_created_at = CURRENT_TIMESTAMP WHERE public_id = ? AND admin_id = ?`, [bookingPubId, adminId]);
+        await db.execute(`UPDATE bookings SET email_token_hash = NULL, status = 'verified', email_token_created_at = NULL WHERE public_id = ? AND admin_id = ?`, [bookingPubId, adminId]);
 
     } catch (error) {
         console.error(error);

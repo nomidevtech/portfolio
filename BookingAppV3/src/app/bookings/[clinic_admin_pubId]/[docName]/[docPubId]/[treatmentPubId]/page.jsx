@@ -1,6 +1,5 @@
-import { rollingWindow } from "@/app/lib/rollingWindow";
+
 import { db } from "@/app/lib/turso";
-import { initBookingsTable } from "@/app/Models/initTables";
 import { getDayName, getMonthName } from "@/app/utils/getDateData";
 import ClientBookASlot from "./Client";
 
@@ -29,7 +28,7 @@ export default async function DoctorBookings({ params }) {
 
     const [fetchRecord, fetchSlots, fetchBookings] = await Promise.all([
         db.execute(`SELECT * FROM doctor_treatments WHERE doctor_id = ? AND treatment_id = ? AND admin_id = ?`, [docId, treatmentId, adminId]),
-        db.execute(`SELECT * FROM slots WHERE admin_id = ? AND doctor_id = ? AND full_date_at_period >= DATE('now') ORDER BY full_date_at_period`, [adminId, docId]),
+        db.execute(`SELECT * FROM slots WHERE status = 'active' AND admin_id = ? AND doctor_id = ? AND full_date_at_period >= DATE('now') ORDER BY full_date_at_period`, [adminId, docId]),
         db.execute(`SELECT * FROM bookings WHERE admin_id = ? AND doctor_id = ? AND status NOT IN('cancelled', 'revoked')`, [adminId, docId])
     ]);
 

@@ -10,7 +10,10 @@ export default async function Appointments() {
 
 
 
-    if (currentUser.role === "doctor") return <DoctorComponent currentUser={currentUser} />
+    if (currentUser.role === "doctor") {
+        if (currentUser.status !== "verified") return <p>Your account is not verified to continue please contact the admin.</p>
+        return <DoctorComponent currentUser={currentUser} />
+    }
 
 
     if (currentUser.role !== "admin" || !currentUser.admin_id || currentUser.status !== "verified") redirect(`/verification/${currentUser?.admin_details?.public_id}`);

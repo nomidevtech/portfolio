@@ -50,10 +50,10 @@ export async function resendingPatientEmail(_, formData) {
 
     const bookingPubId = formData.get("bookingPubId");
     const adminPubId = formData.get("adminPubId");
-    if (!bookingPubId || !adminPubId) throw new Error("Missing required fields.");
+    if (!bookingPubId || !adminPubId) return { ok: false, message: "Missing required fields." };
 
     const fetchAdmin = await db.execute(`SELECT id FROM admins WHERE public_id = ?`, [adminPubId]);
-    if (fetchAdmin.rows.length === 0) throw new Error("Invalid admin.");
+    if (fetchAdmin.rows.length === 0) return { ok: false, message: "Invalid admin." };
     const adminId = fetchAdmin.rows[0].id;
 
     const new_email_token = crypto.randomBytes(16).toString("hex");

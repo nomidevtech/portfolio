@@ -29,7 +29,7 @@ export async function sendBulkCancelationEmails(payload = {}) {
 
     if (!payload) return null;
 
-    for (const chunk in payload) {
+    for (const chunk of Object.keys(payload)) {
         const clause = payload[chunk].map(item => {
             return {
                 from: `NomiDev <bookings@nomidev.com>`,

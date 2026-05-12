@@ -3,7 +3,6 @@
 import { redirect } from "next/navigation";
 import { db } from "../lib/turso";
 import { nanoid } from "nanoid";
-import { initTreatmentTable } from "../Models/initTables";
 import { getUserPlus } from "../lib/getUser";
 
 export async function addTreatmentServerAction(formData) {
@@ -15,7 +14,6 @@ export async function addTreatmentServerAction(formData) {
         const name = formData.get("name")?.toLowerCase().replace(/\s/g, "_");
         const duration = Number(formData.get("duration")) || 0;
 
-        await initTreatmentTable();
 
         await db.execute(`INSERT INTO treatments (admin_id, name, duration, public_id) VALUES (?, ?, ?, ?)`, [adminId, name.toLowerCase(), duration, nanoid(12)]);
 
