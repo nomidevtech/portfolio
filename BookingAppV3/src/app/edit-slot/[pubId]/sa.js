@@ -5,7 +5,8 @@ import { redirect } from "next/navigation";
 import getMinutes from "@/app/utils/getMinutes";
 import { revalidatePath } from "next/cache";
 import { getUserPlus } from "@/app/lib/getUser";
-import { sendCancellationEmails } from "@/app/lib/sendCancellationEmail";
+import { sendCancelationEmails } from "@/app/lib/sendCancelationEmail";
+
 
 export async function editSlotServerAction(formData) {
     const currentUser = await getUserPlus();
@@ -119,7 +120,7 @@ export async function editSlotServerAction(formData) {
         );
 
         if (getAndUpdateBookings.rows.length > 0) {
-            await sendCancellationEmails(getAndUpdateBookings.rows, 100);
+            await sendCancelationEmails(getAndUpdateBookings.rows, 100);
         }
     } catch (e) {
         console.error("Update failed:", e);
