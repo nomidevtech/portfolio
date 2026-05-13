@@ -1,4 +1,3 @@
-// doctor-component.jsx
 import { db } from "../lib/turso";
 import { getMonthName } from "../utils/getDateData";
 import { minutesToMeridiem } from "../utils/minutes-to-meridiem";
@@ -11,7 +10,7 @@ export default async function DoctorComponent({ currentUser }) {
          FROM bookings
          LEFT JOIN treatments ON bookings.treatment_id = treatments.id
          WHERE bookings.doctor_id = ? AND status NOT IN ('revoked', 'cancelled')
-         ORDER BY date_number ASC`,
+         ORDER BY booking_date_iso ASC`,
         [currentUser.doctor_id]
     );
 

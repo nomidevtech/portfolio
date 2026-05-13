@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { getUserPlus } from "../lib/getUser";
-import ClientSettings from "./ClientSettings";
+import ClientSettings from "./Client";
 
 export default async function Settings() {
   const currentUser = await getUserPlus();

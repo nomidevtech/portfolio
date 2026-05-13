@@ -15,7 +15,7 @@ export default async function ClinicAdminAllBookings({ params }) {
     const adminId = fetchAminData.rows[0].id;
 
 
-    const fetch = await db.execute(`SELECT doctor_id FROM slots WHERE admin_id = ? AND full_date_at_period > DATE('now') ORDER BY full_date_at_period`, [adminId]);
+    const fetch = await db.execute(`SELECT doctor_id FROM slots WHERE admin_id = ? AND full_date_at_period >= DATE('now') AND status = 'active' ORDER BY full_date_at_period`, [adminId]);
 
     if (fetch.rows.length === 0) return <p>No slots available.</p>;
 

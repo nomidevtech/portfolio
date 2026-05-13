@@ -30,10 +30,6 @@ export async function reserveSlot(_, formData) {
 
     try {
 
-        // Validating the raw formData string ensures "0" is truthy and allowed, 
-        // while missing (null) or empty ("") values are correctly rejected. 
-        // Number.isNaN protects against malformed inputs (e.g. "abc").
-        // Note: Added day_number to the check as well since it was previously missing.
         if (
             !docPubId ||
             !treatmentPubId ||
@@ -102,8 +98,15 @@ export async function reserveSlot(_, formData) {
         bookingPublicId = res.rows[0].public_id;
 
     } catch (error) {
-        console.error(error);
-        return { ok: false, message: "Failed to reserve slot." };
+        if (error.message?.includes("UNIQUE constraint failed") || error.code === "SQLITE_CONSTRAINT") {
+            return {
+                ok: false,
+                message: "This slot was just taken by someone else. Please select another."
+            };
+        }
+
+        console.error("Booking Error:", error);
+        return { ok: false, message: "An unexpected error occurred. Please try again." };
     }
 
     redirect(`/appointment-registeration/${bookingPublicId}/${adminPubId}`);

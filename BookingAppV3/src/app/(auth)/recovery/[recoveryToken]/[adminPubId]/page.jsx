@@ -20,5 +20,6 @@ export default async function NewPassword({ params }) {
     const match = await compare(recoveryToken, admin.recovery_token_hash);
     if (!match) return <div>Failed to verify. Please try again.</div>;
 
-    return <ClientNewPassword adminPubId={admin.public_id} />;
+   
+    return <ClientNewPassword adminPubId={admin.public_id} recoveryToken={recoveryToken} />;
 }

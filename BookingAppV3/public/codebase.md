@@ -111,7 +111,7 @@ export default async function Activations({ params }) {
         return <p>Failed to activate. Please resend email and try again.</p>
     }
 
-    redirect("/");
+    redirect("/login");
 }
 ```
 ---
@@ -229,14 +229,14 @@ export async function loginSA(_, formData) {
         if (!password) return { ok: false, message: "Password required" };
 
         const fetchUser = await db.execute("SELECT * FROM users WHERE username = ?", [username]);
-        if (fetchUser.rows.length === 0) return { ok: false, message: "User not found" };
+        if (fetchUser.rows.length === 0) return { ok: false, message: "Invalid credentials" };
 
         const user = fetchUser.rows[0];
         const passwordHash = user.password;
 
         const isPasswordValid = await compare(password, passwordHash);
 
-        if (!isPasswordValid) return { ok: false, message: "Invalid password" };
+        if (!isPasswordValid) return { ok: false, message: " Invalid credentials" };
 
 
         if (user.status !== "verified") return { ok: false, message: "Please verify your email before logging in." };
@@ -357,7 +357,7 @@ export async function findEMail(_, formData) {
         if (!emailFromClient) return { ok: false, message: "Email required" };
 
         const result = await db.execute("SELECT * FROM admins WHERE admin_email = ?", [emailFromClient]);
-        if (result.rows.length === 0) return { ok: false, message: "Email not found" };
+        if (result.rows.length === 0) return { ok: false, message: "If that email exists, a reset link has been sent" };
 
         const admin = result.rows[0];
         const userEmail = admin.admin_email;
@@ -385,13 +385,38 @@ export async function findEMail(_, formData) {
 }
 ```
 ---
+## src\app\(auth)\recovery\[recoveryToken]\[adminPubId]\Client.jsx
+```
+"use client";
+
+import Form from "next/form";
+import { useActionState } from "react";
+import { updateAdminPassword } from "./sa";
+
+export default function ClientNewPassword({ adminPubId }) {
+    const initialState = { ok: null, message: "" };
+    const [state, formAction, isPending] = useActionState(updateAdminPassword, initialState);
+
+    return (
+        <>
+            <Form action={formAction}>
+                <input type="hidden" name="adminPubId" value={adminPubId} />
+                <input type="password" name="password" placeholder="Enter new password" />
+                <input type="password" name="confirm_password" placeholder="Confirm password" />
+                {state.message && <p>{state.message}</p>}
+                <button type="submit" disabled={isPending}>{isPending ? "Submitting..." : "Submit"}</button>
+            </Form>
+        </>
+    );
+}
+```
+---
 ## src\app\(auth)\recovery\[recoveryToken]\[adminPubId]\page.jsx
 ```
-import Form from "next/form";
 import Link from "next/link";
 import { db } from "@/app/lib/turso";
 import { compare } from "@/app/utils/bcrypt";
-import { updateAdminPassword } from "./sa";
+import ClientNewPassword from "./Client";
 
 export default async function NewPassword({ params }) {
     const { recoveryToken, adminPubId } = await params;
@@ -410,16 +435,7 @@ export default async function NewPassword({ params }) {
     const match = await compare(recoveryToken, admin.recovery_token_hash);
     if (!match) return <div>Failed to verify. Please try again.</div>;
 
-    return (
-        <>
-            <Form action={updateAdminPassword}>
-                <input type="hidden" name="adminPubId" value={admin.public_id} />
-                <input type="password" name="password" placeholder="Enter new password" />
-                <input type="password" name="confirm_password" placeholder="Confirm password" />
-                <button type="submit">Submit</button>
-            </Form>
-        </>
-    );
+    return <ClientNewPassword adminPubId={admin.public_id} />;
 }
 ```
 ---
@@ -432,9 +448,8 @@ import { db } from "@/app/lib/turso";
 import { hash } from "@/app/utils/bcrypt";
 import { redirect } from "next/navigation";
 
-export async function updateAdminPassword(formData) {
+export async function updateAdminPassword(_, formData) {
     try {
-
         const redisLimit = await redisIpLimit(5, "updateAdminPass", 60 * 15);
         if (!redisLimit.ok) return { ok: false, message: redisLimit.message };
 
@@ -449,7 +464,6 @@ export async function updateAdminPassword(formData) {
         if (fetchAdminData.rows.length === 0) return { ok: false, message: "Admin not found" };
 
         const admin = fetchAdminData.rows[0];
-
         const hashedPassword = await hash(password, 12);
 
         await Promise.all([
@@ -537,91 +551,108 @@ import crypto from "crypto";
 import { redirect } from "next/navigation";
 import { redisIpLimit } from "@/app/lib/redis";
 
-export async function signupServerAction(_, formData) {
-
-    const redisLimit = await redisIpLimit(5, "signup", 60 * 15);
-    if (!redisLimit.ok) return { ok: false, message: redisLimit.message };
-
-    const admin_name = formData.get("full_name")?.replace(/\s+/g, '-').toLowerCase();
-    const admin_email = formData.get("admin_email");
-    const username = formData.get("username")?.replace(/\s+/g, '-');
-    const password = formData.get("password");
-    const confirm_password = formData.get("confirm_password");
-
-    const clinic_name = formData.get("clinic_name")?.replace(/\s+/g, '-').toLowerCase();
-    const clinic_phone = formData.get("clinic_phone");
-    const clinic_address = formData.get("clinic_address")?.replace(/\s+/g, '-').toLowerCase();
-
-    const public_id = nanoid(12);
-
-    if (password !== confirm_password) {
-        return { ok: false, message: "Passwords do not match" };
-    }
-
-
+export async function signupServerAction(prevState, formData) {
+    let public_id = nanoid(12);
 
     try {
+        const redisLimit = await redisIpLimit(5, "signup", 60 * 15);
+        if (!redisLimit.ok) return { ok: false, message: redisLimit.message };
 
-        const isUsernameAvailable = await db.execute("SELECT username FROM users WHERE username = ?", [username]);
-        if (isUsernameAvailable.rows.length > 0) return { ok: false, message: "Username already exists" };
+        const admin_name = formData.get("full_name")?.toString().trim();
+        const admin_email = formData.get("admin_email")?.toString().trim();
+        const username = formData.get("username")?.toString().trim().replace(/\s+/g, '-');
+        const password = formData.get("password")?.toString();
+        const confirm_password = formData.get("confirm_password")?.toString();
+        const clinic_name = formData.get("clinic_name")?.toString().trim();
+        const clinic_phone = formData.get("clinic_phone")?.toString().trim();
+        const clinic_address = formData.get("clinic_address")?.toString().trim();
+
+        if (!admin_name || admin_name.length < 2 || admin_name.length > 20) return { ok: false, message: "Name must be between 2 and 20 characters" };
+        if (!admin_email || !admin_email?.includes("@") || admin_email.length < 5 || admin_email.length > 100) return { ok: false, message: "Invalid email address" };
+        if (!username || username.length < 3 || username.length > 20) return { ok: false, message: "Username must be between 3 and 20 characters" };
+        if (!password || password.length < 8 || password.length > 50) return { ok: false, message: "Password must be between 8 and 25 characters" };
+        if (password !== confirm_password) return { ok: false, message: "Passwords do not match" };
+        if (!clinic_name || !clinic_phone) return { ok: false, message: "Clinic name and phone are required" };
+
+        const [userCheck, emailCheck] = await Promise.all([
+            db.execute("SELECT id FROM users WHERE username = ?", [username]),
+            db.execute("SELECT id FROM admins WHERE admin_email = ?", [admin_email])
+        ]);
+
+        if (userCheck.rows.length > 0) return { ok: false, message: "Username already exists" };
+        if (emailCheck.rows.length > 0) return { ok: false, message: "Email already exists" };
 
         const hashedPassword = await hash(password);
+        const email_token = crypto.randomBytes(32).toString("hex");
+        const hashedToken = await hash(email_token);
 
-        const res = await db.execute(`INSERT INTO admins ( public_id, admin_name, admin_email, admin_username, 
-                clinic_name, clinic_phone, clinic_address, password ) VALUES (?, ?, ?, ?, ?, ?, ?, ?) RETURNING id`,
-            [
-                public_id,
-                admin_name,
-                admin_email,
-                username,
-                clinic_name,
-                clinic_phone,
-                clinic_address,
-                hashedPassword
-            ]);
-
-
-
-        await db.execute(
-            `INSERT INTO users ( public_id, admin_id, role, username, password ) VALUES (?, ?, ?, ?, ?)`, [nanoid(12),
-            res.rows[0]?.id,
-            "admin",
-            username,
-            hashedPassword]
+        const res = await db.execute(
+            `INSERT INTO admins (public_id, admin_name, admin_email, admin_username, clinic_name, clinic_phone, clinic_address, password, email_token_hash) 
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id`,
+            [public_id, admin_name.toLowerCase().replace(/\s+/g, '-'), admin_email, username, clinic_name.toLowerCase().replace(/\s+/g, '-'), clinic_phone, clinic_address.toLowerCase().replace(/\s+/g, '-'), hashedPassword, hashedToken]
         );
 
-        const email_token = crypto.randomBytes(32).toString("hex");
-        const hashed = await hash(email_token);
+        const adminId = res.rows[0]?.id;
 
-        await db.execute(`UPDATE admins SET email_token_hash = ?, email_token_created_at = CURRENT_TIMESTAMP WHERE id = ?`, [hashed, res.rows[0].id]);
+        await db.execute(
+            `INSERT INTO users (public_id, admin_id, role, username, password) VALUES (?, ?, ?, ?, ?)`,
+            [nanoid(12), adminId, "admin", username, hashedPassword]
+        );
 
-        const to = admin_email;
-        const subject = "Account Activation";
-        const html = `<p>Click on button to activate your account.</p><a href="${process.env.NEXT_PUBLIC_APP_URL}/activation/${email_token}/${public_id}">Activate Account</a>`;
-
-        await sendEmail({ to, subject, html });
-
+        await sendEmail({
+            to: admin_email,
+            subject: "Account Activation",
+            html: `<p>Click to activate your account:</p><a href="${process.env.NEXT_PUBLIC_APP_URL}/activation/${email_token}/${public_id}">Activate Account</a>`
+        });
 
     } catch (error) {
         console.error(error);
-        return { ok: false, message: "Registration failed. Username might already exist." };
+        return { ok: false, message: "An error occurred during registration" };
     }
+
     redirect(`/verification/${public_id}`);
 }
+```
+---
+## src\app\(auth)\verification\[adminPubId]\Client.jsx
+```
+"use client";
 
+import Form from "next/form";
+import { useActionState } from "react";
+import { changeAdminEmailSA } from "./sa";
+
+export default function ClientAdminVerification({ adminPubId, admin_email, status }) {
+    const initialState = { ok: null, message: "" };
+    const [state, formAction, isPending] = useActionState(changeAdminEmailSA, initialState);
+
+    return (
+        <>
+            <p>Email: {admin_email}</p>
+            <p>Status: {status}</p>
+            <details>
+                <summary>Change Email</summary>
+                <Form action={formAction}>
+                    <input type="hidden" name="adminPubId" value={adminPubId} />
+                    <input type="email" name="email" placeholder="Email" />
+                    {state.message && <p>{state.message}</p>}
+                    <button disabled={isPending}>{isPending ? "Changing..." : "Change"}</button>
+                </Form>
+            </details>
+        </>
+    );
+}
 ```
 ---
 ## src\app\(auth)\verification\[adminPubId]\page.jsx
 ```
 import { AdminEmailVerification } from "@/app/components/emailVerification";
 import { db } from "@/app/lib/turso";
-import Form from "next/form";
 import { redirect } from "next/navigation";
-import { changeAdminEmailSA } from "./sa";
 import { redisIpLimit } from "@/app/lib/redis";
+import ClientAdminVerification from "./Client";
 
 export default async function AdminVerification({ params }) {
-
   const { adminPubId } = await params;
   if (!adminPubId) return <p>Broken link</p>
 
@@ -633,21 +664,16 @@ export default async function AdminVerification({ params }) {
 
   if (fetchAdmin.rows[0].status === "verified") redirect("/");
 
-
-
-  return (<>
-    <p>Email: {fetchAdmin.rows[0].admin_email}</p>
-    <p>Status: {fetchAdmin.rows[0].status}</p>
-    <details>
-      <summary>Change Email</summary>
-      <Form action={changeAdminEmailSA} >
-        <input type="hidden" name="adminPubId" value={adminPubId} />
-        <input type="email" name="email" placeholder="Email" />
-        <button>Change</button>
-      </Form>
-    </details>
-    <AdminEmailVerification adminPubId={adminPubId} />
-  </>);
+  return (
+    <>
+      <ClientAdminVerification
+        adminPubId={adminPubId}
+        admin_email={fetchAdmin.rows[0].admin_email}
+        status={fetchAdmin.rows[0].status}
+      />
+      <AdminEmailVerification adminPubId={adminPubId} />
+    </>
+  );
 }
 ```
 ---
@@ -661,28 +687,24 @@ import { redirect } from "next/navigation";
 import crypto from "crypto";
 import { hash } from "@/app/utils/bcrypt";
 
-export async function changeAdminEmailSA(formData) {
-
+export async function changeAdminEmailSA(_, formData) {
     const adminPubId = formData.get("adminPubId");
     const email = formData.get("email");
 
     try {
         if (!email || !adminPubId) return { ok: false, message: "Email required" };
 
-        const fetchAdmib = await db.execute("SELECT id, admin_email FROM admins WHERE public_id = ?", [adminPubId]);
-        if (fetchAdmib.rows.length === 0) return { ok: false, message: "Admin not found" };
+        const fetchAdmin = await db.execute("SELECT id, admin_email FROM admins WHERE public_id = ?", [adminPubId]);
+        if (fetchAdmin.rows.length === 0) return { ok: false, message: "Admin not found" };
 
         const email_token = crypto.randomBytes(32).toString("hex");
         const hashed = await hash(email_token);
 
-        await db.execute("UPDATE admins SET admin_email = ?, email_token_hash = ?, email_token_created_at = CURRENT_TIMESTAMP WHERE id = ?", [email, hashed, fetchAdmib.rows[0].id]);
+        await db.execute("UPDATE admins SET admin_email = ?, email_token_hash = ?, email_token_created_at = CURRENT_TIMESTAMP WHERE id = ?", [email, hashed, fetchAdmin.rows[0].id]);
 
-        const to = email;
         const subject = "Account Activation";
         const html = `<p>Click on button to activate your account.</p><a href="${process.env.NEXT_PUBLIC_APP_URL}/activation/${email_token}/${adminPubId}">Activate Account</a>`;
-
-        await sendEmail({ to, subject, html });
-
+        await sendEmail({ to: email, subject, html });
 
     } catch (error) {
         console.error(error);
@@ -693,81 +715,103 @@ export async function changeAdminEmailSA(formData) {
 }
 ```
 ---
+## src\app\add-doctor\Client.jsx
+```
+"use client";
+
+import { useActionState } from "react";
+import { addDoctorServerAction } from "./SA";
+
+export default function ClientAddDoctor({ departments, treatments }) {
+    const [state, formAction, isPending] = useActionState(addDoctorServerAction, null);
+
+    return (
+        <form action={formAction} className="flex flex-col gap-2">
+            <input type="text" name="name" placeholder="Name" required />
+            <input type="text" name="username" placeholder="Username" required />
+            <input type="password" name="password" placeholder="Password" required />
+            <input type="text" name="qualification" placeholder="Qualifications: MD, Surgeon" />
+
+            <input list="departments" name="department" placeholder="Department" />
+            <datalist id="departments">
+                {departments.map((dep, idx) => <option key={idx} value={dep} />)}
+            </datalist>
+
+            <select name="treatmentPubId" required>
+                <option value="">{treatments.length === 0 ? "Add Treament First" : "Select Treatment"}</option>
+                {treatments.map((t, idx) => (
+                    <option key={idx} value={t.treatmentPubId}>{t.string}</option>
+                ))}
+            </select>
+
+            <button type="submit" disabled={isPending}>
+                {isPending ? "Submitting..." : "Submit"}
+            </button>
+
+            {state?.message && (
+                <p className={state.ok ? "text-green-500" : "text-red-500"}>
+                    {state.message}
+                </p>
+            )}
+        </form>
+    );
+}
+```
+---
 ## src\app\add-doctor\page.jsx
 ```
-import Form from "next/form";
 import { db } from "../lib/turso";
-import { addDoctorServerAction } from "./SA";
 import Link from "next/link";
 import { getUserPlus } from "../lib/getUser";
 import { redirect } from "next/navigation";
-
+import ClientAddDoctor from "./Client";
 
 
 export default async function AddDoctor() {
-
-
-
     const currentUser = await getUserPlus();
-    if (!currentUser) return redirect("/login");
-    if (!currentUser || currentUser.role !== "admin" || !currentUser.admin_id || currentUser.status !== "verified") redirect(`/verification/${currentUser?.admin_details?.public_id}`);
+    if (!currentUser) redirect("/login");
+    if (currentUser.role !== "admin" || !currentUser.admin_id || currentUser.status !== "verified") {
+        redirect(`/verification/${currentUser?.admin_details?.public_id || ""}`);
+    }
+
     const adminId = currentUser.admin_id;
 
+    const [deptRes, treatRes, docRes] = await Promise.all([
+        db.execute(`SELECT DISTINCT department FROM doctors WHERE admin_id = ?`, [adminId]),
+        db.execute(`SELECT public_id, name, duration FROM treatments WHERE admin_id = ?`, [adminId]),
+        db.execute(`SELECT * FROM doctors WHERE admin_id = ?`, [adminId])
+    ]);
 
-    const fetchDepartments = await db.execute(`SELECT department FROM doctors WHERE admin_id = ?`, [adminId]);
-    let departments = fetchDepartments?.rows;
-    departments = departments.map(dep => dep.department[0].toUpperCase() + dep.department.slice(1).toLowerCase());
-    departments = [...new Set(departments)];
-
-    const { rows } = await db.execute(
-        `SELECT public_id, name, duration FROM treatments WHERE admin_id = ?`,
-        [adminId]
+    const departments = deptRes.rows.map(d =>
+        d.department.charAt(0).toUpperCase() + d.department.slice(1)
     );
 
-    const treatments = rows.map(t => ({
+    const treatments = treatRes.rows.map(t => ({
         treatmentPubId: t.public_id,
-        string: `${t.name
-            .split("_")
-            .map(w => w[0].toUpperCase() + w.slice(1))
-            .join(" ")} ${t.duration > 9 ? t.duration + " min" : `0${t.duration} min`}`,
+        string: `${t.name.split("_").map(w => w[0].toUpperCase() + w.slice(1)).join(" ")} ${t.duration.toString().padStart(2, '0')} min`,
     }));
 
-    const fetchAllDoctors = await db.execute(`SELECT * FROM doctors WHERE admin_id = ?`, [adminId]);
-    const allDoctors = fetchAllDoctors.rows;
+    return (
+        <>
+            <ClientAddDoctor departments={departments} treatments={treatments} />
 
-
-    return (<>
-        <Form action={addDoctorServerAction}>
-            <input type="text" name="name" placeholder="Name" />
-            <input type="text" name="username" placeholder="username" />
-            <input type="password" name="password" placeholder="Password" />
-            <input type="text" name="qualification" placeholder="Qualifications: MD, Surgeon" />
-            <input list="departments" name="department" placeholder="Department" />
-            <datalist id="departments">
-                {departments?.map((dep, idx) => <option key={idx} value={dep} />)}
-            </datalist>
-            <select name="treatmentPubId">
-                <option value="">Select Treatment</option>
-                {treatments?.map((treatment, idx) => <option key={idx} value={treatment.treatmentPubId}>{treatment.string}</option>)}
-            </select>
-            <input type="submit" value="Submit" />
-        </Form>
-        {allDoctors?.length > 0 && (
-            <details>
-                <summary>Current Doctors</summary>
-                {allDoctors.map((doctor) => (
-                    <div key={doctor.public_id} className="border-2">
-                        <p>
-                            Name: Dr. {doctor.name.charAt(0).toUpperCase() + doctor.name.slice(1)} -
-                            Qualifications: {JSON.parse(doctor.qualifications || "[]").join(", ").toUpperCase()} -
-                            Department: {doctor.department.charAt(0).toUpperCase() + doctor.department.slice(1)}
-                        </p>
-                        <Link href={`/edit-doctor/${doctor.public_id}`}>Edit⬅</Link>
-                    </div>
-                ))}
-            </details>
-        )}
-    </>);
+            {docRes.rows.length > 0 && (
+                <details className="mt-4">
+                    <summary>Current Doctors</summary>
+                    {docRes.rows.map((doctor) => (
+                        <div key={doctor.public_id} className="border-2 p-2 my-1">
+                            <p>
+                                Name: Dr. {doctor.name.charAt(0).toUpperCase() + doctor.name.slice(1)} -
+                                Qualifications: {JSON.parse(doctor.qualifications || "[]").join(", ").toUpperCase()} -
+                                Dept: {doctor.department}
+                            </p>
+                            <Link href={`/edit-doctor/${doctor.public_id}`}>Edit⬅</Link>
+                        </div>
+                    ))}
+                </details>
+            )}
+        </>
+    );
 }
 ```
 ---
@@ -775,109 +819,127 @@ export default async function AddDoctor() {
 ```
 "use server";
 
-import { redirect } from "next/navigation";
 import { db } from "../lib/turso";
 import { nanoid } from "nanoid";
 import { hash } from "../utils/bcrypt";
 import { getUserPlus } from "../lib/getUser";
+import { revalidatePath } from "next/cache";
 
-export async function addDoctorServerAction(formData) {
-    let success = false;
-
+export async function addDoctorServerAction(prevState, formData) {
     try {
         const currentUser = await getUserPlus();
-        if (!currentUser || currentUser.role !== "admin" || !currentUser.admin_id) redirect("/login");
+        if (!currentUser || currentUser.role !== "admin" || !currentUser.admin_id) {
+            return { ok: false, message: "Unauthorized: Admin access required" };
+        }
+
         const adminId = currentUser.admin_id;
-
-        const name = formData.get("name")?.toString().replace(/\s/g, "-").toLowerCase() || "";
-        const username = formData.get("username")?.toString() || "";
+        const name = formData.get("name")?.toString().trim() || "";
+        const username = formData.get("username")?.toString().trim() || "";
         const password = formData.get("password")?.toString() || "";
-        const department = formData.get("department")?.toString().replace(/\s/g, "-").toLowerCase() || "";
+        const department = formData.get("department")?.toString().trim() || "";
         const treatmentPubId = formData.get("treatmentPubId")?.toString() || "";
+        const rawQuals = formData.get("qualification")?.toString() || "";
 
+        if (name.length < 2 || name.length > 20) return { ok: false, message: "Name must be between 2 and 20 characters" };
+        if (username.length < 3 || username.length > 20) return { ok: false, message: "Username must be between 3 and 20 characters" };
+        if (password.length < 8) return { ok: false, message: "Password must be at least 8 characters" };
+        if (!department) return { ok: false, message: "Department is required" };
+        if (!treatmentPubId) return { ok: false, message: "Please select a treatment" };
 
-
-        const qualification = formData.get("qualification")
-            ?.toString()
+        const qualification = rawQuals
             .split(/[ ,]+/)
             .filter(Boolean)
             .map(q => q.trim().toLowerCase());
 
-        const fetchTreatment = await db.execute(
-            "SELECT id FROM treatments WHERE admin_id = ? AND public_id = ?",
-            [adminId, treatmentPubId]
-        );
+        if (qualification.length === 0) return { ok: false, message: "At least one qualification is required" };
 
-        if (fetchTreatment.rows.length === 0) return null;
+        const [fetchTreatment, fetchUsername] = await Promise.all([
+            db.execute("SELECT id FROM treatments WHERE admin_id = ? AND public_id = ?", [adminId, treatmentPubId]),
+            db.execute("SELECT id FROM users WHERE username = ?", [username])
+        ]);
+
+        if (fetchTreatment.rows.length === 0) return { ok: false, message: "Invalid treatment selected" };
+        if (fetchUsername.rows.length > 0) return { ok: false, message: "Username is already taken" };
 
         const passwordHash = await hash(password);
+        const doctorPubId = nanoid(12);
 
         const result = await db.execute(
             `INSERT INTO doctors (admin_id, name, username, password, department, public_id, qualifications) VALUES (?, ?, ?, ?, ?, ?, ?) RETURNING id`,
-            [adminId, name.toLowerCase(), username, passwordHash, department.toLowerCase(), nanoid(12), JSON.stringify(qualification)]
+            [adminId, name.toLowerCase().replace(/\s/g, "-"), username, passwordHash, department.toLowerCase().replace(/\s/g, "-"), doctorPubId, JSON.stringify(qualification)]
         );
 
         const doctorId = result.rows[0]?.id;
-        if (!doctorId) return null;
 
-        await db.execute(
-            `INSERT INTO doctor_treatments (public_id, admin_id, doctor_id, treatment_id) VALUES (?, ?, ?, ?)`,
-            [nanoid(12), adminId, doctorId, fetchTreatment.rows[0].id]
-        );
+        await db.batch([
+            {
+                sql: `INSERT INTO doctor_treatments (public_id, admin_id, doctor_id, treatment_id) VALUES (?, ?, ?, ?)`,
+                args: [nanoid(12), adminId, doctorId, fetchTreatment.rows[0].id]
+            },
+            {
+                sql: `INSERT INTO users (public_id, doctor_id, role, username, password) VALUES (?, ?, ?, ?, ?)`,
+                args: [nanoid(12), doctorId, "doctor", username, passwordHash]
+            }
+        ], "write");
 
-        await db.execute(
-            `INSERT INTO users (public_id, doctor_id, role, username, password) VALUES (?, ?, ?, ?, ?)`, [
-            nanoid(12),
-            doctorId,
-            "doctor",
-            username,
-            passwordHash
-        ]);
-
-        success = true;
-    } catch (error) {
-        console.error(error);
-        return null;
+        revalidatePath("/add-doctor");
+        return { ok: true, message: "Doctor successfully added" };
+    } catch (e) {
+        return { ok: false, message: "Database error: Could not save doctor" };
     }
+}
+```
+---
+## src\app\add-treatment\Client.jsx
+```
+"use client";
 
-    if (success) {
-        redirect("/add-doctor");
-    }
+import Form from "next/form";
+import { useActionState } from "react";
+import { addTreatmentServerAction } from "./SA";
+
+export default function ClientAddTreatment({ treatments }) {
+    const initialState = { ok: null, message: "" };
+    const [state, formAction, isPending] = useActionState(addTreatmentServerAction, initialState);
+
+    return (
+        <>
+            <Form action={formAction}>
+                <input type="text" name="name" placeholder="Name" />
+                <input type="number" name="duration" placeholder="Duration" />
+                {state.message && <p>{state.message}</p>}
+                <button type="submit" disabled={isPending}>{isPending ? "Submitting..." : "Submit"}</button>
+            </Form>
+            {treatments?.length > 0 && <>
+                <h2>Current Treatments</h2>
+                {treatments?.map((treatment, idx) => <p key={idx}>Type: {treatment.name} - Duration: {Math.round(treatment.duration)}min</p>)}
+            </>}
+        </>
+    );
 }
 ```
 ---
 ## src\app\add-treatment\page.jsx
 ```
-import Form from "next/form";
-import { addTreatmentServerAction } from "./SA";
 import { db } from "../lib/turso";
 import { getUserPlus } from "../lib/getUser";
 import { redirect } from "next/navigation";
+import ClientAddTreatment from "./Client";
 
 export default async function AddTreatment() {
-
-
     const currentUser = await getUserPlus();
     if (!currentUser) return redirect("/login");
-    if (!currentUser || currentUser.role !== "admin" || !currentUser.admin_id || currentUser.status !== "verified") redirect(`/verification/${currentUser?.admin_details?.public_id}`);
+    if (currentUser.role !== "admin" || !currentUser.admin_id || currentUser.status !== "verified") redirect(`/verification/${currentUser?.admin_details?.public_id}`);
+
     const adminId = currentUser.admin_id;
 
     const fetchTreatmentsData = await db.execute(`SELECT * FROM treatments WHERE admin_id = ?`, [adminId]);
-    let treatments = fetchTreatmentsData?.rows;
-    treatments = treatments.map(treatment => ({ name: treatment.name?.split("_").map(w => w[0].toUpperCase() + w.slice(1)).join(" "), duration: treatment.duration }));
+    const treatments = fetchTreatmentsData?.rows.map(treatment => ({
+        name: treatment.name?.split("_").map(w => w[0].toUpperCase() + w.slice(1)).join(" "),
+        duration: treatment.duration
+    }));
 
-
-    return (<>
-        <Form action={addTreatmentServerAction}>
-            <input type="text" name="name" placeholder="Name" />
-            <input type="number" name="duration" placeholder="Duration" />
-            <input type="submit" value="Submit" />
-        </Form>
-        {treatments?.length > 0 && <>
-            <h2>Current Treatments</h2>
-            {treatments?.map((treatment, idx) => <p key={idx}>Type: {treatment.name} - Duration: {Math.round(treatment.duration)}min</p>)}
-        </>}
-    </>);
+    return <ClientAddTreatment treatments={treatments} />;
 }
 ```
 ---
@@ -890,7 +952,7 @@ import { db } from "../lib/turso";
 import { nanoid } from "nanoid";
 import { getUserPlus } from "../lib/getUser";
 
-export async function addTreatmentServerAction(formData) {
+export async function addTreatmentServerAction(_, formData) {
     try {
         const currentUser = await getUserPlus();
         if (!currentUser || currentUser.role !== "admin" || !currentUser.admin_id) redirect("/login");
@@ -899,14 +961,13 @@ export async function addTreatmentServerAction(formData) {
         const name = formData.get("name")?.trim().toLowerCase().replace(/\s+/g, "_");
         const duration = Number(formData.get("duration")) || 0;
 
-        if (!name || duration <= 0) return null; 
-
+        if (!name || duration <= 0) return { ok: false, message: "Invalid name or duration" };
 
         await db.execute(`INSERT INTO treatments (admin_id, name, duration, public_id) VALUES (?, ?, ?, ?)`, [adminId, name.toLowerCase(), duration, nanoid(12)]);
 
     } catch (error) {
         console.error(error);
-        return null;
+        return { ok: false, message: "Something went wrong" };
     }
     redirect("/add-treatment");
 }
@@ -1138,7 +1199,7 @@ export default async function AdminComponent({ currentUser }) {
     {Object.keys(groupedBooking).map(dateIso => (
       <div key={dateIso} className="border-2 border-b-amber-100 my-4" >
 
-        <h2>{dateIso.split("-")[2]} {getMonthName(Number(dateIso.split("-")[1] - 1))} {dateIso.split("-")[0]}</h2>
+        <h2>{dateIso.split("-")[2]} {getMonthName(Number(dateIso.split("-")[1]) - 1)} {dateIso.split("-")[0]}</h2>
 
         <AdminRevokeBookings adminPubId={currentUser.admin_details.public_id} bookingDate={dateIso} />
 
@@ -1148,7 +1209,8 @@ export default async function AdminComponent({ currentUser }) {
             <div key={booking.public_id} className="border-2 border-amber-950 my-2" >
               <p>Appointment Date: {booking.date_number > 9 ? booking.date_number : "0" + booking.date_number} {getMonthName(booking.month_number)} {booking.year}</p>
               <p>Timing: {minutesToMeridiem(booking.treatment_start, true)} - {minutesToMeridiem(booking.treatment_end, true)}</p>
-              <p>Doctor: {booking.doctor_name.split(" ").map(word => word[0].toUpperCase() + word.slice(1)).join(" ")}</p><p>Treatment: {booking.treatment_name.split("_").map(word => word[0].toUpperCase() + word.slice(1)).join(" ")}</p>
+              <p>Doctor: {booking.doctor_name ? booking.doctor_name.split(" ").map(word => word[0].toUpperCase() + word.slice(1)).join(" ") : "N/A"}</p>
+              <p>Treatment: {booking.treatment_name ? booking.treatment_name.split("_").map(word => word[0].toUpperCase() + word.slice(1)).join(" ") : "N/A"}</p>
               <p>Session Duration: {booking.treatment_duration} minutes</p>
               <p>Booking Status: {booking.status[0].toUpperCase() + booking.status.slice(1)}</p>
               <p>Patient Name: {booking?.patient_name ? booking.patient_name.split(" ").map(word => word[0].toUpperCase() + word.slice(1)).join(" ") : "N/A"}</p>
@@ -1990,7 +2052,7 @@ export async function reserveSlot(_, formData) {
 
     const adminPubId = formData.get("adminPubId");
     const fetchAdmin = await db.execute(`SELECT * FROM admins WHERE public_id = ?`, [adminPubId]);
-    if (fetchAdmin.rows.length === 0) return { ok: false, message: "Invalid admin." }
+    if (fetchAdmin.rows.length === 0) return { ok: false, message: "Invalid admin." };
 
     const adminId = fetchAdmin.rows[0].id;
 
@@ -2007,7 +2069,22 @@ export async function reserveSlot(_, formData) {
 
     try {
 
-        if (!docPubId || !date_number || typeof month_number !== "number" || !year || !treatmentPubId || !patient_selected_treatment_start || !patient_selected_treatment_end) return { ok: false, message: "Missing required fields" };
+        // Validating the raw formData string ensures "0" is truthy and allowed, 
+        // while missing (null) or empty ("") values are correctly rejected. 
+        // Number.isNaN protects against malformed inputs (e.g. "abc").
+        // Note: Added day_number to the check as well since it was previously missing.
+        if (
+            !docPubId ||
+            !treatmentPubId ||
+            !formData.get("treatment_start") || Number.isNaN(patient_selected_treatment_start) ||
+            !formData.get("treatment_end") || Number.isNaN(patient_selected_treatment_end) ||
+            !formData.get("day_number") || Number.isNaN(day_number) ||
+            !formData.get("date_number") || Number.isNaN(date_number) ||
+            !formData.get("month_number") || Number.isNaN(month_number) ||
+            !formData.get("year") || Number.isNaN(year)
+        ) {
+            return { ok: false, message: "Missing or invalid required fields" };
+        }
 
         const [fetchDoctor, fetchTreatment] = await Promise.all([
             db.execute(`SELECT * FROM doctors where admin_id = ? AND public_id = ?`, [adminId, docPubId]),
@@ -2026,8 +2103,6 @@ export async function reserveSlot(_, formData) {
         if (fetchSlot.rows.length === 0 || fetchSlot.rows[0].status !== 'active')
             return { ok: false, message: "This slot is no longer available." };
 
-        if (fetchDoctor.rows.length === 0) return { ok: false, message: "Invalid doctor." };
-        if (fetchTreatment.rows.length === 0) return { ok: false, message: "Invalid treatment." };
         const docName = fetchDoctor?.rows[0]?.name;
         const treatmentId = fetchTreatment?.rows[0]?.id;
         const treatmentDuration = fetchTreatment?.rows[0]?.duration;
@@ -2668,10 +2743,25 @@ export async function createTemplateServerAction(formData) {
 ---
 ## src\app\dashboard\page.jsx
 ```
-export default function Dashboard() {
-  return (<>
-    <div>dashboard</div>
-  </>);
+// src/app/dashboard/page.jsx
+
+import { redirect } from "next/navigation";
+import { getUserPlus } from "../lib/getUser";
+
+export default async function Dashboard() {
+
+  const currentUser = await getUserPlus();
+  if (!currentUser?.id) return redirect("/login");
+
+  if (currentUser.role === "admin" && currentUser.status !== "verified") {
+    return redirect(`/verification/${currentUser.admin_details.public_id}`);
+  }
+
+  return (
+    <>
+      <div>dashboard</div>
+    </>
+  );
 }
 ```
 ---
@@ -3511,8 +3601,10 @@ export async function generateTicketPdf(bookingPubId, adminPubId) {
         .map((w) => w[0].toUpperCase() + w.slice(1))
         .join(" ");
 
-    const treatmentName = booking.treatment_name?.split("_").map((w) => w[0].toUpperCase() + w.slice(1)).join(" ");
-
+    const treatmentName = booking.treatment_name
+        ?.split("_")
+        .map((w) => w[0].toUpperCase() + w.slice(1))
+        .join(" ");
 
     // ---- PDF GENERATION ----
 
@@ -3546,7 +3638,7 @@ export async function generateTicketPdf(bookingPubId, adminPubId) {
 
     draw("------------------------------");
 
-    draw(`Doctor: ${doctorName.split(" ").map(word => word[0].toUpperCase() + word.slice(1)).join(" ")}`);
+    draw(`Doctor: ${doctorName}`);
     draw(`Department: ${booking.department || "-"}`);
     draw(`Qualifications: ${JSON.parse(booking.qualifications).map(fn => fn.toUpperCase()).join(", ") || "-"}`);
 
@@ -3595,7 +3687,7 @@ export async function getUser() {
 
     } catch (error) {
         console.error(error);
-        throw error;
+        return null;
     }
 }
 
@@ -3631,7 +3723,7 @@ export async function getUserPlus() {
 
     } catch (error) {
         console.error(error);
-        throw error;
+        return null;
     }
 }
 ```
@@ -4140,25 +4232,19 @@ import { db } from "../lib/turso";
 import { getDayName, getMonthName } from "../utils/getDateData";
 import { minutesToMeridiem } from "../utils/minutes-to-meridiem";
 import { ToggleSlotButton, EditSlotButton } from "./Client";
-
 import { redirect } from "next/navigation";
 
 export default async function GeneratedSlots() {
 
-
     const currentUser = await getUserPlus();
     if (!currentUser) return redirect("/login");
-    if (!currentUser || currentUser.role !== "admin" || !currentUser.admin_id || currentUser.status !== "verified") redirect(`/verification/${currentUser?.admin_details?.public_id}`);
+    if (currentUser.role !== "admin" || !currentUser.admin_id || currentUser.status !== "verified") redirect(`/verification/${currentUser?.admin_details?.public_id}`);
     const adminId = currentUser.admin_id;
-
-
 
     const fetch = await db.execute(
         `SELECT slots.*, GROUP_CONCAT(bookings.patient_email, ' | ') AS patients FROM slots LEFT JOIN bookings ON bookings.admin_id = slots.admin_id AND bookings.date_number = slots.date_number AND bookings.month_number = slots.month_number AND bookings.year = slots.year AND bookings.doctor_id = slots.doctor_id AND bookings.status = 'verified' WHERE slots.admin_id = ? AND full_date_at_period >= DATE('now') GROUP BY slots.id ORDER BY full_date_at_period`,
         [adminId]
     );
-
-
 
     if (fetch.rows.length === 0) {
         return <p>No slots available. Go to create template to generate.</p>;
@@ -4174,6 +4260,12 @@ export default async function GeneratedSlots() {
 
     const doctors = doctorsResult.rows;
 
+    // Helper: count bookings from the GROUP_CONCAT string using the correct separator
+    function countBookings(patientsStr) {
+        if (!patientsStr) return 0;
+        return patientsStr.split(' | ').length;
+    }
+
     return (
         <>
             {doctors.length > 0 &&
@@ -4183,18 +4275,21 @@ export default async function GeneratedSlots() {
                             <h2>Dr. {doc.name[0].toUpperCase() + doc.name.slice(1)} From {doc.department} Department</h2>
                             <details>
                                 <summary>Slots</summary>
-                                {fetch.rows.filter(fn1 => fn1.doctor_id === doc.id).map(fn2 => (
-                                    <div key={fn2.public_id} className="border-2">
-                                        <p>{getMonthName(fn2.month_number)} {fn2.date_number > 9 ? fn2.date_number : `0${fn2.date_number}`} {getDayName(fn2.day_number)}</p>
-                                        <p>Clinic: {minutesToMeridiem(fn2.start_time, true)} - {minutesToMeridiem(fn2.end_time, true)}</p>
-                                        <p>Break: {minutesToMeridiem(fn2.break_start, true)} - {minutesToMeridiem(fn2.break_end, true)}</p>
-                                        <p>Buffer: {fn2.buffer_minutes ? fn2.buffer_minutes : 0} minutes</p>
-                                        <p>Status: {fn2.status[0].toUpperCase() + fn2.status.slice(1)}</p>
-                                        <p>Number of Bookings: {fn2.patients ? fn2.patients.split('|').length > 9 ? fn2.patients.split('|').length : "0" + fn2.patients.split('|').length : 0}</p>
-                                        <ToggleSlotButton slotPubId={fn2.public_id} status={fn2.status} numberOfBookings={fn2.patients ? fn2.patients.split('|').length : 0} />
-                                        <div><EditSlotButton slotPubId={fn2.public_id} numberOfBookings={fn2.patients ? fn2.patients.split('|').length : 0} /></div>
-                                    </div>
-                                ))}
+                                {fetch.rows.filter(fn1 => fn1.doctor_id === doc.id).map(fn2 => {
+                                    const bookingCount = countBookings(fn2.patients);
+                                    return (
+                                        <div key={fn2.public_id} className="border-2">
+                                            <p>{getMonthName(fn2.month_number)} {fn2.date_number > 9 ? fn2.date_number : `0${fn2.date_number}`} {getDayName(fn2.day_number)}</p>
+                                            <p>Clinic: {minutesToMeridiem(fn2.start_time, true)} - {minutesToMeridiem(fn2.end_time, true)}</p>
+                                            <p>Break: {minutesToMeridiem(fn2.break_start, true)} - {minutesToMeridiem(fn2.break_end, true)}</p>
+                                            <p>Buffer: {fn2.buffer_minutes ? fn2.buffer_minutes : 0} minutes</p>
+                                            <p>Status: {fn2.status[0].toUpperCase() + fn2.status.slice(1)}</p>
+                                            <p>Number of Bookings: {bookingCount > 9 ? bookingCount : "0" + bookingCount}</p>
+                                            <ToggleSlotButton slotPubId={fn2.public_id} status={fn2.status} numberOfBookings={bookingCount} />
+                                            <div><EditSlotButton slotPubId={fn2.public_id} numberOfBookings={bookingCount} /></div>
+                                        </div>
+                                    );
+                                })}
                             </details>
                         </div>
                     ))}
@@ -4301,9 +4396,6 @@ import { db } from "@/app/lib/turso";
 import { getMonthName } from "@/app/utils/getDateData";
 import { minutesToMeridiem } from "@/app/utils/minutes-to-meridiem";
 import DownloadTicketButton from "./client";
-import { hash } from "@/app/utils/bcrypt";
-import { sendEmail } from "@/app/lib/resend";
-import crypto from "crypto";
 import { redisIpLimit } from "@/app/lib/redis";
 
 export default async function Message({ params }) {
@@ -4326,25 +4418,7 @@ export default async function Message({ params }) {
 
     if (booking.status === "cancelled") return <p>Appointment has been cancelled. Book again.</p>;
 
-    if (booking.status === "verified" && !booking.cancel_token_hash) {
-
-        const cancel_token = crypto.randomBytes(32).toString("hex");
-        const hashed = await hash(cancel_token);
-
-        await db.execute(`UPDATE bookings SET cancel_token_hash = ?, cancel_token_created_at = CURRENT_TIMESTAMP WHERE admin_id = ? AND public_id = ?`, [hashed, adminId, bookingPubId]);
-
-
-        const subject = `Cancel Your Appointment`;
-        const to = booking.patient_email;
-        const html = `
-           <p>You can cancel your appointment.</p>
-           <p>Click on button to cancel your appointment.</p>
-           <a href="${process.env.NEXT_PUBLIC_APP_URL}/cancel/${cancel_token}/${bookingPubId}/${adminPubId}">Cancel Appointment</a>
-           `;
-
-        await sendEmail({ to, subject, html });
-
-    }
+    
 
     return (<>
         <p>Appointment Date: {booking.date_number > 9 ? booking.date_number : "0" + booking.date_number} {getMonthName(booking.month_number)} {booking.year}</p>
@@ -4436,7 +4510,7 @@ export async function initDoctorTable() {
                 department TEXT,
                 username TEXT UNIQUE,
                 password TEXT,
-                status TEXT DEFAULT 'active',
+                status TEXT DEFAULT 'verified',
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP
             )
         `);
@@ -4705,84 +4779,95 @@ export async function initSessionsTable() {
 }
 ```
 ---
+## src\app\settings\Client.jsx
+```
+"use client";
+
+import Form from "next/form";
+import { useActionState } from "react";
+import { updateAdmin, updateDoctor } from "./sa";
+
+export default function ClientSettings(props) {
+    const [adminState, adminFormAction, adminPending] = useActionState(updateAdmin, { ok: null, message: "" });
+    const [doctorState, doctorFormAction, doctorPending] = useActionState(updateDoctor, { ok: null, message: "" });
+
+    if (props.role === "admin") {
+        return (
+            <>
+                <Form action={adminFormAction}>
+                    <input type="hidden" name="adminPubId" value={props.adminPubId} />
+                    <input type="text" name="name" placeholder="Name" defaultValue={props.admin_name} />
+                    <input type="text" name="username" placeholder="username" defaultValue={props.admin_username} />
+                    <input type="email" name="email" placeholder="example@ex.com" defaultValue={props.admin_email} />
+                    <input type="text" name="clinic_name" placeholder="Clinic Name" defaultValue={props.clinic_name} />
+                    <input type="tel" name="clinic_phone" placeholder="+1 000 000 0000" defaultValue={props.clinic_phone} />
+                    <input type="text" name="clinic_address" placeholder="Street #00" defaultValue={props.clinic_address} />
+                    <details>
+                        <summary>Change Password</summary>
+                        <input type="password" name="current_password" placeholder="Current Password" />
+                        <input type="password" name="new_password" placeholder="New Password" />
+                    </details>
+                    {adminState.message && <p>{adminState.message}</p>}
+                    <button type="submit" disabled={adminPending}>{adminPending ? "Saving..." : "Save Changes⬅"}</button>
+                </Form>
+            </>
+        );
+    }
+
+    if (props.role === "doctor") {
+        let qualifications = "";
+        try { qualifications = JSON.parse(props.qualifications || "[]").join(', ').toUpperCase(); }
+        catch (e) { qualifications = ""; }
+
+        return (
+            <>
+                <Form action={doctorFormAction}>
+                    <input type="hidden" name="docPublicId" value={props.docPublicId} />
+                    <input type="text" name="name" placeholder="Name" defaultValue={props.name} />
+                    <input type="text" name="username" placeholder="Username" defaultValue={props.username} />
+                    <input type="text" name="qualifications" placeholder="Qualifications (e.g. MBBS, MD)" defaultValue={qualifications} />
+                    <details>
+                        <summary>Change Password</summary>
+                        <input type="password" name="current_password" placeholder="Current Password" />
+                        <input type="password" name="new_password" placeholder="New Password" />
+                    </details>
+                    {doctorState.message && <p>{doctorState.message}</p>}
+                    <button type="submit" disabled={doctorPending}>{doctorPending ? "Updating..." : "Update⬅"}</button>
+                </Form>
+            </>
+        );
+    }
+
+    return null;
+}
+```
+---
 ## src\app\settings\page.jsx
 ```
 import { redirect } from "next/navigation";
-import Form from "next/form";
 import { getUserPlus } from "../lib/getUser";
-import { updateAdmin, updateDoctor } from "./sa";
+import ClientSettings from "./ClientSettings";
 
 export default async function Settings() {
-
   const currentUser = await getUserPlus();
   if (!currentUser?.id) return redirect("/login");
-
 
   if (currentUser.role === "admin" && currentUser.status !== "verified") return redirect(`/verification/${currentUser.admin_details.public_id}`);
 
   if (currentUser.status !== "verified") return <p>Your account is not verified. Contact your admin or check your email.</p>
 
-  let user = null;
   if (currentUser.role === "admin") {
-    user = currentUser.admin_details;
-    return <AdminComponent user={user} />
+    const { public_id, admin_name, admin_username, admin_email, clinic_name, clinic_phone, clinic_address } = currentUser.admin_details;
+    return <ClientSettings role="admin" adminPubId={public_id} admin_name={admin_name} admin_username={admin_username} admin_email={admin_email} clinic_name={clinic_name} clinic_phone={clinic_phone} clinic_address={clinic_address} />;
   }
+
   if (currentUser.role === "doctor") {
-    user = currentUser.doctor_details;
-    return <DoctorComponent user={user} />
+    const { public_id, name, username, qualifications } = currentUser.doctor_details;
+    return <ClientSettings role="doctor" docPublicId={public_id} name={name} username={username} qualifications={qualifications} />;
   }
+
   return <p>Broken link. User not found. Try again or Logout then login again</p>;
-
 }
-
-
-
-
-
-function AdminComponent({ user }) {
-  return (<>
-    <Form action={updateAdmin}>
-      <input type="hidden" name="adminPubId" value={user.public_id} />
-      <input type="text" name="name" placeholder="Name" defaultValue={user.admin_name} />
-      <input type="text" name="username" placeholder="username" defaultValue={user.admin_username} />
-      <input type="email" name="email" placeholder="example@ex.com" defaultValue={user.admin_email} />
-      <input type="text" name="clinic_name" placeholder="Clinic Name" defaultValue={user.clinic_name} />
-      <input type="tel" name="clinic_phone" placeholder="+1 000 000 0000" defaultValue={user.clinic_phone} />
-      <input type="text" name="clinic_address" placeholder="Street #00" defaultValue={user.clinic_address} />
-      <details>
-        <summary>Change Password</summary>
-        <input type="password" name="current_password" placeholder="Current Password" />
-        <input type="password" name="new_password" placeholder="New Password" />
-      </details>
-      <button type="submit">Save Changes⬅</button>
-    </Form>
-  </>);
-};
-
-
-function DoctorComponent({ user }) {
-
-  let qualifications = "";
-  try {
-    qualifications = JSON.parse(user.qualifications || "[]").join(', ').toUpperCase();
-  } catch (e) { qualifications = ""; }
-
-
-  return (<>
-    <Form action={updateDoctor}>
-      <input type="hidden" name="docPublicId" value={user.public_id} />
-      <input type="text" name="name" placeholder="Name" defaultValue={user.name} />
-      <input type="text" name="username" placeholder="Username" defaultValue={user.username} />
-      <input type="text" name="qualifications" placeholder="Qualifications (e.g. MBBS, MD)" defaultValue={qualifications} />
-      <details>
-        <summary>Change Password</summary>
-        <input type="password" name="current_password" placeholder="Current Password" />
-        <input type="password" name="new_password" placeholder="New Password" />
-      </details>
-      <button type="submit">Update⬅</button>
-    </Form>
-  </>);
-};
 ```
 ---
 ## src\app\settings\sa.js
@@ -4796,7 +4881,7 @@ import { compare, hash } from "../utils/bcrypt";
 import { getUserPlus } from "../lib/getUser";
 import { sendEmail } from "../lib/resend";
 
-export async function updateAdmin(formData) {
+export async function updateAdmin(_, formData) {
     const adminPubId = formData.get("adminPubId")?.trim();
     const name = formData.get("name")?.trim().replace(/\s/g, "-").toLowerCase();
     const username = formData.get("username")?.trim();
@@ -4807,24 +4892,23 @@ export async function updateAdmin(formData) {
     const current_password = formData.get("current_password");
     const new_password = formData.get("new_password");
 
-    if (!adminPubId || !name || !username || !email || !clinic_name || !clinic_phone || !clinic_address) return { error: "Missing fields" };
+    if (!adminPubId || !name || !username || !email || !clinic_name || !clinic_phone || !clinic_address)
+        return { ok: false, message: "Missing fields" };
 
     const getCurrentUser = await getUserPlus();
     if (!getCurrentUser || getCurrentUser.role !== "admin") redirect("/login");
-    if (getCurrentUser.admin_details.public_id !== adminPubId) return { error: "Unauthorized" };
+    if (getCurrentUser.admin_details.public_id !== adminPubId) return { ok: false, message: "Unauthorized" };
 
     const adminIdInAdminTable = getCurrentUser.admin_id;
     const userIdInUsersTable = getCurrentUser.id;
     const emailChanged = getCurrentUser.admin_details.admin_email !== email;
 
-
     let new_passwordHash = null;
     if (current_password && new_password) {
         const passwordMatch = await compare(current_password, getCurrentUser.admin_details.password);
-        if (!passwordMatch) return { error: "Password mismatch" };
+        if (!passwordMatch) return { ok: false, message: "Password mismatch" };
         new_passwordHash = await hash(new_password, 12);
     }
-
 
     let email_token = null;
     let email_token_hash = null;
@@ -4839,40 +4923,33 @@ export async function updateAdmin(formData) {
                 "UPDATE admins SET admin_name=?, admin_username=?, admin_email=?, clinic_name=?, clinic_phone=?, clinic_address=?, password=?, status='unverified', email_token_hash=?, email_token_created_at=CURRENT_TIMESTAMP WHERE id=?",
                 [name, username, email, clinic_name, clinic_phone, clinic_address, new_passwordHash, email_token_hash, adminIdInAdminTable]
             );
-            await db.execute(
-                "UPDATE users SET username=?, password=?, status='unverified' WHERE id=?",
-                [username, new_passwordHash, userIdInUsersTable]
-            );
+            await db.execute("UPDATE users SET username=?, password=?, status='unverified' WHERE id=?",
+                [username, new_passwordHash, userIdInUsersTable]);
         } else if (emailChanged) {
             await db.execute(
                 "UPDATE admins SET admin_name=?, admin_username=?, admin_email=?, clinic_name=?, clinic_phone=?, clinic_address=?, status='unverified', email_token_hash=?, email_token_created_at=CURRENT_TIMESTAMP WHERE id=?",
                 [name, username, email, clinic_name, clinic_phone, clinic_address, email_token_hash, adminIdInAdminTable]
             );
-            await db.execute(
-                "UPDATE users SET username=?, status='unverified' WHERE id=?",
-                [username, userIdInUsersTable]
-            );
+            await db.execute("UPDATE users SET username=?, status='unverified' WHERE id=?",
+                [username, userIdInUsersTable]);
         } else if (new_passwordHash) {
             await db.execute(
                 "UPDATE admins SET admin_name=?, admin_username=?, clinic_name=?, clinic_phone=?, clinic_address=?, password=? WHERE id=?",
                 [name, username, clinic_name, clinic_phone, clinic_address, new_passwordHash, adminIdInAdminTable]
             );
-            await db.execute(
-                "UPDATE users SET username=?, password=? WHERE id=?",
-                [username, new_passwordHash, userIdInUsersTable]
-            );
+            await db.execute("UPDATE users SET username=?, password=? WHERE id=?",
+                [username, new_passwordHash, userIdInUsersTable]);
         } else {
             await db.execute(
                 "UPDATE admins SET admin_name=?, admin_username=?, clinic_name=?, clinic_phone=?, clinic_address=? WHERE id=?",
                 [name, username, clinic_name, clinic_phone, clinic_address, adminIdInAdminTable]
             );
-            await db.execute(
-                "UPDATE users SET username=? WHERE id=?",
-                [username, userIdInUsersTable]
-            );
+            await db.execute("UPDATE users SET username=? WHERE id=?",
+                [username, userIdInUsersTable]);
         }
     } catch (e) {
-        return { error: "Update failed" };
+        console.error(e);
+        return { ok: false, message: "Update failed" };
     }
 
     if (emailChanged) {
@@ -4884,9 +4961,7 @@ export async function updateAdmin(formData) {
     redirect("/settings");
 };
 
-
-
-export async function updateDoctor(formData) {
+export async function updateDoctor(_, formData) {
     const docPublicId = formData.get("docPublicId")?.trim();
     const name = formData.get("name")?.trim().replace(/\s/g, "-").toLowerCase();
     const username = formData.get("username")?.trim();
@@ -4895,7 +4970,7 @@ export async function updateDoctor(formData) {
     const qualificationsRaw = formData.get("qualifications")?.split(",").map((q) => q.trim().toUpperCase()).filter(Boolean) || [];
     const qualificationsJson = JSON.stringify(qualificationsRaw);
 
-    if (!docPublicId || !name || !username) return { error: "Missing fields" };
+    if (!docPublicId || !name || !username) return { ok: false, message: "Missing fields" };
 
     const getCurrentUser = await getUserPlus();
     if (!getCurrentUser || getCurrentUser.role !== "doctor") redirect("/login");
@@ -4903,13 +4978,13 @@ export async function updateDoctor(formData) {
     const doctorIdInTable = getCurrentUser.doctor_id;
     const userIdInUsersTable = getCurrentUser.id;
 
-    if (getCurrentUser.doctor_details.public_id !== docPublicId) return { error: "Unauthorized" };
+    if (getCurrentUser.doctor_details.public_id !== docPublicId) return { ok: false, message: "Unauthorized" };
 
     try {
         let new_passwordHash = null;
         if (current_password && new_password) {
             const passwordMatch = await compare(current_password, getCurrentUser.doctor_details.password);
-            if (!passwordMatch) return { error: "Password mismatch" };
+            if (!passwordMatch) return { ok: false, message: "Password mismatch" };
             new_passwordHash = await hash(new_password, 12);
         }
 
@@ -4925,7 +5000,8 @@ export async function updateDoctor(formData) {
                 [username, userIdInUsersTable]);
         }
     } catch (e) {
-        return { error: "Update failed" };
+        console.error(e);
+        return { ok: false, message: "Update failed" };
     }
 
     redirect("/settings");
@@ -5000,7 +5076,7 @@ export function getMonthNumber(monthName = "January") {
 ```
 export default function getMinutes(hr, min, meridiem) {
 
-    if (!hr || !min || !meridiem) return null;
+    if (hr === null || hr === undefined || min === null || min === undefined || !meridiem) return null;
 
     let h = Number(hr);
     const m = Number(min);

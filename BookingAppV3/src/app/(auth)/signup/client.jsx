@@ -18,7 +18,7 @@ export default function ClientSignUp() {
             <input type="text" name="clinic_name" placeholder="Clinic Name" />
             <input type="tel" name="clinic_phone" placeholder="Clinic phone" />
             <input type="text" name="clinic_address" placeholder="Clinic Address" />
-            <button type="submit">Sign Up</button>
+            <button type="submit">{isPending ? "Submitting..." : "Submit"}</button>
         </Form>
     </>)
 }

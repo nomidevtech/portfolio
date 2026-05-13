@@ -27,7 +27,7 @@ export async function signupServerAction(prevState, formData) {
         if (!admin_name || admin_name.length < 2 || admin_name.length > 20) return { ok: false, message: "Name must be between 2 and 20 characters" };
         if (!admin_email || !admin_email?.includes("@") || admin_email.length < 5 || admin_email.length > 100) return { ok: false, message: "Invalid email address" };
         if (!username || username.length < 3 || username.length > 20) return { ok: false, message: "Username must be between 3 and 20 characters" };
-        if (!password || password.length < 8 || password.length > 50) return { ok: false, message: "Password must be between 8 and 25 characters" };
+        if (!password || password.length < 8 || password.length > 64) return { ok: false, message: "Password must be between 8 and 64 characters" };
         if (password !== confirm_password) return { ok: false, message: "Passwords do not match" };
         if (!clinic_name || !clinic_phone) return { ok: false, message: "Clinic name and phone are required" };
 

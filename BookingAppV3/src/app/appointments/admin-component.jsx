@@ -6,9 +6,14 @@ import { AdminRevokeBooking, AdminRevokeBookings } from "./client";
 export default async function AdminComponent({ currentUser }) {
 
 
-
-  const fetch = await db.execute(`SELECT bookings.*, treatments.name AS treatment_name, treatments.duration AS treatment_duration FROM bookings LEFT JOIN treatments ON bookings.treatment_id = treatments.id WHERE bookings.admin_id = ? AND status != 'revoked' ORDER BY date_number ASC`, [currentUser.admin_id]);
-
+  const fetch = await db.execute(
+    `SELECT bookings.*, treatments.name AS treatment_name, treatments.duration AS treatment_duration 
+     FROM bookings 
+     LEFT JOIN treatments ON bookings.treatment_id = treatments.id 
+     WHERE bookings.admin_id = ? AND status NOT IN ('revoked', 'cancelled') 
+     ORDER BY booking_date_iso ASC, treatment_start ASC`, 
+    [currentUser.admin_id]);
+    
   const allBooking = fetch.rows;
 
   const groupedBooking = allBooking.reduce((acc, booking) => {

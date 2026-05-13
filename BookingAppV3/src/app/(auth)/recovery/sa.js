@@ -35,7 +35,7 @@ export async function findEMail(_, formData) {
 
         await sendEmail({ to, subject, html });
 
-        return { ok: true, message: "Recovery link sent to " + userEmail };
+        return { ok: true, message: "If that email exists, a reset link has been sent" };
 
     } catch (error) {
         console.error(error);
