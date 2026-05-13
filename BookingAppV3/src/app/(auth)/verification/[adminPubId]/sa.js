@@ -14,13 +14,13 @@ export async function changeAdminEmailSA(formData) {
     try {
         if (!email || !adminPubId) return { ok: false, message: "Email required" };
 
-        const fetchAdmib = await db.execute("SELECT id, admin_email FROM admins WHERE public_id = ?", [adminPubId]);
-        if (fetchAdmib.rows.length === 0) return { ok: false, message: "Admin not found" };
+        const fetchAdmin = await db.execute("SELECT id, admin_email FROM admins WHERE public_id = ?", [adminPubId]);
+        if (fetchAdmin.rows.length === 0) return { ok: false, message: "Admin not found" };
 
         const email_token = crypto.randomBytes(32).toString("hex");
         const hashed = await hash(email_token);
 
-        await db.execute("UPDATE admins SET admin_email = ?, email_token_hash = ?, email_token_created_at = CURRENT_TIMESTAMP WHERE id = ?", [email, hashed, fetchAdmib.rows[0].id]);
+        await db.execute("UPDATE admins SET admin_email = ?, email_token_hash = ?, email_token_created_at = CURRENT_TIMESTAMP WHERE id = ?", [email, hashed, fetchAdmin.rows[0].id]);
 
         const to = email;
         const subject = "Account Activation";

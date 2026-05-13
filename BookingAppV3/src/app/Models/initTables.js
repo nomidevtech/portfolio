@@ -1,18 +1,72 @@
 import { db } from "../lib/turso";
 
+export async function initDatabase() {
+
+    try {
+
+        // parent tables first
+        await initAdminTable();
+        await initDoctorTable();
+        await initTreatmentTable();
+
+        // tables depending on doctors/admins/treatments
+        await initDoctorTreatmentsTable();
+        await initWeeklyTemplatesTable();
+        await initSlotsTable();
+        await initBookingsTable();
+
+        // auth/user tables
+        await initUsersTable();
+        await initSessionsTable();
+
+        return {
+            ok: true,
+            message: "All tables initialized successfully"
+        };
+
+    } catch (error) {
+
+        console.error("Database initialization failed:", error);
+
+        return {
+            ok: false,
+            message: error instanceof Error
+                ? error.message
+                : String(error)
+        };
+    }
+}
+
+export async function resetDatabase() {
+
+    await db.execute(`PRAGMA foreign_keys = OFF`);
+
+    await db.execute(`DROP TABLE IF EXISTS sessions`);
+    await db.execute(`DROP TABLE IF EXISTS users`);
+    await db.execute(`DROP TABLE IF EXISTS bookings`);
+    await db.execute(`DROP TABLE IF EXISTS slots`);
+    await db.execute(`DROP TABLE IF EXISTS weekly_templates`);
+    await db.execute(`DROP TABLE IF EXISTS doctor_treatments`);
+    await db.execute(`DROP TABLE IF EXISTS treatments`);
+    await db.execute(`DROP TABLE IF EXISTS doctors`);
+    await db.execute(`DROP TABLE IF EXISTS admins`);
+
+    await db.execute(`PRAGMA foreign_keys = ON`);
+}
+
 export async function initDoctorTable() {
     try {
         await db.execute(`
             CREATE TABLE IF NOT EXISTS doctors (
                 id INTEGER PRIMARY KEY,
-                public_id TEXT,
+                public_id TEXT UNIQUE,
                 admin_id INTEGER,
                 name TEXT,
                 qualifications TEXT,
                 department TEXT,
                 username TEXT UNIQUE,
                 password TEXT,
-                status TEXT DEFAULT 'active',
+                status TEXT DEFAULT 'verified',
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP
             )
         `);
@@ -27,7 +81,7 @@ export async function initTreatmentTable() {
         await db.execute(`
             CREATE TABLE IF NOT EXISTS treatments (
                 id INTEGER PRIMARY KEY,
-                public_id TEXT,
+                public_id TEXT UNIQUE,
                 admin_id INTEGER,
                 name TEXT,
                 duration INTEGER,
@@ -134,7 +188,7 @@ export async function initAdminTable() {
         await db.execute(`
             CREATE TABLE IF NOT EXISTS admins (
                 id INTEGER PRIMARY KEY,
-                public_id TEXT,
+                public_id TEXT UNIQUE,
                 admin_name TEXT,
                 admin_email TEXT UNIQUE,
                 admin_username TEXT UNIQUE,
@@ -240,7 +294,7 @@ export async function initUsersTable() {
         await db.execute(`
             CREATE TABLE IF NOT EXISTS users (
                 id INTEGER PRIMARY KEY,
-                public_id TEXT,
+                public_id TEXT UNIQUE,
                 admin_id INTEGER,
                 doctor_id INTEGER,
                 role TEXT,
@@ -267,7 +321,7 @@ export async function initSessionsTable() {
         await db.execute(`
             CREATE TABLE IF NOT EXISTS sessions (
                 id INTEGER PRIMARY KEY,
-                session_id TEXT,
+                session_id TEXT UNIQUE,
                 user_id INTEGER,
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                 expires_at DATETIME,

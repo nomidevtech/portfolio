@@ -56,20 +56,27 @@ export default function RootLayout({ children }) {
 ---
 ## src\app\page.js
 ```
+//import { initDatabase, resetDatabase } from "./Models/initTables";
 
 
 export default async function Home() {
- 
+
+  // await resetDatabase();
+  // await initDatabase();
+
   return (<>
 
   </>
   );
 }
 
+
+
 ```
 ---
 ## src\app\(auth)\activation\[emailToken]\[adminPubId]\page.jsx
 ```
+import { redisIpLimit } from "@/app/lib/redis";
 import { db } from "@/app/lib/turso";
 import { compare } from "@/app/utils/bcrypt";
 import Link from "next/link";
@@ -79,6 +86,9 @@ export default async function Activations({ params }) {
 
     const { emailToken, adminPubId } = await params;
     if (!emailToken || !adminPubId) return <p>Broken link</p>
+
+    const redisLimit = await redisIpLimit(5, "activation", 60 * 15);
+    if (!redisLimit.ok) return <p>{redisLimit.message}</p>
 
     const fetchAdmin = await db.execute("SELECT * FROM admins WHERE public_id = ?", [adminPubId]);
     if (fetchAdmin.rows.length === 0) return <p>Admin not found</p>
@@ -198,6 +208,7 @@ import { db } from "@/app/lib/turso";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { compare, } from "@/app/utils/bcrypt";
+import { redisIpLimit } from "@/app/lib/redis";
 
 
 
@@ -207,7 +218,10 @@ import { compare, } from "@/app/utils/bcrypt";
 export async function loginSA(_, formData) {
     try {
 
-        
+        const redisLimit = await redisIpLimit(5, "login", 60 * 15);
+        if (!redisLimit.ok) return { ok: false, message: redisLimit.message };
+
+
         const username = formData.get("username")?.trim();
         const password = formData.get("password");
 
@@ -221,7 +235,9 @@ export async function loginSA(_, formData) {
         const passwordHash = user.password;
 
         const isPasswordValid = await compare(password, passwordHash);
+
         if (!isPasswordValid) return { ok: false, message: "Invalid password" };
+
 
         if (user.status !== "verified") return { ok: false, message: "Please verify your email before logging in." };
 
@@ -329,9 +345,14 @@ import { db } from "@/app/lib/turso";
 import crypto from "crypto";
 import { hash } from "@/app/utils/bcrypt";
 import { sendEmail } from "@/app/lib/resend";
+import { redisIpLimit } from "@/app/lib/redis";
 
 export async function findEMail(_, formData) {
     try {
+
+        const redisLimit = await redisIpLimit(5, "recovery", 60 * 15);
+        if (!redisLimit.ok) return { ok: false, message: redisLimit.message };
+
         const emailFromClient = formData.get("email");
         if (!emailFromClient) return { ok: false, message: "Email required" };
 
@@ -379,12 +400,12 @@ export default async function NewPassword({ params }) {
     const fetchData = await db.execute("SELECT * FROM admins WHERE public_id = ?", [adminPubId]);
     if (fetchData.rows.length === 0) return <div>Admin not found.</div>;
 
-    const tokenAge = Date.now() - new Date(fetchData.rows[0].recovery_token_created_at).getTime();
-    if (tokenAge > 1000 * 60 * 60 * 24) return <><p>Link expired. Please request a new one <Link href="/recovery">here</Link>.</p></>
-
     const admin = fetchData.rows[0];
 
-    if (!admin.recovery_token_hash) return <div>Invalid or expired link.</div>;
+    if (!admin.recovery_token_hash || !admin.recovery_token_created_at) return <div>Invalid or expired link.</div>;
+
+    const tokenAge = Date.now() - new Date(admin.recovery_token_created_at).getTime();
+    if (tokenAge > 1000 * 60 * 60 * 24) return <><p>Link expired. Please request a new one <Link href="/recovery">here</Link>.</p></>
 
     const match = await compare(recoveryToken, admin.recovery_token_hash);
     if (!match) return <div>Failed to verify. Please try again.</div>;
@@ -406,12 +427,17 @@ export default async function NewPassword({ params }) {
 ```
 "use server";
 
+import { redisIpLimit } from "@/app/lib/redis";
 import { db } from "@/app/lib/turso";
 import { hash } from "@/app/utils/bcrypt";
 import { redirect } from "next/navigation";
 
 export async function updateAdminPassword(formData) {
     try {
+
+        const redisLimit = await redisIpLimit(5, "updateAdminPass", 60 * 15);
+        if (!redisLimit.ok) return { ok: false, message: redisLimit.message };
+
         const adminPubId = formData.get("adminPubId");
         const password = formData.get("password");
         const confirm_password = formData.get("confirm_password");
@@ -509,9 +535,13 @@ import { hash } from "@/app/utils/bcrypt";
 import { nanoid } from "nanoid";
 import crypto from "crypto";
 import { redirect } from "next/navigation";
+import { redisIpLimit } from "@/app/lib/redis";
 
 export async function signupServerAction(_, formData) {
-   
+
+    const redisLimit = await redisIpLimit(5, "signup", 60 * 15);
+    if (!redisLimit.ok) return { ok: false, message: redisLimit.message };
+
     const admin_name = formData.get("full_name")?.replace(/\s+/g, '-').toLowerCase();
     const admin_email = formData.get("admin_email");
     const username = formData.get("username")?.replace(/\s+/g, '-');
@@ -588,11 +618,15 @@ import { db } from "@/app/lib/turso";
 import Form from "next/form";
 import { redirect } from "next/navigation";
 import { changeAdminEmailSA } from "./sa";
+import { redisIpLimit } from "@/app/lib/redis";
 
 export default async function AdminVerification({ params }) {
 
   const { adminPubId } = await params;
   if (!adminPubId) return <p>Broken link</p>
+
+  const redisLimit = await redisIpLimit(5, "verification", 60 * 15);
+  if (!redisLimit.ok) return <p>{redisLimit.message}</p>
 
   const fetchAdmin = await db.execute(`SELECT id, status, admin_email FROM admins WHERE public_id = ?`, [adminPubId]);
   if (fetchAdmin.rows.length === 0) return <p>Broken link</p>
@@ -824,13 +858,13 @@ export default async function AddTreatment() {
 
 
     const currentUser = await getUserPlus();
-    if(!currentUser) return redirect("/login");
+    if (!currentUser) return redirect("/login");
     if (!currentUser || currentUser.role !== "admin" || !currentUser.admin_id || currentUser.status !== "verified") redirect(`/verification/${currentUser?.admin_details?.public_id}`);
     const adminId = currentUser.admin_id;
 
     const fetchTreatmentsData = await db.execute(`SELECT * FROM treatments WHERE admin_id = ?`, [adminId]);
     let treatments = fetchTreatmentsData?.rows;
-    treatments = treatments.map(treatment => ({ name: treatment.name[0].toUpperCase() + treatment.name.slice(1).toLowerCase(), duration: treatment.duration }));
+    treatments = treatments.map(treatment => ({ name: treatment.name?.split("_").map(w => w[0].toUpperCase() + w.slice(1)).join(" "), duration: treatment.duration }));
 
 
     return (<>
@@ -862,15 +896,17 @@ export async function addTreatmentServerAction(formData) {
         if (!currentUser || currentUser.role !== "admin" || !currentUser.admin_id) redirect("/login");
         const adminId = currentUser.admin_id;
 
-        const name = formData.get("name")?.toLowerCase().replace(/\s/g, "_");
+        const name = formData.get("name")?.trim().toLowerCase().replace(/\s+/g, "_");
         const duration = Number(formData.get("duration")) || 0;
+
+        if (!name || duration <= 0) return null; 
 
 
         await db.execute(`INSERT INTO treatments (admin_id, name, duration, public_id) VALUES (?, ?, ?, ?)`, [adminId, name.toLowerCase(), duration, nanoid(12)]);
 
     } catch (error) {
         console.error(error);
-       return null;
+        return null;
     }
     redirect("/add-treatment");
 }
@@ -1029,12 +1065,12 @@ export async function appointmentRegisterationServerAction(_, formData) {
     const adminId = fetchAdmin.rows[0].id;
 
     const bookingPubId = formData.get("bookingPubId");
-    const name = formData.get("name");
+    const name = formData.get("name")?.trim().replace(/\s+/g, "-").toLowerCase();
     const email = formData.get("email");
     const phone = formData.get("phone");
     if (!bookingPubId || !name || !email || !phone) return { ok: false, message: "Missing required fields." };
 
-    if ((!name.match(/^[a-zA-Z\s]+$/)) || name.length > 20 || name.length < 3)
+    if ((!name.match(/^[a-zA-Z-]+$/)) || name.length > 20 || name.length < 3)
         return { ok: false, message: "Name should only contain letters and spaces and should be 3-20 characters long." };
 
     if (!email.match(/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/))
@@ -1476,7 +1512,7 @@ export async function adminRevokeBookings(_, formData) {
         return { ok: false, message: "Something went wrong." };
     }
 
-    redirect("/dashboard");
+    redirect("/appointments");
 }
 
 
@@ -1520,7 +1556,7 @@ export async function adminRevokeBooking(_, formData) {
 
         const booking = fetchBooking.rows[0];
         const to = booking?.patient_email;
-        const name = booking?.patient_name.split(" ").map(word => word[0].toUpperCase() + word.slice(1)).join(" ") ?? "Visitor";
+        const name = booking?.patient_name?.split(" ").map(word => word[0].toUpperCase() + word.slice(1)).join(" ") ?? "Visitor";
         const subject = "Your booking has been revoked.";
         const html = `
                 <p>Dear ${name}</p>
@@ -1535,7 +1571,7 @@ export async function adminRevokeBooking(_, formData) {
         return { ok: false, message: "Something went wrong." };
     }
 
-    redirect("/dashboard");
+    redirect("/appointments");
 }
 
 
@@ -1576,7 +1612,7 @@ export async function doctorRevokeBookings(_, formData) {
         return { ok: false, message: "Something went wrong." };
     }
 
-    redirect("/dashboard");
+    redirect("/appointments");
 }
 
 
@@ -1635,7 +1671,7 @@ export async function doctorRevokeBooking(_, formData) {
         return { ok: false, message: "Something went wrong." };
     }
 
-    redirect("/dashboard");
+    redirect("/appointments");
 }
 ```
 ---
@@ -1643,8 +1679,12 @@ export async function doctorRevokeBooking(_, formData) {
 ```
 import Link from "next/link";
 import { db } from "../lib/turso";
+import { redisIpLimit } from "../lib/redis";
 
 export default async function AllClinics() {
+
+    const redisLimit = await redisIpLimit(15, "bookings", 60 * 15);
+    if (!redisLimit.ok) return <p>{redisLimit.message}</p>
 
     const fetchAllClinics = await db.execute(`SELECT public_id, clinic_name, clinic_phone, clinic_address FROM admins WHERE status = 'verified'`);
     if (fetchAllClinics.rows.length === 0) return <p>No clinics found</p>
@@ -1665,12 +1705,14 @@ export default async function AllClinics() {
 ---
 ## src\app\bookings\[clinic_admin_pubId]\page.jsx
 ```
+import { redisIpLimit } from "@/app/lib/redis";
 import { db } from "@/app/lib/turso";
 import Link from "next/link";
 
 export default async function ClinicAdminAllBookings({ params }) {
 
-
+    const redisLimit = await redisIpLimit(15, "bookingsPerClinic", 60 * 15);
+    if (!redisLimit.ok) return <p>{redisLimit.message}</p>
 
     const { clinic_admin_pubId } = await params;
 
@@ -1811,8 +1853,12 @@ export default function ClientBookASlot(
 import { db } from "@/app/lib/turso";
 import { getDayName, getMonthName } from "@/app/utils/getDateData";
 import ClientBookASlot from "./Client";
+import { redisIpLimit } from "@/app/lib/redis";
 
 export default async function DoctorBookings({ params }) {
+
+    const redisLimit = await redisIpLimit(15, "bookingsPerDoc", 60 * 15);
+    if (!redisLimit.ok) return <p>{redisLimit.message}</p>
 
 
     const { clinic_admin_pubId, docName, docPubId, treatmentPubId } = await params;
@@ -1837,7 +1883,7 @@ export default async function DoctorBookings({ params }) {
 
     const [fetchRecord, fetchSlots, fetchBookings] = await Promise.all([
         db.execute(`SELECT * FROM doctor_treatments WHERE doctor_id = ? AND treatment_id = ? AND admin_id = ?`, [docId, treatmentId, adminId]),
-        db.execute(`SELECT * FROM slots WHERE admin_id = ? AND doctor_id = ? AND full_date_at_period >= DATE('now') ORDER BY full_date_at_period`, [adminId, docId]),
+        db.execute(`SELECT * FROM slots WHERE status = 'active' AND admin_id = ? AND doctor_id = ? AND full_date_at_period >= DATE('now') ORDER BY full_date_at_period`, [adminId, docId]),
         db.execute(`SELECT * FROM bookings WHERE admin_id = ? AND doctor_id = ? AND status NOT IN('cancelled', 'revoked')`, [adminId, docId])
     ]);
 
@@ -1931,12 +1977,16 @@ export default async function DoctorBookings({ params }) {
 ```
 "use server";
 
+import { redisIpLimit } from "@/app/lib/redis";
 import { db } from "@/app/lib/turso";
 import { nanoid } from "nanoid";
 import { redirect } from "next/navigation";
 
 
 export async function reserveSlot(_, formData) {
+
+    const redisLimit = await redisIpLimit(15, "reserveSlot", 60 * 15);
+    if (!redisLimit.ok) return { ok: false, message: redisLimit.message };
 
     const adminPubId = formData.get("adminPubId");
     const fetchAdmin = await db.execute(`SELECT * FROM admins WHERE public_id = ?`, [adminPubId]);
@@ -1968,6 +2018,16 @@ export async function reserveSlot(_, formData) {
         if (fetchTreatment.rows.length === 0) return { ok: false, message: "Invalid treatment." };
 
         const docId = fetchDoctor?.rows[0]?.id;
+
+        const fetchSlot = await db.execute(
+            `SELECT status FROM slots WHERE admin_id = ? AND doctor_id = ? AND date_number = ? AND month_number = ? AND year = ?`,
+            [adminId, docId, date_number, month_number, year]
+        );
+        if (fetchSlot.rows.length === 0 || fetchSlot.rows[0].status !== 'active')
+            return { ok: false, message: "This slot is no longer available." };
+
+        if (fetchDoctor.rows.length === 0) return { ok: false, message: "Invalid doctor." };
+        if (fetchTreatment.rows.length === 0) return { ok: false, message: "Invalid treatment." };
         const docName = fetchDoctor?.rows[0]?.name;
         const treatmentId = fetchTreatment?.rows[0]?.id;
         const treatmentDuration = fetchTreatment?.rows[0]?.duration;
@@ -2016,13 +2076,15 @@ export async function reserveSlot(_, formData) {
 ---
 ## src\app\cancel\[cancelToken]\[bookingPubId]\[adminPubId]\page.jsx
 ```
+import { redisIpLimit } from "@/app/lib/redis";
 import { db } from "@/app/lib/turso";
 import { compare } from "@/app/utils/bcrypt";
 import { redirect } from "next/navigation";
 
 export default async function cancelAppointment({ params }) {
 
-
+    const redisLimit = await redisIpLimit(15, "cancel", 60 * 15);
+    if (!redisLimit.ok) return <p>{redisLimit.message}</p>
 
     const { cancelToken, bookingPubId, adminPubId } = await params;
 
@@ -3607,6 +3669,68 @@ export async function logout() {
 }
 ```
 ---
+## src\app\lib\redis.js
+```
+import { Redis } from "@upstash/redis";
+import { headers } from "next/headers";
+
+export const redis = new Redis({
+    url: process.env.UPSTASH_REDIS_REST_URL,
+    token: process.env.UPSTASH_REDIS_REST_TOKEN
+});
+
+export async function redisIpLimit(
+    incomingLimit,
+    _for,
+    windowInSeconds = 60 * 15
+) {
+
+    try {
+
+        let limit = parseInt(incomingLimit);
+
+        if (isNaN(limit) || limit <= 0) {
+            limit = 5;
+        }
+
+        const identifier = _for || "default_action";
+
+        const headerStore = await headers();
+        const rawIp = headerStore.get("x-forwarded-for");
+        const ip = rawIp?.split(",")[0].trim() || "unknown";
+        const key = `limit:${identifier}:${ip}`;
+
+        const attempts = await redis.incr(key);
+
+        if (attempts === 1) {
+            await redis.expire(key, windowInSeconds);
+        }
+
+        if (attempts > limit) {
+
+            return {
+                ok: false,
+                message: `Too many ${identifier.replaceAll("_", " ")} attempts. Try again later.`
+            };
+        }
+
+        return {
+            ok: true,
+            message: `${limit - attempts} attempts left`
+        };
+
+    } catch (error) {
+
+        console.error(error);
+
+        return {
+            ok: false,
+            message: "An error occurred"
+        };
+    }
+}
+```
+---
 ## src\app\lib\resend.js
 ```
 'use server';
@@ -4030,7 +4154,7 @@ export default async function GeneratedSlots() {
 
 
     const fetch = await db.execute(
-        `SELECT slots.*, GROUP_CONCAT(bookings.patient_email, ' | ') AS patients FROM slots LEFT JOIN bookings ON bookings.admin_id = slots.admin_id AND bookings.date_number = slots.date_number AND bookings.month_number = slots.month_number AND bookings.year = slots.year AND bookings.doctor_id = slots.doctor_id AND bookings.status != 'revoked' WHERE slots.admin_id = ? AND full_date_at_period >= DATE('now') GROUP BY slots.id ORDER BY full_date_at_period`,
+        `SELECT slots.*, GROUP_CONCAT(bookings.patient_email, ' | ') AS patients FROM slots LEFT JOIN bookings ON bookings.admin_id = slots.admin_id AND bookings.date_number = slots.date_number AND bookings.month_number = slots.month_number AND bookings.year = slots.year AND bookings.doctor_id = slots.doctor_id AND bookings.status = 'verified' WHERE slots.admin_id = ? AND full_date_at_period >= DATE('now') GROUP BY slots.id ORDER BY full_date_at_period`,
         [adminId]
     );
 
@@ -4180,8 +4304,12 @@ import DownloadTicketButton from "./client";
 import { hash } from "@/app/utils/bcrypt";
 import { sendEmail } from "@/app/lib/resend";
 import crypto from "crypto";
+import { redisIpLimit } from "@/app/lib/redis";
 
 export default async function Message({ params }) {
+    
+    const redisLimit = await redisIpLimit(20, "message", 60 * 15);
+    if (!redisLimit.ok) return <p>{redisLimit.message}</p>
 
     const { bookingPubId, adminPubId } = await params;
     if (!bookingPubId || !adminPubId) return <p>Broken link. Booking not found.</p>;
@@ -4233,16 +4361,75 @@ export default async function Message({ params }) {
 }
 ```
 ---
+## src\app\message\[bookingPubId]\[adminPubId]\sa.js
+```
+
+```
+---
 ## src\app\Models\initTables.js
 ```
 import { db } from "../lib/turso";
+
+export async function initDatabase() {
+
+    try {
+
+        // parent tables first
+        await initAdminTable();
+        await initDoctorTable();
+        await initTreatmentTable();
+
+        // tables depending on doctors/admins/treatments
+        await initDoctorTreatmentsTable();
+        await initWeeklyTemplatesTable();
+        await initSlotsTable();
+        await initBookingsTable();
+
+        // auth/user tables
+        await initUsersTable();
+        await initSessionsTable();
+
+        return {
+            ok: true,
+            message: "All tables initialized successfully"
+        };
+
+    } catch (error) {
+
+        console.error("Database initialization failed:", error);
+
+        return {
+            ok: false,
+            message: error instanceof Error
+                ? error.message
+                : String(error)
+        };
+    }
+}
+
+export async function resetDatabase() {
+
+    await db.execute(`PRAGMA foreign_keys = OFF`);
+
+    await db.execute(`DROP TABLE IF EXISTS sessions`);
+    await db.execute(`DROP TABLE IF EXISTS users`);
+    await db.execute(`DROP TABLE IF EXISTS bookings`);
+    await db.execute(`DROP TABLE IF EXISTS slots`);
+    await db.execute(`DROP TABLE IF EXISTS weekly_templates`);
+    await db.execute(`DROP TABLE IF EXISTS doctor_treatments`);
+    await db.execute(`DROP TABLE IF EXISTS treatments`);
+    await db.execute(`DROP TABLE IF EXISTS doctors`);
+    await db.execute(`DROP TABLE IF EXISTS admins`);
+
+    await db.execute(`PRAGMA foreign_keys = ON`);
+}
 
 export async function initDoctorTable() {
     try {
         await db.execute(`
             CREATE TABLE IF NOT EXISTS doctors (
                 id INTEGER PRIMARY KEY,
-                public_id TEXT,
+                public_id TEXT UNIQUE,
                 admin_id INTEGER,
                 name TEXT,
                 qualifications TEXT,
@@ -4264,7 +4451,7 @@ export async function initTreatmentTable() {
         await db.execute(`
             CREATE TABLE IF NOT EXISTS treatments (
                 id INTEGER PRIMARY KEY,
-                public_id TEXT,
+                public_id TEXT UNIQUE,
                 admin_id INTEGER,
                 name TEXT,
                 duration INTEGER,
@@ -4371,7 +4558,7 @@ export async function initAdminTable() {
         await db.execute(`
             CREATE TABLE IF NOT EXISTS admins (
                 id INTEGER PRIMARY KEY,
-                public_id TEXT,
+                public_id TEXT UNIQUE,
                 admin_name TEXT,
                 admin_email TEXT UNIQUE,
                 admin_username TEXT UNIQUE,
@@ -4477,7 +4664,7 @@ export async function initUsersTable() {
         await db.execute(`
             CREATE TABLE IF NOT EXISTS users (
                 id INTEGER PRIMARY KEY,
-                public_id TEXT,
+                public_id TEXT UNIQUE,
                 admin_id INTEGER,
                 doctor_id INTEGER,
                 role TEXT,
@@ -4504,7 +4691,7 @@ export async function initSessionsTable() {
         await db.execute(`
             CREATE TABLE IF NOT EXISTS sessions (
                 id INTEGER PRIMARY KEY,
-                session_id TEXT,
+                session_id TEXT UNIQUE,
                 user_id INTEGER,
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                 expires_at DATETIME,
@@ -4602,10 +4789,12 @@ function DoctorComponent({ user }) {
 ```
 "use server";
 
+import crypto from "crypto";
 import { redirect } from "next/navigation";
 import { db } from "../lib/turso";
 import { compare, hash } from "../utils/bcrypt";
 import { getUserPlus } from "../lib/getUser";
+import { sendEmail } from "../lib/resend";
 
 export async function updateAdmin(formData) {
     const adminPubId = formData.get("adminPubId")?.trim();
@@ -4622,37 +4811,80 @@ export async function updateAdmin(formData) {
 
     const getCurrentUser = await getUserPlus();
     if (!getCurrentUser || getCurrentUser.role !== "admin") redirect("/login");
+    if (getCurrentUser.admin_details.public_id !== adminPubId) return { error: "Unauthorized" };
 
     const adminIdInAdminTable = getCurrentUser.admin_id;
     const userIdInUsersTable = getCurrentUser.id;
+    const emailChanged = getCurrentUser.admin_details.admin_email !== email;
 
-    if (getCurrentUser.admin_details.public_id !== adminPubId) return { error: "Unauthorized" };
+
+    let new_passwordHash = null;
+    if (current_password && new_password) {
+        const passwordMatch = await compare(current_password, getCurrentUser.admin_details.password);
+        if (!passwordMatch) return { error: "Password mismatch" };
+        new_passwordHash = await hash(new_password, 12);
+    }
+
+
+    let email_token = null;
+    let email_token_hash = null;
+    if (emailChanged) {
+        email_token = crypto.randomBytes(32).toString("hex");
+        email_token_hash = await hash(email_token);
+    }
 
     try {
-        let new_passwordHash = null;
-        if (new_password && current_password) {
-            const passwordMatch = await compare(current_password, getCurrentUser.admin_details.password);
-            if (!passwordMatch) return { error: "Password mismatch" };
-            new_passwordHash = await hash(new_password, 12);
-        }
-
-        if (new_passwordHash) {
-            await db.execute("UPDATE admins SET admin_name = ?, admin_username = ?, admin_email = ?, clinic_name = ?, clinic_phone = ?, clinic_address = ?, password = ? WHERE id = ?",
-                [name, username, email, clinic_name, clinic_phone, clinic_address, new_passwordHash, adminIdInAdminTable]);
-            await db.execute("UPDATE users SET username = ?, password = ? WHERE id = ?",
-                [username, new_passwordHash, userIdInUsersTable]);
+        if (emailChanged && new_passwordHash) {
+            await db.execute(
+                "UPDATE admins SET admin_name=?, admin_username=?, admin_email=?, clinic_name=?, clinic_phone=?, clinic_address=?, password=?, status='unverified', email_token_hash=?, email_token_created_at=CURRENT_TIMESTAMP WHERE id=?",
+                [name, username, email, clinic_name, clinic_phone, clinic_address, new_passwordHash, email_token_hash, adminIdInAdminTable]
+            );
+            await db.execute(
+                "UPDATE users SET username=?, password=?, status='unverified' WHERE id=?",
+                [username, new_passwordHash, userIdInUsersTable]
+            );
+        } else if (emailChanged) {
+            await db.execute(
+                "UPDATE admins SET admin_name=?, admin_username=?, admin_email=?, clinic_name=?, clinic_phone=?, clinic_address=?, status='unverified', email_token_hash=?, email_token_created_at=CURRENT_TIMESTAMP WHERE id=?",
+                [name, username, email, clinic_name, clinic_phone, clinic_address, email_token_hash, adminIdInAdminTable]
+            );
+            await db.execute(
+                "UPDATE users SET username=?, status='unverified' WHERE id=?",
+                [username, userIdInUsersTable]
+            );
+        } else if (new_passwordHash) {
+            await db.execute(
+                "UPDATE admins SET admin_name=?, admin_username=?, clinic_name=?, clinic_phone=?, clinic_address=?, password=? WHERE id=?",
+                [name, username, clinic_name, clinic_phone, clinic_address, new_passwordHash, adminIdInAdminTable]
+            );
+            await db.execute(
+                "UPDATE users SET username=?, password=? WHERE id=?",
+                [username, new_passwordHash, userIdInUsersTable]
+            );
         } else {
-            await db.execute("UPDATE admins SET admin_name = ?, admin_username = ?, admin_email = ?, clinic_name = ?, clinic_phone = ?, clinic_address = ? WHERE id = ?",
-                [name, username, email, clinic_name, clinic_phone, clinic_address, adminIdInAdminTable]);
-            await db.execute("UPDATE users SET username = ? WHERE id = ?",
-                [username, userIdInUsersTable]);
+            await db.execute(
+                "UPDATE admins SET admin_name=?, admin_username=?, clinic_name=?, clinic_phone=?, clinic_address=? WHERE id=?",
+                [name, username, clinic_name, clinic_phone, clinic_address, adminIdInAdminTable]
+            );
+            await db.execute(
+                "UPDATE users SET username=? WHERE id=?",
+                [username, userIdInUsersTable]
+            );
         }
     } catch (e) {
         return { error: "Update failed" };
     }
 
+    if (emailChanged) {
+        const html = `<p>Click to activate your new email.</p><a href="${process.env.NEXT_PUBLIC_APP_URL}/activation/${email_token}/${adminPubId}">Activate Account</a>`;
+        await sendEmail({ to: email, subject: "Account Activation", html });
+        redirect(`/verification/${adminPubId}`);
+    }
+
     redirect("/settings");
-}
+};
+
+
 
 export async function updateDoctor(formData) {
     const docPublicId = formData.get("docPublicId")?.trim();
@@ -4812,43 +5044,63 @@ export function minutesToMeridiem(totalMinutes = 0, fullString = false) {
 ---
 ## src\app\verify\[emailToken]\[bookingPubId]\[adminPubId]\page.jsx
 ```
+import { redisIpLimit } from "@/app/lib/redis";
 import { db } from "@/app/lib/turso";
-import { compare } from "@/app/utils/bcrypt";
+import { compare, hash } from "@/app/utils/bcrypt";
 import { redirect } from "next/navigation";
+import crypto from "crypto";
+import { sendEmail } from "@/app/lib/resend";
+
 
 export default async function VerifyEmail({ params }) {
 
-
+    const redisLimit = await redisIpLimit(15, "verify", 60 * 15);
+    if (!redisLimit.ok) return <p>{redisLimit.message}</p>
 
     const { emailToken, bookingPubId, adminPubId } = await params;
 
     if (!emailToken || !bookingPubId || !adminPubId) return <p>Broken link. Email not found.</p>;
+
 
     const fetchAdmin = await db.execute(`SELECT id FROM admins WHERE public_id = ?`, [adminPubId]);
     if (fetchAdmin.rows.length === 0) return <p>Broken link. Email not found.</p>;
 
     const adminId = fetchAdmin.rows[0].id;
 
-    try {
 
-        const fetch = await db.execute(`SELECT id, email_token_hash FROM bookings WHERE admin_id = ? AND public_id = ?`, [adminId, bookingPubId]);
-        if (fetch.rows.length === 0) return <p>Broken link. Email not found.</p>;
+    const fetchBooking = await db.execute(`SELECT id, patient_email, patient_name, email_token_hash FROM bookings WHERE admin_id = ? AND public_id = ?`, [adminId, bookingPubId]);
+    if (fetchBooking.rows.length === 0) return <p>Broken link. Email not found.</p>;
 
 
-        if (!fetch.rows[0].email_token_hash) {
-            redirect(`/message/${bookingPubId}/${adminPubId}`);
-        }
-
-        const verified = await compare(emailToken, fetch.rows[0].email_token_hash);
-        if (!verified) return <p>Broken link. Email not found.</p>;
-
-        await db.execute(`UPDATE bookings SET email_token_hash = NULL, status = 'verified', email_token_created_at = NULL WHERE public_id = ? AND admin_id = ?`, [bookingPubId, adminId]);
-
-    } catch (error) {
-        console.error(error);
-        return <p>Broken link. Email not found.</p>;
+    if (!fetchBooking.rows[0].email_token_hash) {
+        redirect(`/message/${bookingPubId}/${adminPubId}`);
     }
 
+    const verified = await compare(emailToken, fetchBooking.rows[0].email_token_hash);
+    if (!verified) return <p>Broken link. Email not found.</p>;
+
+    await db.execute(`UPDATE bookings SET email_token_hash = NULL, status = 'verified', email_token_created_at = NULL WHERE public_id = ? AND admin_id = ?`, [bookingPubId, adminId]);
+
+
+    const cancel_token = crypto.randomBytes(32).toString("hex");
+    const hashed = await hash(cancel_token);
+
+    await db.execute(`UPDATE bookings SET cancel_token_hash = ?, cancel_token_created_at = CURRENT_TIMESTAMP WHERE admin_id = ? AND id = ?`, [hashed, adminId, fetchBooking.rows[0].id]);
+
+    const email = fetchBooking.rows[0].patient_email ? fetchBooking.rows[0].patient_email : null;
+    const name = fetchBooking.rows[0].patient_name ? fetchBooking.rows[0].patient_name.split("-").map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(" ") : "Valued Patient";
+
+    if (email) {
+        const subject = `Cancel Your Appointment`;
+        const to = email;
+        const html = `
+                   <p>Dear ${name}, You can cancel your appointment.</p >
+                   <p>Click on button to cancel your appointment.</p>
+                   <a href="${process.env.NEXT_PUBLIC_APP_URL}/cancel/${cancel_token}/${bookingPubId}/${adminPubId}">Cancel Appointment</a>
+        `;
+
+        await sendEmail({ to, subject, html });
+    }
 
     redirect(`/message/${bookingPubId}/${adminPubId}`);
 

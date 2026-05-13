@@ -59,8 +59,10 @@ export async function generateTicketPdf(bookingPubId, adminPubId) {
         .map((w) => w[0].toUpperCase() + w.slice(1))
         .join(" ");
 
-    const treatmentName = booking.treatment_name?.split("_").map((w) => w[0].toUpperCase() + w.slice(1)).join(" ");
-
+    const treatmentName = booking.treatment_name
+        ?.split("_")
+        .map((w) => w[0].toUpperCase() + w.slice(1))
+        .join(" ");
 
     // ---- PDF GENERATION ----
 
@@ -94,7 +96,7 @@ export async function generateTicketPdf(bookingPubId, adminPubId) {
 
     draw("------------------------------");
 
-    draw(`Doctor: ${doctorName.split(" ").map(word => word[0].toUpperCase() + word.slice(1)).join(" ")}`);
+    draw(`Doctor: ${doctorName}`);
     draw(`Department: ${booking.department || "-"}`);
     draw(`Qualifications: ${JSON.parse(booking.qualifications).map(fn => fn.toUpperCase()).join(", ") || "-"}`);
 

@@ -5,6 +5,7 @@ import { db } from "@/app/lib/turso";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { compare, } from "@/app/utils/bcrypt";
+import { redisIpLimit } from "@/app/lib/redis";
 
 
 
@@ -14,7 +15,10 @@ import { compare, } from "@/app/utils/bcrypt";
 export async function loginSA(_, formData) {
     try {
 
-        
+        const redisLimit = await redisIpLimit(5, "login", 60 * 15);
+        if (!redisLimit.ok) return { ok: false, message: redisLimit.message };
+
+
         const username = formData.get("username")?.trim();
         const password = formData.get("password");
 
@@ -22,13 +26,15 @@ export async function loginSA(_, formData) {
         if (!password) return { ok: false, message: "Password required" };
 
         const fetchUser = await db.execute("SELECT * FROM users WHERE username = ?", [username]);
-        if (fetchUser.rows.length === 0) return { ok: false, message: "User not found" };
+        if (fetchUser.rows.length === 0) return { ok: false, message: "Invalid credentials" };
 
         const user = fetchUser.rows[0];
         const passwordHash = user.password;
 
         const isPasswordValid = await compare(password, passwordHash);
-        if (!isPasswordValid) return { ok: false, message: "Invalid password" };
+
+        if (!isPasswordValid) return { ok: false, message: "credentials" };
+
 
         if (user.status !== "verified") return { ok: false, message: "Please verify your email before logging in." };
 

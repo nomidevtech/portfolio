@@ -1,74 +1,53 @@
-import Form from "next/form";
 import { db } from "../lib/turso";
-import { addDoctorServerAction } from "./SA";
 import Link from "next/link";
 import { getUserPlus } from "../lib/getUser";
 import { redirect } from "next/navigation";
-
+import ClientAddDoctor from "./Client";
 
 
 export default async function AddDoctor() {
-
-
-
     const currentUser = await getUserPlus();
-    if (!currentUser) return redirect("/login");
-    if (!currentUser || currentUser.role !== "admin" || !currentUser.admin_id || currentUser.status !== "verified") redirect(`/verification/${currentUser?.admin_details?.public_id}`);
+    if (!currentUser) redirect("/login");
+    if (currentUser.role !== "admin" || !currentUser.admin_id || currentUser.status !== "verified") {
+        redirect(`/verification/${currentUser?.admin_details?.public_id || ""}`);
+    }
+
     const adminId = currentUser.admin_id;
 
+    const [deptRes, treatRes, docRes] = await Promise.all([
+        db.execute(`SELECT DISTINCT department FROM doctors WHERE admin_id = ?`, [adminId]),
+        db.execute(`SELECT public_id, name, duration FROM treatments WHERE admin_id = ?`, [adminId]),
+        db.execute(`SELECT * FROM doctors WHERE admin_id = ?`, [adminId])
+    ]);
 
-    const fetchDepartments = await db.execute(`SELECT department FROM doctors WHERE admin_id = ?`, [adminId]);
-    let departments = fetchDepartments?.rows;
-    departments = departments.map(dep => dep.department[0].toUpperCase() + dep.department.slice(1).toLowerCase());
-    departments = [...new Set(departments)];
-
-    const { rows } = await db.execute(
-        `SELECT public_id, name, duration FROM treatments WHERE admin_id = ?`,
-        [adminId]
+    const departments = deptRes.rows.map(d =>
+        d.department.charAt(0).toUpperCase() + d.department.slice(1)
     );
 
-    const treatments = rows.map(t => ({
+    const treatments = treatRes.rows.map(t => ({
         treatmentPubId: t.public_id,
-        string: `${t.name
-            .split("_")
-            .map(w => w[0].toUpperCase() + w.slice(1))
-            .join(" ")} ${t.duration > 9 ? t.duration + " min" : `0${t.duration} min`}`,
+        string: `${t.name.split("_").map(w => w[0].toUpperCase() + w.slice(1)).join(" ")} ${t.duration.toString().padStart(2, '0')} min`,
     }));
 
-    const fetchAllDoctors = await db.execute(`SELECT * FROM doctors WHERE admin_id = ?`, [adminId]);
-    const allDoctors = fetchAllDoctors.rows;
+    return (
+        <>
+            <ClientAddDoctor departments={departments} treatments={treatments} />
 
-
-    return (<>
-        <Form action={addDoctorServerAction}>
-            <input type="text" name="name" placeholder="Name" />
-            <input type="text" name="username" placeholder="username" />
-            <input type="password" name="password" placeholder="Password" />
-            <input type="text" name="qualification" placeholder="Qualifications: MD, Surgeon" />
-            <input list="departments" name="department" placeholder="Department" />
-            <datalist id="departments">
-                {departments?.map((dep, idx) => <option key={idx} value={dep} />)}
-            </datalist>
-            <select name="treatmentPubId">
-                <option value="">Select Treatment</option>
-                {treatments?.map((treatment, idx) => <option key={idx} value={treatment.treatmentPubId}>{treatment.string}</option>)}
-            </select>
-            <input type="submit" value="Submit" />
-        </Form>
-        {allDoctors?.length > 0 && (
-            <details>
-                <summary>Current Doctors</summary>
-                {allDoctors.map((doctor) => (
-                    <div key={doctor.public_id} className="border-2">
-                        <p>
-                            Name: Dr. {doctor.name.charAt(0).toUpperCase() + doctor.name.slice(1)} -
-                            Qualifications: {JSON.parse(doctor.qualifications || "[]").join(", ").toUpperCase()} -
-                            Department: {doctor.department.charAt(0).toUpperCase() + doctor.department.slice(1)}
-                        </p>
-                        <Link href={`/edit-doctor/${doctor.public_id}`}>Edit⬅</Link>
-                    </div>
-                ))}
-            </details>
-        )}
-    </>);
+            {docRes.rows.length > 0 && (
+                <details className="mt-4">
+                    <summary>Current Doctors</summary>
+                    {docRes.rows.map((doctor) => (
+                        <div key={doctor.public_id} className="border-2 p-2 my-1">
+                            <p>
+                                Name: Dr. {doctor.name.charAt(0).toUpperCase() + doctor.name.slice(1)} -
+                                Qualifications: {JSON.parse(doctor.qualifications || "[]").join(", ").toUpperCase()} -
+                                Dept: {doctor.department}
+                            </p>
+                            <Link href={`/edit-doctor/${doctor.public_id}`}>Edit⬅</Link>
+                        </div>
+                    ))}
+                </details>
+            )}
+        </>
+    );
 }

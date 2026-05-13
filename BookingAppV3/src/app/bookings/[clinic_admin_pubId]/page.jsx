@@ -1,9 +1,11 @@
+import { redisIpLimit } from "@/app/lib/redis";
 import { db } from "@/app/lib/turso";
 import Link from "next/link";
 
 export default async function ClinicAdminAllBookings({ params }) {
 
-
+    const redisLimit = await redisIpLimit(15, "bookingsPerClinic", 60 * 15);
+    if (!redisLimit.ok) return <p>{redisLimit.message}</p>
 
     const { clinic_admin_pubId } = await params;
 

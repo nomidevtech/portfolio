@@ -1,10 +1,12 @@
+import { redisIpLimit } from "@/app/lib/redis";
 import { db } from "@/app/lib/turso";
 import { compare } from "@/app/utils/bcrypt";
 import { redirect } from "next/navigation";
 
 export default async function cancelAppointment({ params }) {
 
-
+    const redisLimit = await redisIpLimit(15, "cancel", 60 * 15);
+    if (!redisLimit.ok) return <p>{redisLimit.message}</p>
 
     const { cancelToken, bookingPubId, adminPubId } = await params;
 

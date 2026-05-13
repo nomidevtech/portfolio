@@ -1,3 +1,4 @@
+import { redisIpLimit } from "@/app/lib/redis";
 import { db } from "@/app/lib/turso";
 import { compare } from "@/app/utils/bcrypt";
 import Link from "next/link";
@@ -7,6 +8,9 @@ export default async function Activations({ params }) {
 
     const { emailToken, adminPubId } = await params;
     if (!emailToken || !adminPubId) return <p>Broken link</p>
+
+    const redisLimit = await redisIpLimit(5, "activation", 60 * 15);
+    if (!redisLimit.ok) return <p>{redisLimit.message}</p>
 
     const fetchAdmin = await db.execute("SELECT * FROM admins WHERE public_id = ?", [adminPubId]);
     if (fetchAdmin.rows.length === 0) return <p>Admin not found</p>
@@ -29,5 +33,5 @@ export default async function Activations({ params }) {
         return <p>Failed to activate. Please resend email and try again.</p>
     }
 
-    redirect("/");
+    redirect("/login");
 }

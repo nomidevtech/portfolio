@@ -8,13 +8,13 @@ export default async function AddTreatment() {
 
 
     const currentUser = await getUserPlus();
-    if(!currentUser) return redirect("/login");
+    if (!currentUser) return redirect("/login");
     if (!currentUser || currentUser.role !== "admin" || !currentUser.admin_id || currentUser.status !== "verified") redirect(`/verification/${currentUser?.admin_details?.public_id}`);
     const adminId = currentUser.admin_id;
 
     const fetchTreatmentsData = await db.execute(`SELECT * FROM treatments WHERE admin_id = ?`, [adminId]);
     let treatments = fetchTreatmentsData?.rows;
-    treatments = treatments.map(treatment => ({ name: treatment.name[0].toUpperCase() + treatment.name.slice(1).toLowerCase(), duration: treatment.duration }));
+    treatments = treatments.map(treatment => ({ name: treatment.name?.split("_").map(w => w[0].toUpperCase() + w.slice(1)).join(" "), duration: treatment.duration }));
 
 
     return (<>

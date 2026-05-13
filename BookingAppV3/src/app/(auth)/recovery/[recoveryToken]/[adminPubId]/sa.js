@@ -1,11 +1,16 @@
 "use server";
 
+import { redisIpLimit } from "@/app/lib/redis";
 import { db } from "@/app/lib/turso";
 import { hash } from "@/app/utils/bcrypt";
 import { redirect } from "next/navigation";
 
 export async function updateAdminPassword(formData) {
     try {
+
+        const redisLimit = await redisIpLimit(5, "updateAdminPass", 60 * 15);
+        if (!redisLimit.ok) return { ok: false, message: redisLimit.message };
+
         const adminPubId = formData.get("adminPubId");
         const password = formData.get("password");
         const confirm_password = formData.get("confirm_password");

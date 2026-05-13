@@ -4,14 +4,19 @@ import { db } from "@/app/lib/turso";
 import crypto from "crypto";
 import { hash } from "@/app/utils/bcrypt";
 import { sendEmail } from "@/app/lib/resend";
+import { redisIpLimit } from "@/app/lib/redis";
 
 export async function findEMail(_, formData) {
     try {
+
+        const redisLimit = await redisIpLimit(5, "recovery", 60 * 15);
+        if (!redisLimit.ok) return { ok: false, message: redisLimit.message };
+
         const emailFromClient = formData.get("email");
         if (!emailFromClient) return { ok: false, message: "Email required" };
 
         const result = await db.execute("SELECT * FROM admins WHERE admin_email = ?", [emailFromClient]);
-        if (result.rows.length === 0) return { ok: false, message: "Email not found" };
+        if (result.rows.length === 0) return { ok: false, message: "If that email exists, a reset link has been sent" };
 
         const admin = result.rows[0];
         const userEmail = admin.admin_email;

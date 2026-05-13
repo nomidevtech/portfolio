@@ -2,8 +2,12 @@
 import { db } from "@/app/lib/turso";
 import { getDayName, getMonthName } from "@/app/utils/getDateData";
 import ClientBookASlot from "./Client";
+import { redisIpLimit } from "@/app/lib/redis";
 
 export default async function DoctorBookings({ params }) {
+
+    const redisLimit = await redisIpLimit(15, "bookingsPerDoc", 60 * 15);
+    if (!redisLimit.ok) return <p>{redisLimit.message}</p>
 
 
     const { clinic_admin_pubId, docName, docPubId, treatmentPubId } = await params;

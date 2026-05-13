@@ -6,8 +6,12 @@ import DownloadTicketButton from "./client";
 import { hash } from "@/app/utils/bcrypt";
 import { sendEmail } from "@/app/lib/resend";
 import crypto from "crypto";
+import { redisIpLimit } from "@/app/lib/redis";
 
 export default async function Message({ params }) {
+    
+    const redisLimit = await redisIpLimit(20, "message", 60 * 15);
+    if (!redisLimit.ok) return <p>{redisLimit.message}</p>
 
     const { bookingPubId, adminPubId } = await params;
     if (!bookingPubId || !adminPubId) return <p>Broken link. Booking not found.</p>;
@@ -24,25 +28,7 @@ export default async function Message({ params }) {
 
     if (booking.status === "cancelled") return <p>Appointment has been cancelled. Book again.</p>;
 
-    if (booking.status === "verified" && !booking.cancel_token_hash) {
-
-        const cancel_token = crypto.randomBytes(32).toString("hex");
-        const hashed = await hash(cancel_token);
-
-        await db.execute(`UPDATE bookings SET cancel_token_hash = ?, cancel_token_created_at = CURRENT_TIMESTAMP WHERE admin_id = ? AND public_id = ?`, [hashed, adminId, bookingPubId]);
-
-
-        const subject = `Cancel Your Appointment`;
-        const to = booking.patient_email;
-        const html = `
-           <p>You can cancel your appointment.</p>
-           <p>Click on button to cancel your appointment.</p>
-           <a href="${process.env.NEXT_PUBLIC_APP_URL}/cancel/${cancel_token}/${bookingPubId}/${adminPubId}">Cancel Appointment</a>
-           `;
-
-        await sendEmail({ to, subject, html });
-
-    }
+    
 
     return (<>
         <p>Appointment Date: {booking.date_number > 9 ? booking.date_number : "0" + booking.date_number} {getMonthName(booking.month_number)} {booking.year}</p>

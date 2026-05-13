@@ -44,7 +44,7 @@ export async function adminRevokeBookings(_, formData) {
         return { ok: false, message: "Something went wrong." };
     }
 
-    redirect("/dashboard");
+    redirect("/appointments");
 }
 
 
@@ -103,7 +103,7 @@ export async function adminRevokeBooking(_, formData) {
         return { ok: false, message: "Something went wrong." };
     }
 
-    redirect("/dashboard");
+    redirect("/appointments");
 }
 
 
@@ -144,7 +144,7 @@ export async function doctorRevokeBookings(_, formData) {
         return { ok: false, message: "Something went wrong." };
     }
 
-    redirect("/dashboard");
+    redirect("/appointments");
 }
 
 
@@ -203,5 +203,5 @@ export async function doctorRevokeBooking(_, formData) {
         return { ok: false, message: "Something went wrong." };
     }
 
-    redirect("/dashboard");
+    redirect("/appointments");
 }

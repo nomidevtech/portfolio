@@ -21,7 +21,7 @@ export async function getUser() {
 
     } catch (error) {
         console.error(error);
-        throw error;
+        return null;
     }
 }
 
@@ -57,6 +57,6 @@ export async function getUserPlus() {
 
     } catch (error) {
         console.error(error);
-        throw error;
+        return null;
     }
 }

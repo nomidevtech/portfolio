@@ -17,12 +17,12 @@ export async function appointmentRegisterationServerAction(_, formData) {
     const adminId = fetchAdmin.rows[0].id;
 
     const bookingPubId = formData.get("bookingPubId");
-    const name = formData.get("name");
+    const name = formData.get("name")?.trim().replace(/\s+/g, "-").toLowerCase();
     const email = formData.get("email");
     const phone = formData.get("phone");
     if (!bookingPubId || !name || !email || !phone) return { ok: false, message: "Missing required fields." };
 
-    if ((!name.match(/^[a-zA-Z\s]+$/)) || name.length > 20 || name.length < 3)
+    if ((!name.match(/^[a-zA-Z-]+$/)) || name.length > 20 || name.length < 3)
         return { ok: false, message: "Name should only contain letters and spaces and should be 3-20 characters long." };
 
     if (!email.match(/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/))

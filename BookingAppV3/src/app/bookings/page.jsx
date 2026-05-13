@@ -1,7 +1,11 @@
 import Link from "next/link";
 import { db } from "../lib/turso";
+import { redisIpLimit } from "../lib/redis";
 
 export default async function AllClinics() {
+
+    const redisLimit = await redisIpLimit(15, "bookings", 60 * 15);
+    if (!redisLimit.ok) return <p>{redisLimit.message}</p>
 
     const fetchAllClinics = await db.execute(`SELECT public_id, clinic_name, clinic_phone, clinic_address FROM admins WHERE status = 'verified'`);
     if (fetchAllClinics.rows.length === 0) return <p>No clinics found</p>

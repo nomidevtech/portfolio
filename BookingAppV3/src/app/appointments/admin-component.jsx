@@ -24,7 +24,7 @@ export default async function AdminComponent({ currentUser }) {
     {Object.keys(groupedBooking).map(dateIso => (
       <div key={dateIso} className="border-2 border-b-amber-100 my-4" >
 
-        <h2>{dateIso.split("-")[2]} {getMonthName(Number(dateIso.split("-")[1] - 1))} {dateIso.split("-")[0]}</h2>
+        <h2>{dateIso.split("-")[2]} {getMonthName(Number(dateIso.split("-")[1]) - 1)} {dateIso.split("-")[0]}</h2>
 
         <AdminRevokeBookings adminPubId={currentUser.admin_details.public_id} bookingDate={dateIso} />
 
@@ -34,7 +34,8 @@ export default async function AdminComponent({ currentUser }) {
             <div key={booking.public_id} className="border-2 border-amber-950 my-2" >
               <p>Appointment Date: {booking.date_number > 9 ? booking.date_number : "0" + booking.date_number} {getMonthName(booking.month_number)} {booking.year}</p>
               <p>Timing: {minutesToMeridiem(booking.treatment_start, true)} - {minutesToMeridiem(booking.treatment_end, true)}</p>
-              <p>Doctor: {booking.doctor_name.split(" ").map(word => word[0].toUpperCase() + word.slice(1)).join(" ")}</p><p>Treatment: {booking.treatment_name.split("_").map(word => word[0].toUpperCase() + word.slice(1)).join(" ")}</p>
+              <p>Doctor: {booking.doctor_name ? booking.doctor_name.split(" ").map(word => word[0].toUpperCase() + word.slice(1)).join(" ") : "N/A"}</p>
+              <p>Treatment: {booking.treatment_name ? booking.treatment_name.split("_").map(word => word[0].toUpperCase() + word.slice(1)).join(" ") : "N/A"}</p>
               <p>Session Duration: {booking.treatment_duration} minutes</p>
               <p>Booking Status: {booking.status[0].toUpperCase() + booking.status.slice(1)}</p>
               <p>Patient Name: {booking?.patient_name ? booking.patient_name.split(" ").map(word => word[0].toUpperCase() + word.slice(1)).join(" ") : "N/A"}</p>

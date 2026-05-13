@@ -1,11 +1,15 @@
 "use server";
 
+import { redisIpLimit } from "@/app/lib/redis";
 import { db } from "@/app/lib/turso";
 import { nanoid } from "nanoid";
 import { redirect } from "next/navigation";
 
 
 export async function reserveSlot(_, formData) {
+
+    const redisLimit = await redisIpLimit(15, "reserveSlot", 60 * 15);
+    if (!redisLimit.ok) return { ok: false, message: redisLimit.message };
 
     const adminPubId = formData.get("adminPubId");
     const fetchAdmin = await db.execute(`SELECT * FROM admins WHERE public_id = ?`, [adminPubId]);
@@ -28,13 +32,6 @@ export async function reserveSlot(_, formData) {
 
         if (!docPubId || !date_number || typeof month_number !== "number" || !year || !treatmentPubId || !patient_selected_treatment_start || !patient_selected_treatment_end) return { ok: false, message: "Missing required fields" };
 
-        const fetchSlot = await db.execute(
-            `SELECT status FROM slots WHERE admin_id = ? AND doctor_id = ? AND date_number = ? AND month_number = ? AND year = ?`,
-            [adminId, docId, date_number, month_number, year]
-        );
-        if (fetchSlot.rows.length === 0 || fetchSlot.rows[0].status !== 'active')
-            return { ok: false, message: "This slot is no longer available." };
-
         const [fetchDoctor, fetchTreatment] = await Promise.all([
             db.execute(`SELECT * FROM doctors where admin_id = ? AND public_id = ?`, [adminId, docPubId]),
             db.execute(`SELECT * FROM treatments where admin_id = ? AND public_id = ?`, [adminId, treatmentPubId]),
@@ -44,6 +41,16 @@ export async function reserveSlot(_, formData) {
         if (fetchTreatment.rows.length === 0) return { ok: false, message: "Invalid treatment." };
 
         const docId = fetchDoctor?.rows[0]?.id;
+
+        const fetchSlot = await db.execute(
+            `SELECT status FROM slots WHERE admin_id = ? AND doctor_id = ? AND date_number = ? AND month_number = ? AND year = ?`,
+            [adminId, docId, date_number, month_number, year]
+        );
+        if (fetchSlot.rows.length === 0 || fetchSlot.rows[0].status !== 'active')
+            return { ok: false, message: "This slot is no longer available." };
+
+        if (fetchDoctor.rows.length === 0) return { ok: false, message: "Invalid doctor." };
+        if (fetchTreatment.rows.length === 0) return { ok: false, message: "Invalid treatment." };
         const docName = fetchDoctor?.rows[0]?.name;
         const treatmentId = fetchTreatment?.rows[0]?.id;
         const treatmentDuration = fetchTreatment?.rows[0]?.duration;
