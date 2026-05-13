@@ -1,6 +1,6 @@
 export default function getMinutes(hr, min, meridiem) {
 
-    if (!hr || !min || !meridiem) return null;
+    if (hr === null || hr === undefined || min === null || min === undefined || !meridiem) return null;
 
     let h = Number(hr);
     const m = Number(min);

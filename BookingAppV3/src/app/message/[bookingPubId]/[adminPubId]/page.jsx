@@ -3,9 +3,6 @@ import { db } from "@/app/lib/turso";
 import { getMonthName } from "@/app/utils/getDateData";
 import { minutesToMeridiem } from "@/app/utils/minutes-to-meridiem";
 import DownloadTicketButton from "./client";
-import { hash } from "@/app/utils/bcrypt";
-import { sendEmail } from "@/app/lib/resend";
-import crypto from "crypto";
 import { redisIpLimit } from "@/app/lib/redis";
 
 export default async function Message({ params }) {

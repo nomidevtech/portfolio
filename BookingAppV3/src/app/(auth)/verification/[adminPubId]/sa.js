@@ -6,8 +6,7 @@ import { redirect } from "next/navigation";
 import crypto from "crypto";
 import { hash } from "@/app/utils/bcrypt";
 
-export async function changeAdminEmailSA(formData) {
-
+export async function changeAdminEmailSA(_, formData) {
     const adminPubId = formData.get("adminPubId");
     const email = formData.get("email");
 
@@ -22,12 +21,9 @@ export async function changeAdminEmailSA(formData) {
 
         await db.execute("UPDATE admins SET admin_email = ?, email_token_hash = ?, email_token_created_at = CURRENT_TIMESTAMP WHERE id = ?", [email, hashed, fetchAdmin.rows[0].id]);
 
-        const to = email;
         const subject = "Account Activation";
         const html = `<p>Click on button to activate your account.</p><a href="${process.env.NEXT_PUBLIC_APP_URL}/activation/${email_token}/${adminPubId}">Activate Account</a>`;
-
-        await sendEmail({ to, subject, html });
-
+        await sendEmail({ to: email, subject, html });
 
     } catch (error) {
         console.error(error);

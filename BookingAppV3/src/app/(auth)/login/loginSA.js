@@ -33,7 +33,7 @@ export async function loginSA(_, formData) {
 
         const isPasswordValid = await compare(password, passwordHash);
 
-        if (!isPasswordValid) return { ok: false, message: "credentials" };
+        if (!isPasswordValid) return { ok: false, message: " Invalid credentials" };
 
 
         if (user.status !== "verified") return { ok: false, message: "Please verify your email before logging in." };

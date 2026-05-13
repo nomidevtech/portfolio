@@ -13,7 +13,7 @@ export async function reserveSlot(_, formData) {
 
     const adminPubId = formData.get("adminPubId");
     const fetchAdmin = await db.execute(`SELECT * FROM admins WHERE public_id = ?`, [adminPubId]);
-    if (fetchAdmin.rows.length === 0) return { ok: false, message: "Invalid admin." }
+    if (fetchAdmin.rows.length === 0) return { ok: false, message: "Invalid admin." };
 
     const adminId = fetchAdmin.rows[0].id;
 
@@ -30,7 +30,22 @@ export async function reserveSlot(_, formData) {
 
     try {
 
-        if (!docPubId || !date_number || typeof month_number !== "number" || !year || !treatmentPubId || !patient_selected_treatment_start || !patient_selected_treatment_end) return { ok: false, message: "Missing required fields" };
+        // Validating the raw formData string ensures "0" is truthy and allowed, 
+        // while missing (null) or empty ("") values are correctly rejected. 
+        // Number.isNaN protects against malformed inputs (e.g. "abc").
+        // Note: Added day_number to the check as well since it was previously missing.
+        if (
+            !docPubId ||
+            !treatmentPubId ||
+            !formData.get("treatment_start") || Number.isNaN(patient_selected_treatment_start) ||
+            !formData.get("treatment_end") || Number.isNaN(patient_selected_treatment_end) ||
+            !formData.get("day_number") || Number.isNaN(day_number) ||
+            !formData.get("date_number") || Number.isNaN(date_number) ||
+            !formData.get("month_number") || Number.isNaN(month_number) ||
+            !formData.get("year") || Number.isNaN(year)
+        ) {
+            return { ok: false, message: "Missing or invalid required fields" };
+        }
 
         const [fetchDoctor, fetchTreatment] = await Promise.all([
             db.execute(`SELECT * FROM doctors where admin_id = ? AND public_id = ?`, [adminId, docPubId]),
@@ -49,8 +64,6 @@ export async function reserveSlot(_, formData) {
         if (fetchSlot.rows.length === 0 || fetchSlot.rows[0].status !== 'active')
             return { ok: false, message: "This slot is no longer available." };
 
-        if (fetchDoctor.rows.length === 0) return { ok: false, message: "Invalid doctor." };
-        if (fetchTreatment.rows.length === 0) return { ok: false, message: "Invalid treatment." };
         const docName = fetchDoctor?.rows[0]?.name;
         const treatmentId = fetchTreatment?.rows[0]?.id;
         const treatmentDuration = fetchTreatment?.rows[0]?.duration;

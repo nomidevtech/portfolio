@@ -5,9 +5,8 @@ import { db } from "@/app/lib/turso";
 import { hash } from "@/app/utils/bcrypt";
 import { redirect } from "next/navigation";
 
-export async function updateAdminPassword(formData) {
+export async function updateAdminPassword(_, formData) {
     try {
-
         const redisLimit = await redisIpLimit(5, "updateAdminPass", 60 * 15);
         if (!redisLimit.ok) return { ok: false, message: redisLimit.message };
 
@@ -22,7 +21,6 @@ export async function updateAdminPassword(formData) {
         if (fetchAdminData.rows.length === 0) return { ok: false, message: "Admin not found" };
 
         const admin = fetchAdminData.rows[0];
-
         const hashedPassword = await hash(password, 12);
 
         await Promise.all([

@@ -1,12 +1,10 @@
 import { AdminEmailVerification } from "@/app/components/emailVerification";
 import { db } from "@/app/lib/turso";
-import Form from "next/form";
 import { redirect } from "next/navigation";
-import { changeAdminEmailSA } from "./sa";
 import { redisIpLimit } from "@/app/lib/redis";
+import ClientAdminVerification from "./Client";
 
 export default async function AdminVerification({ params }) {
-
   const { adminPubId } = await params;
   if (!adminPubId) return <p>Broken link</p>
 
@@ -18,19 +16,14 @@ export default async function AdminVerification({ params }) {
 
   if (fetchAdmin.rows[0].status === "verified") redirect("/");
 
-
-
-  return (<>
-    <p>Email: {fetchAdmin.rows[0].admin_email}</p>
-    <p>Status: {fetchAdmin.rows[0].status}</p>
-    <details>
-      <summary>Change Email</summary>
-      <Form action={changeAdminEmailSA} >
-        <input type="hidden" name="adminPubId" value={adminPubId} />
-        <input type="email" name="email" placeholder="Email" />
-        <button>Change</button>
-      </Form>
-    </details>
-    <AdminEmailVerification adminPubId={adminPubId} />
-  </>);
+  return (
+    <>
+      <ClientAdminVerification
+        adminPubId={adminPubId}
+        admin_email={fetchAdmin.rows[0].admin_email}
+        status={fetchAdmin.rows[0].status}
+      />
+      <AdminEmailVerification adminPubId={adminPubId} />
+    </>
+  );
 }

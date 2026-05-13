@@ -7,7 +7,7 @@ import { compare, hash } from "../utils/bcrypt";
 import { getUserPlus } from "../lib/getUser";
 import { sendEmail } from "../lib/resend";
 
-export async function updateAdmin(formData) {
+export async function updateAdmin(_, formData) {
     const adminPubId = formData.get("adminPubId")?.trim();
     const name = formData.get("name")?.trim().replace(/\s/g, "-").toLowerCase();
     const username = formData.get("username")?.trim();
@@ -18,24 +18,23 @@ export async function updateAdmin(formData) {
     const current_password = formData.get("current_password");
     const new_password = formData.get("new_password");
 
-    if (!adminPubId || !name || !username || !email || !clinic_name || !clinic_phone || !clinic_address) return { error: "Missing fields" };
+    if (!adminPubId || !name || !username || !email || !clinic_name || !clinic_phone || !clinic_address)
+        return { ok: false, message: "Missing fields" };
 
     const getCurrentUser = await getUserPlus();
     if (!getCurrentUser || getCurrentUser.role !== "admin") redirect("/login");
-    if (getCurrentUser.admin_details.public_id !== adminPubId) return { error: "Unauthorized" };
+    if (getCurrentUser.admin_details.public_id !== adminPubId) return { ok: false, message: "Unauthorized" };
 
     const adminIdInAdminTable = getCurrentUser.admin_id;
     const userIdInUsersTable = getCurrentUser.id;
     const emailChanged = getCurrentUser.admin_details.admin_email !== email;
 
-
     let new_passwordHash = null;
     if (current_password && new_password) {
         const passwordMatch = await compare(current_password, getCurrentUser.admin_details.password);
-        if (!passwordMatch) return { error: "Password mismatch" };
+        if (!passwordMatch) return { ok: false, message: "Password mismatch" };
         new_passwordHash = await hash(new_password, 12);
     }
-
 
     let email_token = null;
     let email_token_hash = null;
@@ -50,40 +49,33 @@ export async function updateAdmin(formData) {
                 "UPDATE admins SET admin_name=?, admin_username=?, admin_email=?, clinic_name=?, clinic_phone=?, clinic_address=?, password=?, status='unverified', email_token_hash=?, email_token_created_at=CURRENT_TIMESTAMP WHERE id=?",
                 [name, username, email, clinic_name, clinic_phone, clinic_address, new_passwordHash, email_token_hash, adminIdInAdminTable]
             );
-            await db.execute(
-                "UPDATE users SET username=?, password=?, status='unverified' WHERE id=?",
-                [username, new_passwordHash, userIdInUsersTable]
-            );
+            await db.execute("UPDATE users SET username=?, password=?, status='unverified' WHERE id=?",
+                [username, new_passwordHash, userIdInUsersTable]);
         } else if (emailChanged) {
             await db.execute(
                 "UPDATE admins SET admin_name=?, admin_username=?, admin_email=?, clinic_name=?, clinic_phone=?, clinic_address=?, status='unverified', email_token_hash=?, email_token_created_at=CURRENT_TIMESTAMP WHERE id=?",
                 [name, username, email, clinic_name, clinic_phone, clinic_address, email_token_hash, adminIdInAdminTable]
             );
-            await db.execute(
-                "UPDATE users SET username=?, status='unverified' WHERE id=?",
-                [username, userIdInUsersTable]
-            );
+            await db.execute("UPDATE users SET username=?, status='unverified' WHERE id=?",
+                [username, userIdInUsersTable]);
         } else if (new_passwordHash) {
             await db.execute(
                 "UPDATE admins SET admin_name=?, admin_username=?, clinic_name=?, clinic_phone=?, clinic_address=?, password=? WHERE id=?",
                 [name, username, clinic_name, clinic_phone, clinic_address, new_passwordHash, adminIdInAdminTable]
             );
-            await db.execute(
-                "UPDATE users SET username=?, password=? WHERE id=?",
-                [username, new_passwordHash, userIdInUsersTable]
-            );
+            await db.execute("UPDATE users SET username=?, password=? WHERE id=?",
+                [username, new_passwordHash, userIdInUsersTable]);
         } else {
             await db.execute(
                 "UPDATE admins SET admin_name=?, admin_username=?, clinic_name=?, clinic_phone=?, clinic_address=? WHERE id=?",
                 [name, username, clinic_name, clinic_phone, clinic_address, adminIdInAdminTable]
             );
-            await db.execute(
-                "UPDATE users SET username=? WHERE id=?",
-                [username, userIdInUsersTable]
-            );
+            await db.execute("UPDATE users SET username=? WHERE id=?",
+                [username, userIdInUsersTable]);
         }
     } catch (e) {
-        return { error: "Update failed" };
+        console.error(e);
+        return { ok: false, message: "Update failed" };
     }
 
     if (emailChanged) {
@@ -95,9 +87,7 @@ export async function updateAdmin(formData) {
     redirect("/settings");
 };
 
-
-
-export async function updateDoctor(formData) {
+export async function updateDoctor(_, formData) {
     const docPublicId = formData.get("docPublicId")?.trim();
     const name = formData.get("name")?.trim().replace(/\s/g, "-").toLowerCase();
     const username = formData.get("username")?.trim();
@@ -106,7 +96,7 @@ export async function updateDoctor(formData) {
     const qualificationsRaw = formData.get("qualifications")?.split(",").map((q) => q.trim().toUpperCase()).filter(Boolean) || [];
     const qualificationsJson = JSON.stringify(qualificationsRaw);
 
-    if (!docPublicId || !name || !username) return { error: "Missing fields" };
+    if (!docPublicId || !name || !username) return { ok: false, message: "Missing fields" };
 
     const getCurrentUser = await getUserPlus();
     if (!getCurrentUser || getCurrentUser.role !== "doctor") redirect("/login");
@@ -114,13 +104,13 @@ export async function updateDoctor(formData) {
     const doctorIdInTable = getCurrentUser.doctor_id;
     const userIdInUsersTable = getCurrentUser.id;
 
-    if (getCurrentUser.doctor_details.public_id !== docPublicId) return { error: "Unauthorized" };
+    if (getCurrentUser.doctor_details.public_id !== docPublicId) return { ok: false, message: "Unauthorized" };
 
     try {
         let new_passwordHash = null;
         if (current_password && new_password) {
             const passwordMatch = await compare(current_password, getCurrentUser.doctor_details.password);
-            if (!passwordMatch) return { error: "Password mismatch" };
+            if (!passwordMatch) return { ok: false, message: "Password mismatch" };
             new_passwordHash = await hash(new_password, 12);
         }
 
@@ -136,7 +126,8 @@ export async function updateDoctor(formData) {
                 [username, userIdInUsersTable]);
         }
     } catch (e) {
-        return { error: "Update failed" };
+        console.error(e);
+        return { ok: false, message: "Update failed" };
     }
 
     redirect("/settings");

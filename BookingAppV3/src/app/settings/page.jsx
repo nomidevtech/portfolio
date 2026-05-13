@@ -1,76 +1,24 @@
 import { redirect } from "next/navigation";
-import Form from "next/form";
 import { getUserPlus } from "../lib/getUser";
-import { updateAdmin, updateDoctor } from "./sa";
+import ClientSettings from "./ClientSettings";
 
 export default async function Settings() {
-
   const currentUser = await getUserPlus();
   if (!currentUser?.id) return redirect("/login");
-
 
   if (currentUser.role === "admin" && currentUser.status !== "verified") return redirect(`/verification/${currentUser.admin_details.public_id}`);
 
   if (currentUser.status !== "verified") return <p>Your account is not verified. Contact your admin or check your email.</p>
 
-  let user = null;
   if (currentUser.role === "admin") {
-    user = currentUser.admin_details;
-    return <AdminComponent user={user} />
+    const { public_id, admin_name, admin_username, admin_email, clinic_name, clinic_phone, clinic_address } = currentUser.admin_details;
+    return <ClientSettings role="admin" adminPubId={public_id} admin_name={admin_name} admin_username={admin_username} admin_email={admin_email} clinic_name={clinic_name} clinic_phone={clinic_phone} clinic_address={clinic_address} />;
   }
+
   if (currentUser.role === "doctor") {
-    user = currentUser.doctor_details;
-    return <DoctorComponent user={user} />
+    const { public_id, name, username, qualifications } = currentUser.doctor_details;
+    return <ClientSettings role="doctor" docPublicId={public_id} name={name} username={username} qualifications={qualifications} />;
   }
+
   return <p>Broken link. User not found. Try again or Logout then login again</p>;
-
 }
-
-
-
-
-
-function AdminComponent({ user }) {
-  return (<>
-    <Form action={updateAdmin}>
-      <input type="hidden" name="adminPubId" value={user.public_id} />
-      <input type="text" name="name" placeholder="Name" defaultValue={user.admin_name} />
-      <input type="text" name="username" placeholder="username" defaultValue={user.admin_username} />
-      <input type="email" name="email" placeholder="example@ex.com" defaultValue={user.admin_email} />
-      <input type="text" name="clinic_name" placeholder="Clinic Name" defaultValue={user.clinic_name} />
-      <input type="tel" name="clinic_phone" placeholder="+1 000 000 0000" defaultValue={user.clinic_phone} />
-      <input type="text" name="clinic_address" placeholder="Street #00" defaultValue={user.clinic_address} />
-      <details>
-        <summary>Change Password</summary>
-        <input type="password" name="current_password" placeholder="Current Password" />
-        <input type="password" name="new_password" placeholder="New Password" />
-      </details>
-      <button type="submit">Save Changes⬅</button>
-    </Form>
-  </>);
-};
-
-
-function DoctorComponent({ user }) {
-
-  let qualifications = "";
-  try {
-    qualifications = JSON.parse(user.qualifications || "[]").join(', ').toUpperCase();
-  } catch (e) { qualifications = ""; }
-
-
-  return (<>
-    <Form action={updateDoctor}>
-      <input type="hidden" name="docPublicId" value={user.public_id} />
-      <input type="text" name="name" placeholder="Name" defaultValue={user.name} />
-      <input type="text" name="username" placeholder="Username" defaultValue={user.username} />
-      <input type="text" name="qualifications" placeholder="Qualifications (e.g. MBBS, MD)" defaultValue={qualifications} />
-      <details>
-        <summary>Change Password</summary>
-        <input type="password" name="current_password" placeholder="Current Password" />
-        <input type="password" name="new_password" placeholder="New Password" />
-      </details>
-      <button type="submit">Update⬅</button>
-    </Form>
-  </>);
-};
