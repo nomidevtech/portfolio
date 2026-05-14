@@ -6,6 +6,7 @@ import { minutesToMeridiem } from "@/app/utils/minutes-to-meridiem";
 import Link from "next/link";
 import { getUserPlus } from "@/app/lib/getUser";
 import { redirect } from "next/navigation";
+import { deleteWeeklyTemplateServerAction } from "@/app/lib/deleteWeeklyTemplate";
 
 
 export default async function DoctorCreateTemplate({ params }) {
@@ -76,7 +77,7 @@ export default async function DoctorCreateTemplate({ params }) {
 
     return (<>
         <div>
-            <h2>{`Dr. ${name[0].toUpperCase() + name.slice(1)}'s Current Templates`}</h2>
+            <h2>{`Dr. ${name.split("-").map(fn => fn[0].toUpperCase() + fn.slice(1)).join(" ")}`}</h2>
             <h2> Department: {fetchDoctor.rows[0].department.split(" ").map(fn => fn[0].toUpperCase() + fn.slice(1)).join(" ")}</h2>
             {currentTemplates.length > 0 && <>
                 {currentTemplates.map(temp => (
@@ -86,6 +87,11 @@ export default async function DoctorCreateTemplate({ params }) {
                         <p>Break Duration: {minutesToMeridiem(temp.break_start, true)} - {minutesToMeridiem(temp.break_end, true)}</p>
                         <p>Buffer: {temp.buffer_minutes} minutes</p>
                         <Link href={`/edit-template/${docPubId}/${temp.public_id}`}>Edit⬅</Link>
+                        <Form action={deleteWeeklyTemplateServerAction}>
+                            <input type="hidden" name="templatePubId" value={temp.public_id} />
+                            <input type="hidden" name="docPubId" value={docPubId} />
+                            <button type="submit">Delete</button>
+                        </Form>
                     </div>
                 ))}
             </>}

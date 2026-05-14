@@ -29,7 +29,7 @@ export default async function cancelAppointment({ params }) {
     const verified = await compare(cancelToken, fetchBooking.rows[0].cancel_token_hash);
     if (!verified) return <p>Broken link. Email not found.</p>;
 
-    await db.execute(`UPDATE bookings SET cancel_token_hash = NULL, status = 'cancelled' WHERE admin_id = ? AND public_id = ?`, [adminId, bookingPubId]);
+    await db.execute(`UPDATE bookings SET cancel_token_hash = NULL, status = 'cancelled' WHERE admin_id = ? AND public_id = ? AND status = 'verified'`, [adminId, bookingPubId]);
 
 
 

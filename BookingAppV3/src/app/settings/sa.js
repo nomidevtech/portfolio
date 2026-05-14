@@ -22,6 +22,10 @@ export async function updateAdmin(_, formData) {
     if (!adminPubId || !name || !username || !email || !clinic_name || !clinic_phone || !clinic_address)
         return { ok: false, message: "Missing fields" };
 
+    if ((current_password && !new_password) || (!current_password && new_password)) {
+        return { ok: false, message: "Both current and new passwords are required to change your password." };
+    }
+
     const getCurrentUser = await getUserPlus();
     if (!getCurrentUser || getCurrentUser.role !== "admin") redirect("/login");
     if (getCurrentUser.admin_details.public_id !== adminPubId) return { ok: false, message: "Unauthorized" };
@@ -29,7 +33,9 @@ export async function updateAdmin(_, formData) {
     const adminIdInAdminTable = getCurrentUser.admin_id;
     const userIdInUsersTable = getCurrentUser.id;
     const emailChanged = getCurrentUser.admin_details.admin_email !== email;
-    const currentSessionToken = cookies().get("session")?.value;
+
+    const cookieStore = await cookies();
+    const currentSessionToken = cookieStore.get("token")?.value;
 
     let new_passwordHash = null;
     if (current_password && new_password) {

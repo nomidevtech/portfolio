@@ -188,11 +188,12 @@ export async function doctorRevokeBooking(_, formData) {
 
         const booking = fetchBooking.rows[0];
         const patientName = booking?.patient_name?.split("-").map(word => word[0].toUpperCase() + word.slice(1)).join(" ") ?? "Visitor";
+        const doctorName = booking.doctor_name?.split("-").map(word => word[0].toUpperCase() + word.slice(1)).join(" ") ?? "the doctor"
         const to = booking.patient_email;
         const subject = "Your booking has been revoked.";
         const html = `
                 <p>Dear ${patientName}</p>
-                <p>This is to inform you that your scheduled appointment with Dr. ${booking.doctor_name.split("-").map(word => word[0].toUpperCase() + word.slice(1)).join(" ")} has been cancelled by the clinic.</p>
+                <p>This is to inform you that your scheduled appointment with ${doctorName} has been cancelled by the clinic.</p>
                 <p>Please Visit our website to schedule another appointment.</p>
                 `;
 

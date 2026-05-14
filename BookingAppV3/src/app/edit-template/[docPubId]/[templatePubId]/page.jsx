@@ -6,6 +6,7 @@ import Link from "next/link";
 import { updateWeeklyTemplateServerAction } from "./SA";
 import { getUserPlus } from "@/app/lib/getUser";
 import { redirect } from "next/navigation";
+import { deleteWeeklyTemplateServerAction } from "@/app/lib/deleteWeeklyTemplate";
 
 export default async function EditDoctorTemplate({ params }) {
 
@@ -44,7 +45,7 @@ export default async function EditDoctorTemplate({ params }) {
     const meridiem = ["AM", "PM"];
 
     return (<>
-        <h1>Dr. {name[0].toUpperCase() + name.slice(1)}'s {getDayName(template.day_number)} Template</h1>
+        <h1>Dr. {name?.includes("-") ? name.split("-").map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(" ") : name[0].toUpperCase() + name.slice(1)}'s {getDayName(template.day_number)} Template</h1>
 
         <Form action={updateWeeklyTemplateServerAction}>
             <input type="hidden" name="doctorPublicId" value={docPubId} />
@@ -157,6 +158,11 @@ export default async function EditDoctorTemplate({ params }) {
             </div>
 
             <button type="submit">Update</button>
+        </Form>
+        <Form action={deleteWeeklyTemplateServerAction}>
+            <input type="hidden" name="templatePubId" value={template.public_id} />
+            <input type="hidden" name="docPubId" value={docPubId} />
+            <button type="submit">Delete</button>
         </Form>
 
     </>);

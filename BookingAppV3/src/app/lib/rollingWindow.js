@@ -28,9 +28,9 @@ export async function rollingWindow(adminId = null, win = 31) {
             const yearAtPeriod = current.getFullYear();
             const dayNumAtPeriod = current.getDay();
 
-            const yyyy = current.getFullYear();
-            const mm = String(current.getMonth() + 1).padStart(2, '0');
-            const dd = String(current.getDate()).padStart(2, '0');
+            const yyyy = current.getUTCFullYear();
+            const mm = String(current.getUTCMonth() + 1).padStart(2, '0');
+            const dd = String(current.getUTCDate()).padStart(2, '0');
             const fullDateAtPeriodInIso = `${yyyy}-${mm}-${dd}`;
 
             const templateAtPeriod = fetchAllTemplates.rows.filter(

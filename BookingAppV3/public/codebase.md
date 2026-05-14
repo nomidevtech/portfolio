@@ -1637,7 +1637,7 @@ export async function adminRevokeBookings(_, formData) {
 
 
         const getAndUpdateBookings = await db.execute(
-            `UPDATE bookings SET status = 'revoked' WHERE admin_id = ? AND booking_date_iso = ? AND status != 'revoked' RETURNING patient_email, patient_name, doctor_name`, [admin.id, bookingsDate]);
+            `UPDATE bookings SET status = 'revoked' WHERE admin_id = ? AND booking_date_iso = ? AND status NOT IN ('revoked', 'cancelled') RETURNING patient_email, patient_name, doctor_name`, [admin.id, bookingsDate]);
 
         const rowsWithEmail = getAndUpdateBookings.rows.filter(row => row.patient_email);
         if (rowsWithEmail.length > 0) {
@@ -1736,7 +1736,7 @@ export async function doctorRevokeBookings(_, formData) {
         if (doctor.id !== user.doctor_id) return { ok: false, message: "Forbidden." };
 
         const res = await db.execute(
-            `UPDATE bookings SET status = 'revoked' WHERE doctor_id = ? AND booking_date_iso = ? AND status != 'revoked' RETURNING patient_email, patient_name, doctor_name`,
+            `UPDATE bookings SET status = 'revoked' WHERE doctor_id = ? AND booking_date_iso = ? AND status NOT IN ('revoked', 'cancelled') RETURNING patient_email, patient_name, doctor_name`,
             [doctor.id, bookingsDate]
         );
 
@@ -1794,11 +1794,12 @@ export async function doctorRevokeBooking(_, formData) {
 
         const booking = fetchBooking.rows[0];
         const patientName = booking?.patient_name?.split("-").map(word => word[0].toUpperCase() + word.slice(1)).join(" ") ?? "Visitor";
+        const doctorName = booking.doctor_name?.split("-").map(word => word[0].toUpperCase() + word.slice(1)).join(" ") ?? "the doctor"
         const to = booking.patient_email;
         const subject = "Your booking has been revoked.";
         const html = `
                 <p>Dear ${patientName}</p>
-                <p>This is to inform you that your scheduled appointment with Dr. ${booking.doctor_name.split("-").map(word => word[0].toUpperCase() + word.slice(1)).join(" ")} has been cancelled by the clinic.</p>
+                <p>This is to inform you that your scheduled appointment with ${doctorName} has been cancelled by the clinic.</p>
                 <p>Please Visit our website to schedule another appointment.</p>
                 `;
 
@@ -2277,7 +2278,7 @@ export default async function cancelAppointment({ params }) {
     const verified = await compare(cancelToken, fetchBooking.rows[0].cancel_token_hash);
     if (!verified) return <p>Broken link. Email not found.</p>;
 
-    await db.execute(`UPDATE bookings SET cancel_token_hash = NULL, status = 'cancelled' WHERE admin_id = ? AND public_id = ?`, [adminId, bookingPubId]);
+    await db.execute(`UPDATE bookings SET cancel_token_hash = NULL, status = 'cancelled' WHERE admin_id = ? AND public_id = ? AND status = 'verified'`, [adminId, bookingPubId]);
 
 
 
@@ -3972,11 +3973,8 @@ export async function redisIpLimit(
     } catch (error) {
 
         console.error(error);
-
-        return {
-            ok: false,
-            message: "An error occurred"
-        };
+        // ok is true to prevent app lock in case of redis network or any other error
+        return { ok: true, message: "Rate limit check skipped" };
     }
 }
 ```
@@ -4015,9 +4013,15 @@ export async function sendBulkCancelationEmails(payload = {}) {
     if (!payload) return null;
 
     for (const chunk of Object.keys(payload)) {
+
         const clause = payload[chunk].map(item => {
+
             const name = item.patient_name?.split("-").map(word => word[0].toUpperCase() + word.slice(1)).join(" ") || "Valued Patient";
-            const docName = item.doctor_name?.split("-").map(word => "Dr." + word[0].toUpperCase() + word.slice(1)).join(" ") || "The Doctor";
+
+            const docName = item.doctor_name
+                ? `Dr. ${item.doctor_name.split("-").map(word => word[0].toUpperCase() + word.slice(1)).join(" ")}`
+                : "The Doctor";
+
             return {
                 from: `NomiDev <bookings@nomidev.com>`,
                 to: [item.patient_email],
@@ -4523,7 +4527,7 @@ export async function toggleSlotStatus(slotPubId) {
 
         if (newStatus === 'inactive') {
             const getAndUpdateBookings = await db.execute(
-                `UPDATE bookings SET status = 'revoked' WHERE admin_id = ? AND doctor_id = ? AND booking_date_iso = ? AND status != 'revoked' RETURNING patient_email, patient_name, doctor_name`,
+                `UPDATE bookings SET status = 'revoked' WHERE admin_id = ? AND doctor_id = ? AND booking_date_iso = ? AND status NOT IN ('revoked', 'cancelled') RETURNING patient_email, patient_name, doctor_name`,
                 [adminId, currentSlot.doctor_id, currentSlot.full_date_at_period]
             );
             if (getAndUpdateBookings.rows.length > 0) {
@@ -4898,7 +4902,7 @@ export async function initBookingsTable() {
                 treatment_start,
                 treatment_end
             )
-            WHERE status IN ('pending', 'verified');
+            WHERE status IN ('pending', 'verified' , 'unverified');
         `);
 
         return {
@@ -5066,6 +5070,7 @@ export default async function Settings() {
 
 import crypto from "crypto";
 import { redirect } from "next/navigation";
+import { cookies } from "next/headers";
 import { db } from "../lib/turso";
 import { compare, hash } from "../utils/bcrypt";
 import { getUserPlus } from "../lib/getUser";
@@ -5093,6 +5098,9 @@ export async function updateAdmin(_, formData) {
     const userIdInUsersTable = getCurrentUser.id;
     const emailChanged = getCurrentUser.admin_details.admin_email !== email;
 
+    const cookieStore = await cookies();
+    const currentSessionToken = cookieStore.get("token")?.value;
+
     let new_passwordHash = null;
     if (current_password && new_password) {
         const passwordMatch = await compare(current_password, getCurrentUser.admin_details.password);
@@ -5115,6 +5123,10 @@ export async function updateAdmin(_, formData) {
             );
             await db.execute("UPDATE users SET username=?, password=?, status='unverified' WHERE id=?",
                 [username, new_passwordHash, userIdInUsersTable]);
+
+            await db.execute("DELETE FROM sessions WHERE user_id = ? AND session_id != ?",
+                [userIdInUsersTable, currentSessionToken]
+            );
         } else if (emailChanged) {
             await db.execute(
                 "UPDATE admins SET admin_name=?, admin_username=?, admin_email=?, clinic_name=?, clinic_phone=?, clinic_address=?, status='unverified', email_token_hash=?, email_token_created_at=CURRENT_TIMESTAMP WHERE id=?",
@@ -5129,6 +5141,10 @@ export async function updateAdmin(_, formData) {
             );
             await db.execute("UPDATE users SET username=?, password=? WHERE id=?",
                 [username, new_passwordHash, userIdInUsersTable]);
+
+            await db.execute("DELETE FROM sessions WHERE user_id = ? AND session_id != ?",
+                [userIdInUsersTable, currentSessionToken]
+            );
         } else {
             await db.execute(
                 "UPDATE admins SET admin_name=?, admin_username=?, clinic_name=?, clinic_phone=?, clinic_address=? WHERE id=?",
@@ -5345,10 +5361,13 @@ export default async function VerifyEmail({ params }) {
     const verified = await compare(emailToken, fetchBooking.rows[0].email_token_hash);
     if (!verified) return <p>Broken link. Email not found.</p>;
 
-    const updateResult = await db.execute(`UPDATE bookings SET email_token_hash = NULL, status = 'verified', email_token_created_at = NULL WHERE id = ? AND admin_id = ? AND status = 'unverified' AND email_token_hash IS NOT NULL`, [fetchBooking.rows[0].id, adminId]);
+    try {
+        const updateResult = await db.execute(`UPDATE bookings SET email_token_hash = NULL, status = 'verified', email_token_created_at = NULL WHERE id = ? AND admin_id = ? AND status = 'unverified' AND email_token_hash IS NOT NULL`, [fetchBooking.rows[0].id, adminId]);
 
-    if (updateResult.rowsAffected === 0) redirect(`/message/${bookingPubId}/${adminPubId}`);
-
+        if (updateResult.rowsAffected === 0) redirect(`/message/${bookingPubId}/${adminPubId}`);
+    } catch (error) {
+        redirect(`/message/${bookingPubId}/${adminPubId}`);
+    }
 
 
     const cancel_token = crypto.randomBytes(32).toString("hex");

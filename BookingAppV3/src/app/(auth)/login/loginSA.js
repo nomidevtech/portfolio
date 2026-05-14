@@ -36,7 +36,7 @@ export async function loginSA(_, formData) {
         if (!isPasswordValid) return { ok: false, message: "Invalid credentials" };
 
 
-        if (user.status !== "verified") return { ok: false, message: "Please verify your email before logging in." };
+        if (user.status !== "verified") return { ok: false, message: "Please verify your email before logging in.", redirectUrl: `${process.env.NEXT_PUBLIC_APP_URL}/verification/${fetchAdmin.rows[0].public_id}` };
 
 
         const sessionToken = crypto.randomBytes(64).toString("hex");
@@ -73,5 +73,5 @@ export async function loginSA(_, formData) {
         };
     }
 
-    redirect("/");
+    redirect("/dashboard");
 }

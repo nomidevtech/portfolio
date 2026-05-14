@@ -4,6 +4,8 @@ import { minutesToMeridiem } from "@/app/utils/minutes-to-meridiem";
 import { getDayName } from "@/app/utils/getDateData";
 import { getUserPlus } from "@/app/lib/getUser";
 import { redirect } from "next/navigation";
+import { deleteWeeklyTemplateServerAction } from "@/app/lib/deleteWeeklyTemplate";
+import Form from "next/form";
 
 
 export default async function DoctorEditTemplates({ params }) {
@@ -33,6 +35,11 @@ export default async function DoctorEditTemplates({ params }) {
                 <p>Break Duration: {minutesToMeridiem(temp.break_start, true)} - {minutesToMeridiem(temp.break_end, true)}</p>
                 <p>Buffer: {temp.buffer_minutes} minutes</p>
                 <Link href={`/edit-template/${docPubId}/${temp.public_id}`}>Edit⬅</Link>
+                <Form action={deleteWeeklyTemplateServerAction}>
+                    <input type="hidden" name="templatePubId" value={temp.public_id} />
+                    <input type="hidden" name="docPubId" value={docPubId} />
+                    <button type="submit">Delete</button>
+                </Form>
             </div>
         ))}
 
