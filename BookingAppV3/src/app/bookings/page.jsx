@@ -16,7 +16,7 @@ export default async function AllClinics() {
             <div key={fn.public_id} className="border-2 border-amber-50" >
                 <p>Clinic Name: {fn.clinic_name.split("-").map(word => word[0].toUpperCase() + word.slice(1)).join(" ")}</p>
                 <p>Phone: {fn.clinic_phone}</p>
-                <p>Address: {fn.clinic_address.split("-").map(word => word[0].toUpperCase() + word.slice(1)).join(" ")}</p>
+                <p>Address: {fn.clinic_address?.split("-").map(word => word[0]?.toUpperCase() + word.slice(1)).join(" ")}</p>
                 <Link href={`/bookings/${fn.public_id}`}>Bookings⬅</Link>
             </div>
         ))}
