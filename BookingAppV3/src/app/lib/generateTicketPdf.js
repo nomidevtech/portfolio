@@ -50,12 +50,12 @@ export async function generateTicketPdf(bookingPubId, adminPubId) {
     )} - ${minutesToMeridiem(booking.treatment_end, true)}`;
 
     const patientName = booking.patient_name
-        ?.split(" ")
+        ?.split("-")
         .map((w) => w[0].toUpperCase() + w.slice(1))
         .join(" ");
 
     const doctorName = booking.doctor_name
-        ?.split(" ")
+        ?.split("-")
         .map((w) => w[0].toUpperCase() + w.slice(1))
         .join(" ");
 

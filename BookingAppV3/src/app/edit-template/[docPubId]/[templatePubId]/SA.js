@@ -48,7 +48,7 @@ export async function updateWeeklyTemplateServerAction(formData) {
     });
   } catch (e) {
     console.error("Update failed:", e);
-    throw new Error("Could not update template");
+    return { ok: false, message: "Could not update template. Please try again." };
   }
 
   //revalidatePath(`/edit-template/${docPubId}/${templatePubId}`);

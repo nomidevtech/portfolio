@@ -41,7 +41,7 @@ export async function editDoctorServerAction(formData) {
     const name = formData?.get("name")?.replace(/\s/g, "-").toLowerCase();
     const username = formData?.get("username");
     const newPassword = formData?.get("new_password");
-    const department = formData?.get("department").replace(/\s/g, "-").toLowerCase();
+    const department = formData?.get("department")?.replace(/\s/g, "-").toLowerCase();
     const qualification = formData.get("qualification")?.toString().split(/[ ,]+/).filter(Boolean).map(q => q.trim().toLowerCase());
 
     if (!doctorPubId || !name || !department || !username) return null;

@@ -39,7 +39,7 @@ export async function appointmentRegisterationServerAction(_, formData) {
         if (fetch.rows.length === 0) return { ok: false, message: "Booking not found." };
 
         const update = await db.execute(
-            `UPDATE bookings SET patient_name = ?, patient_email = ?, patient_phone = ?, status = ?, email_token_hash = ?, email_token_created_at = CURRENT_TIMESTAMP WHERE id = ? AND admin_id = ?`,
+            `UPDATE bookings SET patient_name = ?, patient_email = ?, patient_phone = ?, status = ?, email_token_hash = ?, email_token_created_at = CURRENT_TIMESTAMP WHERE id = ? AND admin_id = ? AND status = 'pending'`,
             [name, email, phone, "unverified", hashed, fetch.rows[0].id, adminId]
         );
 

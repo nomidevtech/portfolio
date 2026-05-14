@@ -1,17 +1,20 @@
 "use server";
 
 import { hash } from "../utils/bcrypt";
+import { redisIpLimit } from "./redis";
 import { sendEmail } from "./resend";
 import { db } from "./turso";
 import crypto from "crypto";
 
 export async function resendingAdminEmail(_, formData) {
 
+    const apiLimit = await redisIpLimit(25, "resendingAdminEmail", 60 * 15);
+    if (!apiLimit.ok) return { ok: false, message: apiLimit.message };
 
     const adminPubId = formData.get("adminPubId");
     if (!adminPubId) return { ok: false, message: "Missing required fields." };
 
-    const fetchAdmin = await db.execute(`SELECT id, admin_email FROM admins WHERE public_id = ?`, [adminPubId]);
+    const fetchAdmin = await db.execute(`SELECT id, admin_email FROM admins WHERE public_id = ? AND status = 'unverified'`, [adminPubId]);
     if (fetchAdmin.rows.length === 0) return { ok: false, message: "Invalid admin." };
     const adminId = fetchAdmin.rows[0].id;
 
@@ -48,6 +51,10 @@ export async function resendingAdminEmail(_, formData) {
 
 export async function resendingPatientEmail(_, formData) {
 
+    const apiLimit = await redisIpLimit(25, "resendingPatientEmail", 60 * 15);
+    if (!apiLimit.ok) return { ok: false, message: apiLimit.message };
+
+
     const bookingPubId = formData.get("bookingPubId");
     const adminPubId = formData.get("adminPubId");
     if (!bookingPubId || !adminPubId) return { ok: false, message: "Missing required fields." };
@@ -61,7 +68,7 @@ export async function resendingPatientEmail(_, formData) {
 
     try {
 
-        const fetch = await db.execute(`SELECT patient_email FROM bookings WHERE admin_id = ? AND public_id = ?`, [adminId, bookingPubId]);
+        const fetch = await db.execute(`SELECT patient_email FROM bookings WHERE admin_id = ? AND public_id = ? AND status = 'unverified'`, [adminId, bookingPubId]);
         if (fetch.rows.length === 0) throw new Error("Invalid booking.");
 
         await db.execute(`UPDATE bookings SET email_token_hash = ?, email_token_created_at = CURRENT_TIMESTAMP WHERE admin_id = ? AND public_id = ?`, [hashed, adminId, bookingPubId]);

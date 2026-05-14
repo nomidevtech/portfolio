@@ -477,8 +477,8 @@ export async function updateAdminPassword(_, formData) {
             return { ok: false, message: "Passwords do not match" };
         }
 
-        const fetchAdminData = await db.execute("SELECT * FROM admins WHERE public_id = ?", [adminPubId]);
-        if (fetchAdminData.rows.length === 0) return { ok: false, message: "Admin not found" };
+        const fetchAdminData = await db.execute("SELECT * FROM admins WHERE public_id = ? AND recovery_token_hash IS NOT NULL", [adminPubId]);
+        if (fetchAdminData.rows.length === 0) return { ok: false, message: "Invalid or expired recovery link." };
 
         const admin = fetchAdminData.rows[0];
 
@@ -498,17 +498,25 @@ export async function updateAdminPassword(_, formData) {
 
         const hashedPassword = await hash(password, 12);
 
-        await Promise.all([
-            db.execute(
-                "UPDATE admins SET password = ?, recovery_token_hash = null, recovery_token_created_at = null WHERE public_id = ?",
-                [hashedPassword, adminPubId]
-            ),
-            db.execute(
-                "UPDATE users SET password = ? WHERE admin_id = ?",
-                [hashedPassword, admin.id]
-            ),
-        ]);
+        const fetchUserId = await db.execute("SELECT id FROM users WHERE admin_id = ?", [admin.id]);
+        if (fetchUserId.rows.length === 0) return { ok: false, message: "Something went wrong" };
 
+        const user = fetchUserId.rows[0];
+
+        await db.batch([
+            {
+                sql: "UPDATE admins SET password = ?, recovery_token_hash = null, recovery_token_created_at = null WHERE public_id = ?",
+                args: [hashedPassword, adminPubId]
+            },
+            {
+                sql: "UPDATE users SET password = ? WHERE admin_id = ?",
+                args: [hashedPassword, admin.id]
+            },
+            {
+                sql: "DELETE FROM sessions WHERE user_id = ?",
+                args: [user.id]
+            }
+        ]);
     } catch (error) {
         console.error(error);
         return { ok: false, message: "Something went wrong" };
@@ -530,6 +538,7 @@ export default function ClientSignUp() {
     const [state, action, isPending] = useActionState(signupServerAction, { ok: false, message: null })
 
     return (<>
+        {state.message && <p>{state.message}</p>}
         <Form action={action}>
             <input type="text" name="full_name" placeholder="Full Name" />
             <input type="text" name="admin_email" placeholder="admin@email.com" />
@@ -607,8 +616,8 @@ export async function signupServerAction(prevState, formData) {
         if (!clinic_name || !clinic_phone) return { ok: false, message: "Clinic name and phone are required" };
 
         const [userCheck, emailCheck] = await Promise.all([
-            db.execute("SELECT id FROM users WHERE username = ?", [username]),
-            db.execute("SELECT id FROM admins WHERE admin_email = ?", [admin_email])
+            db.execute("SELECT 1 FROM users WHERE username = ? LIMIT 1", [username]),
+            db.execute("SELECT 1 FROM admins WHERE admin_email = ? LIMIT 1", [admin_email])
         ]);
 
         if (userCheck.rows.length > 0) return { ok: false, message: "Username already exists" };
@@ -618,18 +627,30 @@ export async function signupServerAction(prevState, formData) {
         const email_token = crypto.randomBytes(32).toString("hex");
         const hashedToken = await hash(email_token);
 
-        const res = await db.execute(
-            `INSERT INTO admins (public_id, admin_name, admin_email, admin_username, clinic_name, clinic_phone, clinic_address, password, email_token_hash, email_token_created_at)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP) RETURNING id`,
-            [public_id, admin_name.toLowerCase().replace(/\s+/g, '-'), admin_email, username, clinic_name.toLowerCase().replace(/\s+/g, '-'), clinic_phone, clinic_address.toLowerCase().replace(/\s+/g, '-'), hashedPassword, hashedToken]
-        );
+        const results = await db.batch([
+            {
+                sql: `INSERT INTO admins (public_id, admin_name, admin_email, admin_username, clinic_name, clinic_phone, clinic_address, password, email_token_hash, email_token_created_at)
+                      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP) RETURNING id`,
+                args: [
+                    public_id,
+                    admin_name.toLowerCase().replace(/\s+/g, '-'),
+                    admin_email,
+                    username,
+                    clinic_name.toLowerCase().replace(/\s+/g, '-'),
+                    clinic_phone,
+                    clinic_address.toLowerCase().replace(/\s+/g, '-'),
+                    hashedPassword,
+                    hashedToken
+                ]
+            },
+            {
+                sql: `INSERT INTO users (public_id, admin_id, role, username, password) 
+                      VALUES (?, last_insert_rowid(), ?, ?, ?)`,
+                args: [nanoid(12), "admin", username, hashedPassword]
+            }
+        ], "write");
 
-        const adminId = res.rows[0]?.id;
-
-        await db.execute(
-            `INSERT INTO users (public_id, admin_id, role, username, password) VALUES (?, ?, ?, ?, ?)`,
-            [nanoid(12), adminId, "admin", username, hashedPassword]
-        );
+        if (results[0].rowsAffected === 0 || results[1].rowsAffected === 0) return { ok: false, message: "An error occurred during registration" };
 
         await sendEmail({
             to: admin_email,
@@ -726,13 +747,18 @@ export async function changeAdminEmailSA(_, formData) {
     try {
         if (!email || !adminPubId) return { ok: false, message: "Email required" };
 
-        const fetchAdmin = await db.execute("SELECT id, admin_email FROM admins WHERE public_id = ?", [adminPubId]);
+        const fetchAdmin = await db.execute("SELECT id, admin_email FROM admins WHERE public_id = ? AND status = 'unverified'", [adminPubId]);
         if (fetchAdmin.rows.length === 0) return { ok: false, message: "Admin not found" };
+
+        const emailCheck = await db.execute("SELECT 1 FROM admins WHERE admin_email = ? LIMIT 1", [email]);
+        if (emailCheck.rows.length > 0) return { ok: false, message: "Email already taken" };
 
         const email_token = crypto.randomBytes(32).toString("hex");
         const hashed = await hash(email_token);
 
-        await db.execute("UPDATE admins SET admin_email = ?, email_token_hash = ?, email_token_created_at = CURRENT_TIMESTAMP WHERE id = ?", [email, hashed, fetchAdmin.rows[0].id]);
+        const updateResult = await db.execute("UPDATE admins SET admin_email = ?, email_token_hash = ?, email_token_created_at = CURRENT_TIMESTAMP WHERE id = ? AND status = 'unverified'", [email, hashed, fetchAdmin.rows[0].id]);
+
+        if (updateResult.rowsAffected === 0) return { ok: false, message: "Try again or change your email" };
 
         const subject = "Account Activation";
         const html = `<p>Click on button to activate your account.</p><a href="${process.env.NEXT_PUBLIC_APP_URL}/activation/${email_token}/${adminPubId}">Activate Account</a>`;
@@ -916,8 +942,20 @@ export async function addDoctorServerAction(prevState, formData) {
 
         revalidatePath("/add-doctor");
         return { ok: true, message: "Doctor successfully added" };
-    } catch (e) {
-        return { ok: false, message: "Database error: Could not save doctor" };
+    } catch (error) {
+        console.error(error);
+
+        if (error.message?.includes("UNIQUE constraint failed") || error.code === "SQLITE_CONSTRAINT") {
+            return {
+                ok: false,
+                message: "Username is already taken"
+            };
+        } else {
+            return {
+                ok: false,
+                message: "Something went wrong, please try again"
+            };
+        }
     }
 }
 ```
@@ -985,12 +1023,12 @@ import { nanoid } from "nanoid";
 import { getUserPlus } from "../lib/getUser";
 
 export async function addTreatmentServerAction(_, formData) {
-    try {
-        const currentUser = await getUserPlus();
-        if (!currentUser || currentUser.role !== "admin" || !currentUser.admin_id) redirect("/login");
-        const adminId = currentUser.admin_id;
 
-        const name = formData.get("name")?.trim().toLowerCase().replace(/\s+/g, "_");
+    const currentUser = await getUserPlus();
+    if (!currentUser || currentUser.role !== "admin" || !currentUser.admin_id) redirect("/login");
+    const adminId = currentUser.admin_id;
+    try {
+        const name = formData.get("name")?.toString().trim().toLowerCase().replace(/\s+/g, "_");
         const duration = Number(formData.get("duration")) || 0;
 
         if (!name || duration <= 0) return { ok: false, message: "Invalid name or duration" };
@@ -1058,7 +1096,7 @@ export async function GET(request) {
 
     await db.execute(`
         DELETE FROM bookings
-        WHERE status = 'pending'
+        WHERE status IN ('pending', 'unverified')
         AND booking_registered_at <= DATETIME('now', '-30 minutes')
     `);
 
@@ -1176,13 +1214,15 @@ export async function appointmentRegisterationServerAction(_, formData) {
     const hashed = await hash(email_token);
 
     try {
-        const fetch = await db.execute(`SELECT id FROM bookings WHERE public_id = ? AND admin_id = ?`, [bookingPubId, adminId]);
+        const fetch = await db.execute(`SELECT id FROM bookings WHERE public_id = ? AND admin_id = ? AND status = 'pending'`, [bookingPubId, adminId]);
         if (fetch.rows.length === 0) return { ok: false, message: "Booking not found." };
 
-        await db.execute(
+        const update = await db.execute(
             `UPDATE bookings SET patient_name = ?, patient_email = ?, patient_phone = ?, status = ?, email_token_hash = ?, email_token_created_at = CURRENT_TIMESTAMP WHERE id = ? AND admin_id = ?`,
             [name, email, phone, "unverified", hashed, fetch.rows[0].id, adminId]
         );
+
+        if (update.rowsAffected === 0) return { ok: false, message: "Slot already reserved by someone else." };
 
         const subject = `Book Your Slot`;
         const to = email;
@@ -2080,9 +2120,7 @@ import { db } from "@/app/lib/turso";
 import { nanoid } from "nanoid";
 import { redirect } from "next/navigation";
 
-
 export async function reserveSlot(_, formData) {
-
     const redisLimit = await redisIpLimit(15, "reserveSlot", 60 * 15);
     if (!redisLimit.ok) return { ok: false, message: redisLimit.message };
 
@@ -2104,10 +2142,8 @@ export async function reserveSlot(_, formData) {
     let bookingPublicId = null;
 
     try {
-
         if (
-            !docPubId ||
-            !treatmentPubId ||
+            !docPubId || !treatmentPubId ||
             !formData.get("treatment_start") || Number.isNaN(patient_selected_treatment_start) ||
             !formData.get("treatment_end") || Number.isNaN(patient_selected_treatment_end) ||
             !formData.get("day_number") || Number.isNaN(day_number) ||
@@ -2126,22 +2162,37 @@ export async function reserveSlot(_, formData) {
         if (fetchDoctor.rows.length === 0) return { ok: false, message: "Invalid doctor." };
         if (fetchTreatment.rows.length === 0) return { ok: false, message: "Invalid treatment." };
 
-        const docId = fetchDoctor?.rows[0]?.id;
+        const docId = fetchDoctor.rows[0].id;
 
+        // FIX 1: Fetch all necessary time boundaries and the buffer from the slot
         const fetchSlot = await db.execute(
-            `SELECT status FROM slots WHERE admin_id = ? AND doctor_id = ? AND date_number = ? AND month_number = ? AND year = ?`,
+            `SELECT status, buffer_minutes, start_time, end_time, break_start, break_end 
+             FROM slots 
+             WHERE admin_id = ? AND doctor_id = ? AND date_number = ? AND month_number = ? AND year = ?`,
             [adminId, docId, date_number, month_number, year]
         );
-        if (fetchSlot.rows.length === 0 || fetchSlot.rows[0].status !== 'active')
-            return { ok: false, message: "This slot is no longer available." };
 
-        const docName = fetchDoctor?.rows[0]?.name;
-        const treatmentId = fetchTreatment?.rows[0]?.id;
-        const treatmentDuration = fetchTreatment?.rows[0]?.duration;
+        if (fetchSlot.rows.length === 0 || fetchSlot.rows[0].status !== 'active') {
+            return { ok: false, message: "This slot is no longer available." };
+        }
+
+        const { buffer_minutes, start_time, end_time, break_start, break_end } = fetchSlot.rows[0];
+        const docName = fetchDoctor.rows[0].name;
+        const treatmentId = fetchTreatment.rows[0].id;
+        const treatmentDuration = fetchTreatment.rows[0].duration;
 
         const validTreatmentDuration = patient_selected_treatment_end - patient_selected_treatment_start === treatmentDuration;
         if (!validTreatmentDuration) return { ok: false, message: "Invalid treatment duration." };
 
+        
+        if (patient_selected_treatment_start < start_time || patient_selected_treatment_end > end_time) {
+            return { ok: false, message: "Selected time is outside of clinic hours." };
+        }
+        if (patient_selected_treatment_start < break_end && patient_selected_treatment_end > break_start) {
+            return { ok: false, message: "Selected time overlaps with the doctor's break." };
+        }
+
+        
         const [fetchRecord, fetchBookings] = await Promise.all([
             db.execute(
                 `SELECT 1 FROM doctor_treatments WHERE doctor_id = ? AND treatment_id = ? AND admin_id = ?`,
@@ -2150,9 +2201,15 @@ export async function reserveSlot(_, formData) {
             db.execute(
                 `SELECT 1 FROM bookings
                  WHERE admin_id = ? AND doctor_id = ? AND date_number = ? AND month_number = ? AND year = ?
-                 AND treatment_end > ? AND treatment_start < ? AND status NOT IN('cancelled', 'revoked')
+                 AND treatment_start < ? 
+                 AND (treatment_end + ?) > ? 
+                 AND status NOT IN('cancelled', 'revoked')
                  LIMIT 1`,
-                [adminId, docId, date_number, month_number, year, patient_selected_treatment_start, patient_selected_treatment_end]
+                [
+                    adminId, docId, date_number, month_number, year,
+                    patient_selected_treatment_end + buffer_minutes,
+                    buffer_minutes, patient_selected_treatment_start
+                ]
             ),
         ]);
 
@@ -2160,7 +2217,6 @@ export async function reserveSlot(_, formData) {
         if (fetchBookings.rows.length > 0) return { ok: false, message: "Slot already reserved by someone." };
 
         const bookingDate = `${year}-${String(month_number + 1).padStart(2, '0')}-${String(date_number).padStart(2, '0')}`;
-
 
         const res = await db.execute(
             `INSERT INTO bookings (admin_id, public_id, doctor_name, doctor_id, treatment_id, day_number, date_number, month_number, year, booking_date_iso, treatment_start, treatment_end)
@@ -3224,7 +3280,6 @@ import { revalidatePath } from "next/cache";
 import { getUserPlus } from "@/app/lib/getUser";
 import { sendCancelationEmails } from "@/app/lib/sendCancelationEmail";
 
-
 export async function editSlotServerAction(formData) {
     const currentUser = await getUserPlus();
 
@@ -3233,11 +3288,10 @@ export async function editSlotServerAction(formData) {
     }
 
     const adminId = currentUser.admin_id;
-
     const slotPubId = formData.get("slotPubId");
 
     if (!slotPubId) {
-        redirect("/edit-template");
+        redirect("/manage-generated-slots");
     }
 
     const fetchSlot = await db.execute(
@@ -3246,8 +3300,10 @@ export async function editSlotServerAction(formData) {
     );
 
     if (fetchSlot?.rows.length === 0) {
-        redirect("/edit-slot");
+        redirect("/manage-generated-slots");
     }
+
+    const currentSlot = fetchSlot.rows[0];
 
     const startTimeFromUser = getMinutes(
         formData.get("startHr"),
@@ -3273,79 +3329,77 @@ export async function editSlotServerAction(formData) {
         formData.get("breakEndMeridiem")
     );
 
-    const bufferTimeFromUser = formData.get("buffer");
+    const bufferTimeFromUser = Number(formData.get("buffer"));
     const statusFromUser = formData.get("status");
 
-    if (
-        startTimeFromUser === null ||
-        endTimeFromUser === null ||
-        breakStartFromUser === null ||
-        breakEndFromUser === null ||
-        !bufferTimeFromUser ||
-        !statusFromUser
-    ) {
-        redirect("/edit-template");
-    }
+    const dateIso = currentSlot.full_date_at_period.split(/[ T]/)[0];
 
-    const {
-        id,
-        status,
-        start_time,
-        end_time,
-        break_start,
-        break_end,
-        buffer_minutes,
-    } = fetchSlot.rows[0];
+    const hasChanged =
+        currentSlot.status !== statusFromUser ||
+        currentSlot.start_time !== startTimeFromUser ||
+        currentSlot.end_time !== endTimeFromUser ||
+        currentSlot.break_start !== breakStartFromUser ||
+        currentSlot.break_end !== breakEndFromUser ||
+        currentSlot.buffer_minutes !== bufferTimeFromUser;
 
-    if (
-        status === statusFromUser &&
-        start_time === startTimeFromUser &&
-        end_time === endTimeFromUser &&
-        break_start === breakStartFromUser &&
-        break_end === breakEndFromUser &&
-        buffer_minutes === Number(bufferTimeFromUser)
-    ) {
+    if (!hasChanged) {
         redirect(`/edit-slot/${slotPubId}`);
     }
 
+    let affectedBookings = [];
+
     try {
-        await db.execute(
-            `UPDATE slots 
-             SET status = ?, start_time = ?, end_time = ?, break_start = ?, break_end = ?, buffer_minutes = ? 
-             WHERE id = ?`,
+        const batchResults = await db.batch(
             [
-                statusFromUser,
-                startTimeFromUser,
-                endTimeFromUser,
-                breakStartFromUser,
-                breakEndFromUser,
-                Number(bufferTimeFromUser),
-                id,
-            ]
+                {
+                    sql: `UPDATE slots 
+                          SET status = ?, start_time = ?, end_time = ?, break_start = ?, break_end = ?, buffer_minutes = ? 
+                          WHERE id = ?`,
+                    args: [
+                        statusFromUser,
+                        startTimeFromUser,
+                        endTimeFromUser,
+                        breakStartFromUser,
+                        breakEndFromUser,
+                        bufferTimeFromUser,
+                        currentSlot.id,
+                    ],
+                },
+                {
+                    sql: `UPDATE bookings 
+                          SET status = 'revoked' 
+                          WHERE admin_id = ? 
+                          AND doctor_id = ? 
+                          AND booking_date_iso = ?
+                          AND status IN ('pending','unverified','verified')
+                          RETURNING patient_email, patient_name, doctor_name`,
+                    args: [adminId, currentSlot.doctor_id, dateIso],
+                },
+            ],
+            "write"
         );
 
-        const dateIso = fetchSlot.rows[0].full_date_at_period.split("T")[0];
+        affectedBookings = batchResults[1].rows;
 
-        const getAndUpdateBookings = await db.execute(
-            `UPDATE bookings 
-             SET status = 'revoked' 
-             WHERE admin_id = ? 
-             AND booking_date_iso = ? 
-             AND status != 'revoked'
-             RETURNING patient_email, patient_name, doctor_name`,
-            [adminId, dateIso]
-        );
-
-        if (getAndUpdateBookings.rows.length > 0) {
-            await sendCancelationEmails(getAndUpdateBookings.rows, 100);
+        if (affectedBookings.length > 0) {
+            try {
+                await sendCancelationEmails(affectedBookings, 100);
+            } catch (emailErr) {
+                console.error(
+                    "Critical: Schedule updated but emails failed:",
+                    emailErr
+                );
+            }
         }
     } catch (e) {
-        console.error("Update failed:", e);
-        throw new Error("Could not update slot");
+        console.error("Batch update failed:", e);
+        return null;
     }
 
     revalidatePath(`/edit-slot/${slotPubId}`);
-    redirect(`/edit-slot/${slotPubId}`);
+    revalidatePath("/manage-generated-slots");
+
+    redirect(`/edit-slot/${slotPubId}?success=true`);
 }
 ```
 ---
@@ -3966,13 +4020,15 @@ export async function sendBulkCancelationEmails(payload = {}) {
 
     for (const chunk of Object.keys(payload)) {
         const clause = payload[chunk].map(item => {
+            const name = item.patient_name?.split(" ").map(word => word[0].toUpperCase() + word.slice(1)).join(" ") || "Valued Patient";
+            const docName = item.doctor_name?.split(" ").map(word => "Dr." + word[0].toUpperCase() + word.slice(1)).join(" ") || "The Doctor";
             return {
                 from: `NomiDev <bookings@nomidev.com>`,
                 to: [item.patient_email],
                 subject: "Appointment Cancellation",
                 html: `
-                <p>Dear ${item.patient_name.split(" ").map(word => word[0].toUpperCase() + word.slice(1)).join(" ")}</p>
-                <p>This is to inform you that your scheduled appointment with Dr. ${item.doctor_name.split(" ").map(word => word[0].toUpperCase() + word.slice(1)).join(" ")} has been cancelled by the clinic.</p>
+                <p>Dear ${name}</p>
+                <p>This is to inform you that your scheduled appointment with ${docName} has been cancelled by the clinic.</p>
                 <p>Please Visit our website to schedule another appointment.</p>
                 `
             }
@@ -4109,9 +4165,10 @@ export async function rollingWindow(adminId = null, win = 31) {
             const yearAtPeriod = current.getFullYear();
             const dayNumAtPeriod = current.getDay();
 
-            const fullDateAtPeriodInIso = current
-                .toISOString()
-                .split("T")[0];
+            const yyyy = current.getFullYear();
+            const mm = String(current.getMonth() + 1).padStart(2, '0');
+            const dd = String(current.getDate()).padStart(2, '0');
+            const fullDateAtPeriodInIso = `${yyyy}-${mm}-${dd}`;
 
             const templateAtPeriod = fetchAllTemplates.rows.filter(
                 (fn) => fn.day_number === dayNumAtPeriod
@@ -4533,7 +4590,7 @@ import DownloadTicketButton from "./client";
 import { redisIpLimit } from "@/app/lib/redis";
 
 export default async function Message({ params }) {
-    
+
     const redisLimit = await redisIpLimit(20, "message", 60 * 15);
     if (!redisLimit.ok) return <p>{redisLimit.message}</p>
 
@@ -4550,9 +4607,10 @@ export default async function Message({ params }) {
 
     const booking = fetch.rows[0];
 
-    if (booking.status === "cancelled") return <p>Appointment has been cancelled. Book again.</p>;
+    if (booking.status === "cancelled") return <p>You have cancelled this booking. Please Book again.</p>;
+    if (booking.status === "revoked") return <p>Appointment has been revoked by the clinic. We are sorry for the inconvenience. Please Book again.</p>;
 
-    
+
 
     return (<>
         <p>Appointment Date: {booking.date_number > 9 ? booking.date_number : "0" + booking.date_number} {getMonthName(booking.month_number)} {booking.year}</p>
@@ -4567,11 +4625,6 @@ export default async function Message({ params }) {
         </>}
     </>);
 }
-```
----
-## src\app\message\[bookingPubId]\[adminPubId]\sa.js
-```
-
 ```
 ---
 ## src\app\Models\initTables.js
@@ -4748,7 +4801,7 @@ export async function initSlotsTable() {
                 full_date_at_period TEXT,
 
 
-                UNIQUE(admin_id, doctor_id, month_number, year, date_number) ON CONFLICT IGNORE,
+                UNIQUE(admin_id, doctor_id, full_date_at_period) ON CONFLICT IGNORE,
 
                 FOREIGN KEY (doctor_id) REFERENCES doctors (id) ON DELETE CASCADE,
                 FOREIGN KEY (admin_id) REFERENCES admins (id) ON DELETE CASCADE
@@ -5289,7 +5342,10 @@ export default async function VerifyEmail({ params }) {
     const verified = await compare(emailToken, fetchBooking.rows[0].email_token_hash);
     if (!verified) return <p>Broken link. Email not found.</p>;
 
-    await db.execute(`UPDATE bookings SET email_token_hash = NULL, status = 'verified', email_token_created_at = NULL WHERE public_id = ? AND admin_id = ?`, [bookingPubId, adminId]);
+    const updateResult = await db.execute(`UPDATE bookings SET email_token_hash = NULL, status = 'verified', email_token_created_at = NULL WHERE id = ? AND admin_id = ? AND status = 'unverified' AND email_token_hash IS NOT NULL`, [fetchBooking.rows[0].id, adminId]);
+
+    if (updateResult.rowsAffected === 0) redirect(`/message/${bookingPubId}/${adminPubId}`);
+
 
 
     const cancel_token = crypto.randomBytes(32).toString("hex");

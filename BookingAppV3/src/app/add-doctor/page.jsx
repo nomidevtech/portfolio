@@ -39,7 +39,7 @@ export default async function AddDoctor() {
                     {docRes.rows.map((doctor) => (
                         <div key={doctor.public_id} className="border-2 p-2 my-1">
                             <p>
-                                Name: Dr. {doctor.name.charAt(0).toUpperCase() + doctor.name.slice(1)} -
+                                Name: Dr. {doctor.name.split("-").map(w => w[0].toUpperCase() + w.slice(1)).join(" ")} -
                                 Qualifications: {JSON.parse(doctor.qualifications || "[]").join(", ").toUpperCase()} -
                                 Dept: {doctor.department}
                             </p>

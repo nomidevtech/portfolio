@@ -98,7 +98,7 @@ export async function rollingWindow(adminId = null, win = 31) {
         await db.execute(
             `INSERT INTO slots (${columns})
              VALUES ${placeHolder}
-             ON CONFLICT (admin_id, doctor_id, month_number, year, date_number)
+             ON CONFLICT (admin_id, doctor_id, full_date_at_period)
              DO NOTHING`,
             values
         );
