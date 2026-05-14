@@ -31,7 +31,7 @@ export async function adminRevokeBookings(_, formData) {
 
 
         const getAndUpdateBookings = await db.execute(
-            `UPDATE bookings SET status = 'revoked' WHERE admin_id = ? AND booking_date_iso = ? AND status != 'revoked' RETURNING patient_email, patient_name, doctor_name`, [admin.id, bookingsDate]);
+            `UPDATE bookings SET status = 'revoked' WHERE admin_id = ? AND booking_date_iso = ? AND status NOT IN ('revoked', 'cancelled') RETURNING patient_email, patient_name, doctor_name`, [admin.id, bookingsDate]);
 
         const rowsWithEmail = getAndUpdateBookings.rows.filter(row => row.patient_email);
         if (rowsWithEmail.length > 0) {
@@ -130,7 +130,7 @@ export async function doctorRevokeBookings(_, formData) {
         if (doctor.id !== user.doctor_id) return { ok: false, message: "Forbidden." };
 
         const res = await db.execute(
-            `UPDATE bookings SET status = 'revoked' WHERE doctor_id = ? AND booking_date_iso = ? AND status != 'revoked' RETURNING patient_email, patient_name, doctor_name`,
+            `UPDATE bookings SET status = 'revoked' WHERE doctor_id = ? AND booking_date_iso = ? AND status NOT IN ('revoked', 'cancelled') RETURNING patient_email, patient_name, doctor_name`,
             [doctor.id, bookingsDate]
         );
 

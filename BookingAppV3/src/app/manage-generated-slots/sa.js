@@ -26,7 +26,7 @@ export async function toggleSlotStatus(slotPubId) {
 
         if (newStatus === 'inactive') {
             const getAndUpdateBookings = await db.execute(
-                `UPDATE bookings SET status = 'revoked' WHERE admin_id = ? AND doctor_id = ? AND booking_date_iso = ? AND status != 'revoked' RETURNING patient_email, patient_name, doctor_name`,
+                `UPDATE bookings SET status = 'revoked' WHERE admin_id = ? AND doctor_id = ? AND booking_date_iso = ? AND status NOT IN ('revoked', 'cancelled') RETURNING patient_email, patient_name, doctor_name`,
                 [adminId, currentSlot.doctor_id, currentSlot.full_date_at_period]
             );
             if (getAndUpdateBookings.rows.length > 0) {

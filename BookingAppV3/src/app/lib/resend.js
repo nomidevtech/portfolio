@@ -30,9 +30,15 @@ export async function sendBulkCancelationEmails(payload = {}) {
     if (!payload) return null;
 
     for (const chunk of Object.keys(payload)) {
+
         const clause = payload[chunk].map(item => {
+
             const name = item.patient_name?.split("-").map(word => word[0].toUpperCase() + word.slice(1)).join(" ") || "Valued Patient";
-            const docName = item.doctor_name?.split("-").map(word => "Dr." + word[0].toUpperCase() + word.slice(1)).join(" ") || "The Doctor";
+
+            const docName = item.doctor_name
+                ? `Dr. ${item.doctor_name.split("-").map(word => word[0].toUpperCase() + word.slice(1)).join(" ")}`
+                : "The Doctor";
+
             return {
                 from: `NomiDev <bookings@nomidev.com>`,
                 to: [item.patient_email],

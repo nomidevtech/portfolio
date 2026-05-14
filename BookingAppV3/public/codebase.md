@@ -256,7 +256,7 @@ export async function loginSA(_, formData) {
 
         const d = new Date();
         d.setDate(d.getDate() + 14);
-        const expires = d.toISOString();
+        const expires = d.toISOString().slice(0, 19).replace('T', ' ');
 
         await db.execute(
             "DELETE FROM sessions WHERE expires_at < CURRENT_TIMESTAMP"
@@ -859,7 +859,7 @@ export default async function AddDoctor() {
                     {docRes.rows.map((doctor) => (
                         <div key={doctor.public_id} className="border-2 p-2 my-1">
                             <p>
-                                Name: Dr. {doctor.name.charAt(0).toUpperCase() + doctor.name.slice(1)} -
+                                Name: Dr. {doctor.name.split("-").map(w => w[0].toUpperCase() + w.slice(1)).join(" ")} -
                                 Qualifications: {JSON.parse(doctor.qualifications || "[]").join(", ").toUpperCase()} -
                                 Dept: {doctor.department}
                             </p>
@@ -1218,7 +1218,7 @@ export async function appointmentRegisterationServerAction(_, formData) {
         if (fetch.rows.length === 0) return { ok: false, message: "Booking not found." };
 
         const update = await db.execute(
-            `UPDATE bookings SET patient_name = ?, patient_email = ?, patient_phone = ?, status = ?, email_token_hash = ?, email_token_created_at = CURRENT_TIMESTAMP WHERE id = ? AND admin_id = ?`,
+            `UPDATE bookings SET patient_name = ?, patient_email = ?, patient_phone = ?, status = ?, email_token_hash = ?, email_token_created_at = CURRENT_TIMESTAMP WHERE id = ? AND admin_id = ? AND status = 'pending'`,
             [name, email, phone, "unverified", hashed, fetch.rows[0].id, adminId]
         );
 
@@ -1286,7 +1286,7 @@ export default async function AdminComponent({ currentUser }) {
             <div key={booking.public_id} className="border-2 border-amber-950 my-2" >
               <p>Appointment Date: {booking.date_number > 9 ? booking.date_number : "0" + booking.date_number} {getMonthName(booking.month_number)} {booking.year}</p>
               <p>Timing: {minutesToMeridiem(booking.treatment_start, true)} - {minutesToMeridiem(booking.treatment_end, true)}</p>
-              <p>Doctor: {booking.doctor_name ? booking.doctor_name.split(" ").map(word => word[0].toUpperCase() + word.slice(1)).join(" ") : "N/A"}</p>
+              <p>Doctor: {booking.doctor_name ? booking.doctor_name.split("-").map(word => word[0].toUpperCase() + word.slice(1)).join(" ") : "N/A"}</p>
               <p>Treatment: {booking.treatment_name ? booking.treatment_name.split("_").map(word => word[0].toUpperCase() + word.slice(1)).join(" ") : "N/A"}</p>
               <p>Session Duration: {booking.treatment_duration} minutes</p>
               <p>Booking Status: {booking.status[0].toUpperCase() + booking.status.slice(1)}</p>
@@ -1694,11 +1694,11 @@ export async function adminRevokeBooking(_, formData) {
 
         const booking = fetchBooking.rows[0];
         const to = booking?.patient_email;
-        const name = booking?.patient_name?.split(" ").map(word => word[0].toUpperCase() + word.slice(1)).join(" ") ?? "Visitor";
+        const name = booking?.patient_name?.split("-").map(word => word[0].toUpperCase() + word.slice(1)).join(" ") ?? "Visitor";
         const subject = "Your booking has been revoked.";
         const html = `
                 <p>Dear ${name}</p>
-                <p>This is to inform you that your scheduled appointment with Dr. ${fetchBooking.rows[0].doctor_name.split(" ").map(word => word[0].toUpperCase() + word.slice(1)).join(" ")} has been cancelled by the clinic.</p>
+                <p>This is to inform you that your scheduled appointment with Dr. ${fetchBooking.rows[0].doctor_name?.split("-").map(word => word[0].toUpperCase() + word.slice(1)).join(" ")} has been cancelled by the clinic.</p>
                 <p>Please Visit our website to schedule another appointment.</p>
                 `;
 
@@ -1793,12 +1793,12 @@ export async function doctorRevokeBooking(_, formData) {
         );
 
         const booking = fetchBooking.rows[0];
-        const patientName = booking?.patient_name?.split(" ").map(word => word[0].toUpperCase() + word.slice(1)).join(" ") ?? "Visitor";
+        const patientName = booking?.patient_name?.split("-").map(word => word[0].toUpperCase() + word.slice(1)).join(" ") ?? "Visitor";
         const to = booking.patient_email;
         const subject = "Your booking has been revoked.";
         const html = `
                 <p>Dear ${patientName}</p>
-                <p>This is to inform you that your scheduled appointment with Dr. ${booking.doctor_name.split(" ").map(word => word[0].toUpperCase() + word.slice(1)).join(" ")} has been cancelled by the clinic.</p>
+                <p>This is to inform you that your scheduled appointment with Dr. ${booking.doctor_name.split("-").map(word => word[0].toUpperCase() + word.slice(1)).join(" ")} has been cancelled by the clinic.</p>
                 <p>Please Visit our website to schedule another appointment.</p>
                 `;
 
@@ -2265,24 +2265,20 @@ export default async function cancelAppointment({ params }) {
 
     const adminId = fetchAdmin.rows[0].id;
 
-    try {
-        const fetch = await db.execute(`SELECT id, cancel_token_hash FROM bookings WHERE admin_id = ? AND public_id = ?`, [adminId, bookingPubId]);
-        if (fetch.rows.length === 0) return <p>Broken link. Email not found.</p>;
 
-        if (!fetch.rows[0].cancel_token_hash) {
-            redirect(`/message/${bookingPubId}/${adminPubId}`);
-        }
+    const fetchBooking = await db.execute(`SELECT id, cancel_token_hash FROM bookings WHERE admin_id = ? AND public_id = ?`, [adminId, bookingPubId]);
+    if (fetchBooking.rows.length === 0) return <p>Broken link. Email not found.</p>;
 
-
-        const verified = await compare(cancelToken, fetch.rows[0].cancel_token_hash);
-        if (!verified) return <p>Broken link. Email not found.</p>;
-
-        await db.execute(`UPDATE bookings SET cancel_token_hash = NULL, status = 'cancelled' WHERE admin_id = ? AND public_id = ?`, [adminId, bookingPubId]);
-
-    } catch (error) {
-        console.error(error);
-        return <p>Broken link. Email not found.</p>;
+    if (!fetchBooking.rows[0].cancel_token_hash) {
+        redirect(`/message/${bookingPubId}/${adminPubId}`);
     }
+
+
+    const verified = await compare(cancelToken, fetchBooking.rows[0].cancel_token_hash);
+    if (!verified) return <p>Broken link. Email not found.</p>;
+
+    await db.execute(`UPDATE bookings SET cancel_token_hash = NULL, status = 'cancelled' WHERE admin_id = ? AND public_id = ?`, [adminId, bookingPubId]);
+
 
 
     redirect(`/message/${bookingPubId}/${adminPubId}`);
@@ -3048,7 +3044,7 @@ export async function editDoctorServerAction(formData) {
     const name = formData?.get("name")?.replace(/\s/g, "-").toLowerCase();
     const username = formData?.get("username");
     const newPassword = formData?.get("new_password");
-    const department = formData?.get("department").replace(/\s/g, "-").toLowerCase();
+    const department = formData?.get("department")?.replace(/\s/g, "-").toLowerCase();
     const qualification = formData.get("qualification")?.toString().split(/[ ,]+/).filter(Boolean).map(q => q.trim().toLowerCase());
 
     if (!doctorPubId || !name || !department || !username) return null;
@@ -3692,7 +3688,7 @@ export async function updateWeeklyTemplateServerAction(formData) {
     });
   } catch (e) {
     console.error("Update failed:", e);
-    throw new Error("Could not update template");
+    return { ok: false, message: "Could not update template. Please try again." };
   }
 
   //revalidatePath(`/edit-template/${docPubId}/${templatePubId}`);
@@ -3754,12 +3750,12 @@ export async function generateTicketPdf(bookingPubId, adminPubId) {
     )} - ${minutesToMeridiem(booking.treatment_end, true)}`;
 
     const patientName = booking.patient_name
-        ?.split(" ")
+        ?.split("-")
         .map((w) => w[0].toUpperCase() + w.slice(1))
         .join(" ");
 
     const doctorName = booking.doctor_name
-        ?.split(" ")
+        ?.split("-")
         .map((w) => w[0].toUpperCase() + w.slice(1))
         .join(" ");
 
@@ -4020,8 +4016,8 @@ export async function sendBulkCancelationEmails(payload = {}) {
 
     for (const chunk of Object.keys(payload)) {
         const clause = payload[chunk].map(item => {
-            const name = item.patient_name?.split(" ").map(word => word[0].toUpperCase() + word.slice(1)).join(" ") || "Valued Patient";
-            const docName = item.doctor_name?.split(" ").map(word => "Dr." + word[0].toUpperCase() + word.slice(1)).join(" ") || "The Doctor";
+            const name = item.patient_name?.split("-").map(word => word[0].toUpperCase() + word.slice(1)).join(" ") || "Valued Patient";
+            const docName = item.doctor_name?.split("-").map(word => "Dr." + word[0].toUpperCase() + word.slice(1)).join(" ") || "The Doctor";
             return {
                 from: `NomiDev <bookings@nomidev.com>`,
                 to: [item.patient_email],
@@ -4045,17 +4041,20 @@ export async function sendBulkCancelationEmails(payload = {}) {
 "use server";
 
 import { hash } from "../utils/bcrypt";
+import { redisIpLimit } from "./redis";
 import { sendEmail } from "./resend";
 import { db } from "./turso";
 import crypto from "crypto";
 
 export async function resendingAdminEmail(_, formData) {
 
+    const apiLimit = await redisIpLimit(25, "resendingAdminEmail", 60 * 15);
+    if (!apiLimit.ok) return { ok: false, message: apiLimit.message };
 
     const adminPubId = formData.get("adminPubId");
     if (!adminPubId) return { ok: false, message: "Missing required fields." };
 
-    const fetchAdmin = await db.execute(`SELECT id, admin_email FROM admins WHERE public_id = ?`, [adminPubId]);
+    const fetchAdmin = await db.execute(`SELECT id, admin_email FROM admins WHERE public_id = ? AND status = 'unverified'`, [adminPubId]);
     if (fetchAdmin.rows.length === 0) return { ok: false, message: "Invalid admin." };
     const adminId = fetchAdmin.rows[0].id;
 
@@ -4092,6 +4091,10 @@ export async function resendingAdminEmail(_, formData) {
 
 export async function resendingPatientEmail(_, formData) {
 
+    const apiLimit = await redisIpLimit(25, "resendingPatientEmail", 60 * 15);
+    if (!apiLimit.ok) return { ok: false, message: apiLimit.message };
+
+
     const bookingPubId = formData.get("bookingPubId");
     const adminPubId = formData.get("adminPubId");
     if (!bookingPubId || !adminPubId) return { ok: false, message: "Missing required fields." };
@@ -4105,7 +4108,7 @@ export async function resendingPatientEmail(_, formData) {
 
     try {
 
-        const fetch = await db.execute(`SELECT patient_email FROM bookings WHERE admin_id = ? AND public_id = ?`, [adminId, bookingPubId]);
+        const fetch = await db.execute(`SELECT patient_email FROM bookings WHERE admin_id = ? AND public_id = ? AND status = 'unverified'`, [adminId, bookingPubId]);
         if (fetch.rows.length === 0) throw new Error("Invalid booking.");
 
         await db.execute(`UPDATE bookings SET email_token_hash = ?, email_token_created_at = CURRENT_TIMESTAMP WHERE admin_id = ? AND public_id = ?`, [hashed, adminId, bookingPubId]);
@@ -4235,7 +4238,7 @@ export async function rollingWindow(adminId = null, win = 31) {
         await db.execute(
             `INSERT INTO slots (${columns})
              VALUES ${placeHolder}
-             ON CONFLICT (admin_id, doctor_id, month_number, year, date_number)
+             ON CONFLICT (admin_id, doctor_id, full_date_at_period)
              DO NOTHING`,
             values
         );
@@ -4615,7 +4618,7 @@ export default async function Message({ params }) {
     return (<>
         <p>Appointment Date: {booking.date_number > 9 ? booking.date_number : "0" + booking.date_number} {getMonthName(booking.month_number)} {booking.year}</p>
         <p>Timing: {minutesToMeridiem(booking.treatment_start, true)} - {minutesToMeridiem(booking.treatment_end, true)}</p>
-        <p>Patient Name: {booking.patient_name?.split(" ").map(word => word[0].toUpperCase() + word.slice(1)).join(" ")}</p>
+        <p>Patient Name: {booking.patient_name?.split("-").map(word => word[0].toUpperCase() + word.slice(1)).join(" ")}</p>
         <p>Patient Email: {booking.patient_email}</p>
         <p>Patient Phone: {booking.patient_phone}</p>
         {booking.status !== "verified" && <p>You need to verify your email within 30 minutes to book the slot. Otherwise it will be avaliable for others to book again.</p>}

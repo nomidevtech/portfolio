@@ -264,7 +264,7 @@ export async function initBookingsTable() {
                 treatment_start,
                 treatment_end
             )
-            WHERE status IN ('pending', 'verified');
+            WHERE status IN ('pending', 'verified' , 'unverified');
         `);
 
         return {

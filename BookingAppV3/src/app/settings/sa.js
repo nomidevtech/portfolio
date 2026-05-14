@@ -2,6 +2,7 @@
 
 import crypto from "crypto";
 import { redirect } from "next/navigation";
+import { cookies } from "next/headers";
 import { db } from "../lib/turso";
 import { compare, hash } from "../utils/bcrypt";
 import { getUserPlus } from "../lib/getUser";
@@ -28,6 +29,7 @@ export async function updateAdmin(_, formData) {
     const adminIdInAdminTable = getCurrentUser.admin_id;
     const userIdInUsersTable = getCurrentUser.id;
     const emailChanged = getCurrentUser.admin_details.admin_email !== email;
+    const currentSessionToken = cookies().get("session")?.value;
 
     let new_passwordHash = null;
     if (current_password && new_password) {
@@ -51,6 +53,10 @@ export async function updateAdmin(_, formData) {
             );
             await db.execute("UPDATE users SET username=?, password=?, status='unverified' WHERE id=?",
                 [username, new_passwordHash, userIdInUsersTable]);
+
+            await db.execute("DELETE FROM sessions WHERE user_id = ? AND session_id != ?",
+                [userIdInUsersTable, currentSessionToken]
+            );
         } else if (emailChanged) {
             await db.execute(
                 "UPDATE admins SET admin_name=?, admin_username=?, admin_email=?, clinic_name=?, clinic_phone=?, clinic_address=?, status='unverified', email_token_hash=?, email_token_created_at=CURRENT_TIMESTAMP WHERE id=?",
@@ -65,6 +71,10 @@ export async function updateAdmin(_, formData) {
             );
             await db.execute("UPDATE users SET username=?, password=? WHERE id=?",
                 [username, new_passwordHash, userIdInUsersTable]);
+
+            await db.execute("DELETE FROM sessions WHERE user_id = ? AND session_id != ?",
+                [userIdInUsersTable, currentSessionToken]
+            );
         } else {
             await db.execute(
                 "UPDATE admins SET admin_name=?, admin_username=?, clinic_name=?, clinic_phone=?, clinic_address=? WHERE id=?",

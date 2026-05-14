@@ -49,10 +49,7 @@ export async function redisIpLimit(
     } catch (error) {
 
         console.error(error);
-
-        return {
-            ok: false,
-            message: "An error occurred"
-        };
+        // ok is true to prevent app lock in case of redis network or any other error
+        return { ok: true, message: "Rate limit check skipped" };
     }
 }

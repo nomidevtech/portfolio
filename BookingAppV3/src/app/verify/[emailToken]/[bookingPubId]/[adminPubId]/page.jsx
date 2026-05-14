@@ -33,10 +33,13 @@ export default async function VerifyEmail({ params }) {
     const verified = await compare(emailToken, fetchBooking.rows[0].email_token_hash);
     if (!verified) return <p>Broken link. Email not found.</p>;
 
-    const updateResult = await db.execute(`UPDATE bookings SET email_token_hash = NULL, status = 'verified', email_token_created_at = NULL WHERE id = ? AND admin_id = ? AND status = 'unverified' AND email_token_hash IS NOT NULL`, [fetchBooking.rows[0].id, adminId]);
+    try {
+        const updateResult = await db.execute(`UPDATE bookings SET email_token_hash = NULL, status = 'verified', email_token_created_at = NULL WHERE id = ? AND admin_id = ? AND status = 'unverified' AND email_token_hash IS NOT NULL`, [fetchBooking.rows[0].id, adminId]);
 
-    if (updateResult.rowsAffected === 0) redirect(`/message/${bookingPubId}/${adminPubId}`);
-
+        if (updateResult.rowsAffected === 0) redirect(`/message/${bookingPubId}/${adminPubId}`);
+    } catch (error) {
+        redirect(`/message/${bookingPubId}/${adminPubId}`);
+    }
 
 
     const cancel_token = crypto.randomBytes(32).toString("hex");
