@@ -5,9 +5,7 @@ import { db } from "@/app/lib/turso";
 import { nanoid } from "nanoid";
 import { redirect } from "next/navigation";
 
-
 export async function reserveSlot(_, formData) {
-
     const redisLimit = await redisIpLimit(15, "reserveSlot", 60 * 15);
     if (!redisLimit.ok) return { ok: false, message: redisLimit.message };
 
@@ -29,10 +27,8 @@ export async function reserveSlot(_, formData) {
     let bookingPublicId = null;
 
     try {
-
         if (
-            !docPubId ||
-            !treatmentPubId ||
+            !docPubId || !treatmentPubId ||
             !formData.get("treatment_start") || Number.isNaN(patient_selected_treatment_start) ||
             !formData.get("treatment_end") || Number.isNaN(patient_selected_treatment_end) ||
             !formData.get("day_number") || Number.isNaN(day_number) ||
@@ -51,22 +47,37 @@ export async function reserveSlot(_, formData) {
         if (fetchDoctor.rows.length === 0) return { ok: false, message: "Invalid doctor." };
         if (fetchTreatment.rows.length === 0) return { ok: false, message: "Invalid treatment." };
 
-        const docId = fetchDoctor?.rows[0]?.id;
+        const docId = fetchDoctor.rows[0].id;
 
+        // FIX 1: Fetch all necessary time boundaries and the buffer from the slot
         const fetchSlot = await db.execute(
-            `SELECT status FROM slots WHERE admin_id = ? AND doctor_id = ? AND date_number = ? AND month_number = ? AND year = ?`,
+            `SELECT status, buffer_minutes, start_time, end_time, break_start, break_end 
+             FROM slots 
+             WHERE admin_id = ? AND doctor_id = ? AND date_number = ? AND month_number = ? AND year = ?`,
             [adminId, docId, date_number, month_number, year]
         );
-        if (fetchSlot.rows.length === 0 || fetchSlot.rows[0].status !== 'active')
-            return { ok: false, message: "This slot is no longer available." };
 
-        const docName = fetchDoctor?.rows[0]?.name;
-        const treatmentId = fetchTreatment?.rows[0]?.id;
-        const treatmentDuration = fetchTreatment?.rows[0]?.duration;
+        if (fetchSlot.rows.length === 0 || fetchSlot.rows[0].status !== 'active') {
+            return { ok: false, message: "This slot is no longer available." };
+        }
+
+        const { buffer_minutes, start_time, end_time, break_start, break_end } = fetchSlot.rows[0];
+        const docName = fetchDoctor.rows[0].name;
+        const treatmentId = fetchTreatment.rows[0].id;
+        const treatmentDuration = fetchTreatment.rows[0].duration;
 
         const validTreatmentDuration = patient_selected_treatment_end - patient_selected_treatment_start === treatmentDuration;
         if (!validTreatmentDuration) return { ok: false, message: "Invalid treatment duration." };
 
+        
+        if (patient_selected_treatment_start < start_time || patient_selected_treatment_end > end_time) {
+            return { ok: false, message: "Selected time is outside of clinic hours." };
+        }
+        if (patient_selected_treatment_start < break_end && patient_selected_treatment_end > break_start) {
+            return { ok: false, message: "Selected time overlaps with the doctor's break." };
+        }
+
+        
         const [fetchRecord, fetchBookings] = await Promise.all([
             db.execute(
                 `SELECT 1 FROM doctor_treatments WHERE doctor_id = ? AND treatment_id = ? AND admin_id = ?`,
@@ -75,9 +86,15 @@ export async function reserveSlot(_, formData) {
             db.execute(
                 `SELECT 1 FROM bookings
                  WHERE admin_id = ? AND doctor_id = ? AND date_number = ? AND month_number = ? AND year = ?
-                 AND treatment_end > ? AND treatment_start < ? AND status NOT IN('cancelled', 'revoked')
+                 AND treatment_start < ? 
+                 AND (treatment_end + ?) > ? 
+                 AND status NOT IN('cancelled', 'revoked')
                  LIMIT 1`,
-                [adminId, docId, date_number, month_number, year, patient_selected_treatment_start, patient_selected_treatment_end]
+                [
+                    adminId, docId, date_number, month_number, year,
+                    patient_selected_treatment_end + buffer_minutes,
+                    buffer_minutes, patient_selected_treatment_start
+                ]
             ),
         ]);
 
@@ -85,7 +102,6 @@ export async function reserveSlot(_, formData) {
         if (fetchBookings.rows.length > 0) return { ok: false, message: "Slot already reserved by someone." };
 
         const bookingDate = `${year}-${String(month_number + 1).padStart(2, '0')}-${String(date_number).padStart(2, '0')}`;
-
 
         const res = await db.execute(
             `INSERT INTO bookings (admin_id, public_id, doctor_name, doctor_id, treatment_id, day_number, date_number, month_number, year, booking_date_iso, treatment_start, treatment_end)

@@ -32,8 +32,8 @@ export async function signupServerAction(prevState, formData) {
         if (!clinic_name || !clinic_phone) return { ok: false, message: "Clinic name and phone are required" };
 
         const [userCheck, emailCheck] = await Promise.all([
-            db.execute("SELECT id FROM users WHERE username = ?", [username]),
-            db.execute("SELECT id FROM admins WHERE admin_email = ?", [admin_email])
+            db.execute("SELECT 1 FROM users WHERE username = ? LIMIT 1", [username]),
+            db.execute("SELECT 1 FROM admins WHERE admin_email = ? LIMIT 1", [admin_email])
         ]);
 
         if (userCheck.rows.length > 0) return { ok: false, message: "Username already exists" };
@@ -43,18 +43,30 @@ export async function signupServerAction(prevState, formData) {
         const email_token = crypto.randomBytes(32).toString("hex");
         const hashedToken = await hash(email_token);
 
-        const res = await db.execute(
-            `INSERT INTO admins (public_id, admin_name, admin_email, admin_username, clinic_name, clinic_phone, clinic_address, password, email_token_hash) 
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id`,
-            [public_id, admin_name.toLowerCase().replace(/\s+/g, '-'), admin_email, username, clinic_name.toLowerCase().replace(/\s+/g, '-'), clinic_phone, clinic_address.toLowerCase().replace(/\s+/g, '-'), hashedPassword, hashedToken]
-        );
+        const results = await db.batch([
+            {
+                sql: `INSERT INTO admins (public_id, admin_name, admin_email, admin_username, clinic_name, clinic_phone, clinic_address, password, email_token_hash, email_token_created_at)
+                      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP) RETURNING id`,
+                args: [
+                    public_id,
+                    admin_name.toLowerCase().replace(/\s+/g, '-'),
+                    admin_email,
+                    username,
+                    clinic_name.toLowerCase().replace(/\s+/g, '-'),
+                    clinic_phone,
+                    clinic_address.toLowerCase().replace(/\s+/g, '-'),
+                    hashedPassword,
+                    hashedToken
+                ]
+            },
+            {
+                sql: `INSERT INTO users (public_id, admin_id, role, username, password) 
+                      VALUES (?, last_insert_rowid(), ?, ?, ?)`,
+                args: [nanoid(12), "admin", username, hashedPassword]
+            }
+        ], "write");
 
-        const adminId = res.rows[0]?.id;
-
-        await db.execute(
-            `INSERT INTO users (public_id, admin_id, role, username, password) VALUES (?, ?, ?, ?, ?)`,
-            [nanoid(12), adminId, "admin", username, hashedPassword]
-        );
+        if (results[0].rowsAffected === 0 || results[1].rowsAffected === 0) return { ok: false, message: "An error occurred during registration" };
 
         await sendEmail({
             to: admin_email,

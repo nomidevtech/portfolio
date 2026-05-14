@@ -236,7 +236,7 @@ export async function loginSA(_, formData) {
 
         const isPasswordValid = await compare(password, passwordHash);
 
-        if (!isPasswordValid) return { ok: false, message: " Invalid credentials" };
+        if (!isPasswordValid) return { ok: false, message: "Invalid credentials" };
 
 
         if (user.status !== "verified") return { ok: false, message: "Please verify your email before logging in." };
@@ -257,6 +257,10 @@ export async function loginSA(_, formData) {
         const d = new Date();
         d.setDate(d.getDate() + 14);
         const expires = d.toISOString();
+
+        await db.execute(
+            "DELETE FROM sessions WHERE expires_at < CURRENT_TIMESTAMP"
+        );
 
         await db.execute(`INSERT INTO sessions (session_id, user_id, expires_at) VALUES (?, ?, ?)`, [sessionToken, user.id, expires]);
 
@@ -376,7 +380,7 @@ export async function findEMail(_, formData) {
 
         await sendEmail({ to, subject, html });
 
-        return { ok: true, message: "Recovery link sent to " + userEmail };
+        return { ok: true, message: "If that email exists, a reset link has been sent" };
 
     } catch (error) {
         console.error(error);
@@ -387,13 +391,14 @@ export async function findEMail(_, formData) {
 ---
 ## src\app\(auth)\recovery\[recoveryToken]\[adminPubId]\Client.jsx
 ```
+// src/app/(auth)/recovery/[recoveryToken]/[adminPubId]/Client.jsx
 "use client";
 
 import Form from "next/form";
 import { useActionState } from "react";
 import { updateAdminPassword } from "./sa";
 
-export default function ClientNewPassword({ adminPubId }) {
+export default function ClientNewPassword({ adminPubId, recoveryToken }) { // FIX: Accept recoveryToken
     const initialState = { ok: null, message: "" };
     const [state, formAction, isPending] = useActionState(updateAdminPassword, initialState);
 
@@ -401,6 +406,7 @@ export default function ClientNewPassword({ adminPubId }) {
         <>
             <Form action={formAction}>
                 <input type="hidden" name="adminPubId" value={adminPubId} />
+                <input type="hidden" name="recoveryToken" value={recoveryToken} />
                 <input type="password" name="password" placeholder="Enter new password" />
                 <input type="password" name="confirm_password" placeholder="Confirm password" />
                 {state.message && <p>{state.message}</p>}
@@ -435,7 +441,8 @@ export default async function NewPassword({ params }) {
     const match = await compare(recoveryToken, admin.recovery_token_hash);
     if (!match) return <div>Failed to verify. Please try again.</div>;
 
-    return <ClientNewPassword adminPubId={admin.public_id} />;
+   
+    return <ClientNewPassword adminPubId={admin.public_id} recoveryToken={recoveryToken} />;
 }
 ```
 ---
@@ -445,7 +452,7 @@ export default async function NewPassword({ params }) {
 
 import { redisIpLimit } from "@/app/lib/redis";
 import { db } from "@/app/lib/turso";
-import { hash } from "@/app/utils/bcrypt";
+import { hash, compare } from "@/app/utils/bcrypt";
 import { redirect } from "next/navigation";
 
 export async function updateAdminPassword(_, formData) {
@@ -454,16 +461,41 @@ export async function updateAdminPassword(_, formData) {
         if (!redisLimit.ok) return { ok: false, message: redisLimit.message };
 
         const adminPubId = formData.get("adminPubId");
+        const recoveryToken = formData.get("recoveryToken");
         const password = formData.get("password");
         const confirm_password = formData.get("confirm_password");
 
-        if (!adminPubId || !password || !confirm_password || password !== confirm_password)
-            return { ok: false, message: "Invalid password" };
+        if (!adminPubId || !recoveryToken || !password || !confirm_password) {
+            return { ok: false, message: "Invalid submission" };
+        }
+
+        if (password.length < 8 || password.length > 64) {
+            return { ok: false, message: "Password must be between 8 and 64 characters" };
+        }
+
+        if (password !== confirm_password) {
+            return { ok: false, message: "Passwords do not match" };
+        }
 
         const fetchAdminData = await db.execute("SELECT * FROM admins WHERE public_id = ?", [adminPubId]);
         if (fetchAdminData.rows.length === 0) return { ok: false, message: "Admin not found" };
 
         const admin = fetchAdminData.rows[0];
+
+        if (!admin.recovery_token_hash || !admin.recovery_token_created_at) {
+            return { ok: false, message: "Invalid or expired recovery link." };
+        }
+
+        const tokenAge = Date.now() - new Date(admin.recovery_token_created_at).getTime();
+        if (tokenAge > 1000 * 60 * 60 * 24) {
+            return { ok: false, message: "Recovery link expired." };
+        }
+
+        const match = await compare(recoveryToken, admin.recovery_token_hash);
+        if (!match) {
+            return { ok: false, message: "Invalid recovery token." };
+        }
+
         const hashedPassword = await hash(password, 12);
 
         await Promise.all([
@@ -507,7 +539,7 @@ export default function ClientSignUp() {
             <input type="text" name="clinic_name" placeholder="Clinic Name" />
             <input type="tel" name="clinic_phone" placeholder="Clinic phone" />
             <input type="text" name="clinic_address" placeholder="Clinic Address" />
-            <button type="submit">Sign Up</button>
+            <button type="submit">{isPending ? "Submitting..." : "Submit"}</button>
         </Form>
     </>)
 }
@@ -570,7 +602,7 @@ export async function signupServerAction(prevState, formData) {
         if (!admin_name || admin_name.length < 2 || admin_name.length > 20) return { ok: false, message: "Name must be between 2 and 20 characters" };
         if (!admin_email || !admin_email?.includes("@") || admin_email.length < 5 || admin_email.length > 100) return { ok: false, message: "Invalid email address" };
         if (!username || username.length < 3 || username.length > 20) return { ok: false, message: "Username must be between 3 and 20 characters" };
-        if (!password || password.length < 8 || password.length > 50) return { ok: false, message: "Password must be between 8 and 25 characters" };
+        if (!password || password.length < 8 || password.length > 64) return { ok: false, message: "Password must be between 8 and 64 characters" };
         if (password !== confirm_password) return { ok: false, message: "Passwords do not match" };
         if (!clinic_name || !clinic_phone) return { ok: false, message: "Clinic name and phone are required" };
 
@@ -587,8 +619,8 @@ export async function signupServerAction(prevState, formData) {
         const hashedToken = await hash(email_token);
 
         const res = await db.execute(
-            `INSERT INTO admins (public_id, admin_name, admin_email, admin_username, clinic_name, clinic_phone, clinic_address, password, email_token_hash) 
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id`,
+            `INSERT INTO admins (public_id, admin_name, admin_email, admin_username, clinic_name, clinic_phone, clinic_address, password, email_token_hash, email_token_created_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP) RETURNING id`,
             [public_id, admin_name.toLowerCase().replace(/\s+/g, '-'), admin_email, username, clinic_name.toLowerCase().replace(/\s+/g, '-'), clinic_phone, clinic_address.toLowerCase().replace(/\s+/g, '-'), hashedPassword, hashedToken]
         );
 
@@ -1181,9 +1213,14 @@ import { AdminRevokeBooking, AdminRevokeBookings } from "./client";
 export default async function AdminComponent({ currentUser }) {
 
 
-
-  const fetch = await db.execute(`SELECT bookings.*, treatments.name AS treatment_name, treatments.duration AS treatment_duration FROM bookings LEFT JOIN treatments ON bookings.treatment_id = treatments.id WHERE bookings.admin_id = ? AND status != 'revoked' ORDER BY date_number ASC`, [currentUser.admin_id]);
-
+  const fetch = await db.execute(
+    `SELECT bookings.*, treatments.name AS treatment_name, treatments.duration AS treatment_duration 
+     FROM bookings 
+     LEFT JOIN treatments ON bookings.treatment_id = treatments.id 
+     WHERE bookings.admin_id = ? AND status NOT IN ('revoked', 'cancelled') 
+     ORDER BY booking_date_iso ASC, treatment_start ASC`, 
+    [currentUser.admin_id]);
+    
   const allBooking = fetch.rows;
 
   const groupedBooking = allBooking.reduce((acc, booking) => {
@@ -1432,7 +1469,6 @@ export function DoctorRevokeBooking({ doctorPubId, bookingPubId }) {
 ---
 ## src\app\appointments\doctor-component.jsx
 ```
-// doctor-component.jsx
 import { db } from "../lib/turso";
 import { getMonthName } from "../utils/getDateData";
 import { minutesToMeridiem } from "../utils/minutes-to-meridiem";
@@ -1445,7 +1481,7 @@ export default async function DoctorComponent({ currentUser }) {
          FROM bookings
          LEFT JOIN treatments ON bookings.treatment_id = treatments.id
          WHERE bookings.doctor_id = ? AND status NOT IN ('revoked', 'cancelled')
-         ORDER BY date_number ASC`,
+         ORDER BY booking_date_iso ASC`,
         [currentUser.doctor_id]
     );
 
@@ -1784,7 +1820,7 @@ export default async function ClinicAdminAllBookings({ params }) {
     const adminId = fetchAminData.rows[0].id;
 
 
-    const fetch = await db.execute(`SELECT doctor_id FROM slots WHERE admin_id = ? AND full_date_at_period > DATE('now') ORDER BY full_date_at_period`, [adminId]);
+    const fetch = await db.execute(`SELECT doctor_id FROM slots WHERE admin_id = ? AND full_date_at_period >= DATE('now') AND status = 'active' ORDER BY full_date_at_period`, [adminId]);
 
     if (fetch.rows.length === 0) return <p>No slots available.</p>;
 
@@ -2069,10 +2105,6 @@ export async function reserveSlot(_, formData) {
 
     try {
 
-        // Validating the raw formData string ensures "0" is truthy and allowed, 
-        // while missing (null) or empty ("") values are correctly rejected. 
-        // Number.isNaN protects against malformed inputs (e.g. "abc").
-        // Note: Added day_number to the check as well since it was previously missing.
         if (
             !docPubId ||
             !treatmentPubId ||
@@ -2141,8 +2173,15 @@ export async function reserveSlot(_, formData) {
         bookingPublicId = res.rows[0].public_id;
 
     } catch (error) {
-        console.error(error);
-        return { ok: false, message: "Failed to reserve slot." };
+        if (error.message?.includes("UNIQUE constraint failed") || error.code === "SQLITE_CONSTRAINT") {
+            return {
+                ok: false,
+                message: "This slot was just taken by someone else. Please select another."
+            };
+        }
+
+        console.error("Booking Error:", error);
+        return { ok: false, message: "An unexpected error occurred. Please try again." };
     }
 
     redirect(`/appointment-registeration/${bookingPublicId}/${adminPubId}`);
@@ -3185,52 +3224,121 @@ import { revalidatePath } from "next/cache";
 import { getUserPlus } from "@/app/lib/getUser";
 import { sendCancelationEmails } from "@/app/lib/sendCancelationEmail";
 
+
 export async function editSlotServerAction(formData) {
     const currentUser = await getUserPlus();
-    if (!currentUser || currentUser.role !== "admin" || !currentUser.admin_id) redirect("/login");
+
+    if (!currentUser || currentUser.role !== "admin" || !currentUser.admin_id) {
+        redirect("/login");
+    }
+
     const adminId = currentUser.admin_id;
 
     const slotPubId = formData.get("slotPubId");
-    if (!slotPubId) redirect("/edit-template");
 
-    const fetchSlot = await db.execute(`SELECT * FROM slots WHERE public_id = ? AND admin_id = ?`, [slotPubId, adminId]);
-    if (fetchSlot?.rows.length === 0) redirect("/edit-slot");
-
-    const startTimeFromUser = getMinutes(formData.get("startHr"), formData.get("startMin"), formData.get("startMeridiem"));
-    const endTimeFromUser = getMinutes(formData.get("endHr"), formData.get("endMin"), formData.get("endMeridiem"));
-    const breakStartromUser = getMinutes(formData.get("breakStartHr"), formData.get("breakStartMin"), formData.get("breakStartMeridiem"));
-    const breakEndromUser = getMinutes(formData.get("breakEndHr"), formData.get("breakEndMin"), formData.get("breakEndMeridiem"));
-
-    const bufferTimeromUser = formData.get("buffer");
-    const statusromUser = formData.get("status");
-
-    if (startTimeFromUser === null || endTimeFromUser === null || breakStartromUser === null || breakEndromUser === null || !bufferTimeromUser || !statusromUser) {
+    if (!slotPubId) {
         redirect("/edit-template");
     }
 
-    const { id, status, start_time, end_time, break_start, break_end, buffer_minutes } = fetchSlot.rows[0];
+    const fetchSlot = await db.execute(
+        `SELECT * FROM slots WHERE public_id = ? AND admin_id = ?`,
+        [slotPubId, adminId]
+    );
 
-    if (status === statusromUser && start_time === startTimeFromUser && end_time === endTimeFromUser && break_start === breakStartromUser && break_end === breakEndromUser && buffer_minutes === Number(bufferTimeromUser)) {
+    if (fetchSlot?.rows.length === 0) {
+        redirect("/edit-slot");
+    }
+
+    const startTimeFromUser = getMinutes(
+        formData.get("startHr"),
+        formData.get("startMin"),
+        formData.get("startMeridiem")
+    );
+
+    const endTimeFromUser = getMinutes(
+        formData.get("endHr"),
+        formData.get("endMin"),
+        formData.get("endMeridiem")
+    );
+
+    const breakStartFromUser = getMinutes(
+        formData.get("breakStartHr"),
+        formData.get("breakStartMin"),
+        formData.get("breakStartMeridiem")
+    );
+
+    const breakEndFromUser = getMinutes(
+        formData.get("breakEndHr"),
+        formData.get("breakEndMin"),
+        formData.get("breakEndMeridiem")
+    );
+
+    const bufferTimeFromUser = formData.get("buffer");
+    const statusFromUser = formData.get("status");
+
+    if (
+        startTimeFromUser === null ||
+        endTimeFromUser === null ||
+        breakStartFromUser === null ||
+        breakEndFromUser === null ||
+        !bufferTimeFromUser ||
+        !statusFromUser
+    ) {
+        redirect("/edit-template");
+    }
+
+    const {
+        id,
+        status,
+        start_time,
+        end_time,
+        break_start,
+        break_end,
+        buffer_minutes,
+    } = fetchSlot.rows[0];
+
+    if (
+        status === statusFromUser &&
+        start_time === startTimeFromUser &&
+        end_time === endTimeFromUser &&
+        break_start === breakStartFromUser &&
+        break_end === breakEndFromUser &&
+        buffer_minutes === Number(bufferTimeFromUser)
+    ) {
         redirect(`/edit-slot/${slotPubId}`);
     }
 
     try {
         await db.execute(
-            `UPDATE slots SET status = ?, start_time = ?, end_time = ?, break_start = ?, break_end = ?, buffer_minutes = ? WHERE id = ?`,
-            [statusromUser, startTimeFromUser, endTimeFromUser, breakStartromUser, breakEndromUser, Number(bufferTimeromUser), id]
+            `UPDATE slots 
+             SET status = ?, start_time = ?, end_time = ?, break_start = ?, break_end = ?, buffer_minutes = ? 
+             WHERE id = ?`,
+            [
+                statusFromUser,
+                startTimeFromUser,
+                endTimeFromUser,
+                breakStartFromUser,
+                breakEndFromUser,
+                Number(bufferTimeFromUser),
+                id,
+            ]
         );
 
         const dateIso = fetchSlot.rows[0].full_date_at_period.split("T")[0];
 
         const getAndUpdateBookings = await db.execute(
-            `UPDATE bookings SET status = 'revoked' WHERE admin_id = ? AND booking_date_iso = ? AND status != 'revoked' RETURNING patient_email, patient_name, doctor_name`, [adminId, dateIso]);
+            `UPDATE bookings 
+             SET status = 'revoked' 
+             WHERE admin_id = ? 
+             AND booking_date_iso = ? 
+             AND status != 'revoked'
+             RETURNING patient_email, patient_name, doctor_name`,
+            [adminId, dateIso]
+        );
 
         if (getAndUpdateBookings.rows.length > 0) {
             await sendCancelationEmails(getAndUpdateBookings.rows, 100);
         }
-
-
-
     } catch (e) {
         console.error("Update failed:", e);
         throw new Error("Could not update slot");
@@ -3976,23 +4084,24 @@ export async function resendingPatientEmail(_, formData) {
 import { nanoid } from "nanoid";
 import { db } from "./turso";
 
-
 export async function rollingWindow(adminId = null, win = 31) {
     try {
-
-
-        const fetchAllTemplates = adminId ?
-            await db.execute("SELECT * FROM weekly_templates WHERE admin_id = ?", [adminId]) :
-            await db.execute("SELECT * FROM weekly_templates");
+        const fetchAllTemplates = adminId
+            ? await db.execute(
+                "SELECT * FROM weekly_templates WHERE admin_id = ?",
+                [adminId]
+            )
+            : await db.execute("SELECT * FROM weekly_templates");
 
         if (fetchAllTemplates.rows.length === 0) return null;
 
         const slotsArr = [];
 
         const d = new Date();
-        for (let i = 0; i < win; i++) {
 
+        for (let i = 0; i < win; i++) {
             const current = new Date(d);
+
             current.setDate(d.getDate() + i);
 
             const dateAtPeriod = current.getDate();
@@ -4000,11 +4109,15 @@ export async function rollingWindow(adminId = null, win = 31) {
             const yearAtPeriod = current.getFullYear();
             const dayNumAtPeriod = current.getDay();
 
-            const fullDateAtPeriodInIso = current.toISOString().split("T")[0];
+            const fullDateAtPeriodInIso = current
+                .toISOString()
+                .split("T")[0];
 
-            const tempelateAtPediod = fetchAllTemplates.rows.filter(fn => fn.day_number === dayNumAtPeriod);
+            const templateAtPeriod = fetchAllTemplates.rows.filter(
+                (fn) => fn.day_number === dayNumAtPeriod
+            );
 
-            const flatenTemplate = tempelateAtPediod.map(temp => ({
+            const flattenTemplate = templateAtPeriod.map((temp) => ({
                 ...temp,
                 date_number: dateAtPeriod,
                 month_number: monthAtPeriod,
@@ -4014,19 +4127,38 @@ export async function rollingWindow(adminId = null, win = 31) {
                 full_date_at_period: fullDateAtPeriodInIso,
             }));
 
-            slotsArr.push(...flatenTemplate);
+            slotsArr.push(...flattenTemplate);
         }
 
-        const slotsArrSorted = slotsArr.sort((a, b) =>
-            a.year - b.year ||
-            a.month_number - b.month_number ||
-            a.date_number - b.date_number
+        const slotsArrSorted = slotsArr.sort(
+            (a, b) =>
+                a.year - b.year ||
+                a.month_number - b.month_number ||
+                a.date_number - b.date_number
         );
 
-        const columns = `public_id, status, admin_id, doctor_id, day_number, month_number, year, date_number, start_time, end_time, break_start, break_end, buffer_minutes, full_date_at_period`;
+        const columns = `
+            public_id,
+            status,
+            admin_id,
+            doctor_id,
+            day_number,
+            month_number,
+            year,
+            date_number,
+            start_time,
+            end_time,
+            break_start,
+            break_end,
+            buffer_minutes,
+            full_date_at_period
+        `;
 
-        const placeHolder = slotsArrSorted.map(() => `(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ? )`).join(", ");
-        const values = slotsArrSorted.flatMap(slot => [
+        const placeHolder = slotsArrSorted
+            .map(() => `(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+            .join(", ");
+
+        const values = slotsArrSorted.flatMap((slot) => [
             slot.slot_public_id,
             slot.status,
             slot.admin_id,
@@ -4044,15 +4176,17 @@ export async function rollingWindow(adminId = null, win = 31) {
         ]);
 
         await db.execute(
-            `INSERT INTO slots (${columns}) VALUES ${placeHolder}
-                    ON CONFLICT (admin_id, doctor_id, month_number, year, date_number)
-                    DO NOTHING`,
+            `INSERT INTO slots (${columns})
+             VALUES ${placeHolder}
+             ON CONFLICT (admin_id, doctor_id, month_number, year, date_number)
+             DO NOTHING`,
             values
         );
 
-
-        await db.execute(`DELETE FROM slots WHERE DATE(full_date_at_period) < DATE('now')`);
-
+        await db.execute(
+            `DELETE FROM slots 
+             WHERE DATE(full_date_at_period) < DATE('now')`
+        );
     } catch (error) {
         console.error(error);
         return null;
@@ -4846,7 +4980,7 @@ export default function ClientSettings(props) {
 ```
 import { redirect } from "next/navigation";
 import { getUserPlus } from "../lib/getUser";
-import ClientSettings from "./ClientSettings";
+import ClientSettings from "./Client";
 
 export default async function Settings() {
   const currentUser = await getUserPlus();

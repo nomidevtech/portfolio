@@ -6,12 +6,12 @@ import { nanoid } from "nanoid";
 import { getUserPlus } from "../lib/getUser";
 
 export async function addTreatmentServerAction(_, formData) {
-    try {
-        const currentUser = await getUserPlus();
-        if (!currentUser || currentUser.role !== "admin" || !currentUser.admin_id) redirect("/login");
-        const adminId = currentUser.admin_id;
 
-        const name = formData.get("name")?.trim().toLowerCase().replace(/\s+/g, "_");
+    const currentUser = await getUserPlus();
+    if (!currentUser || currentUser.role !== "admin" || !currentUser.admin_id) redirect("/login");
+    const adminId = currentUser.admin_id;
+    try {
+        const name = formData.get("name")?.toString().trim().toLowerCase().replace(/\s+/g, "_");
         const duration = Number(formData.get("duration")) || 0;
 
         if (!name || duration <= 0) return { ok: false, message: "Invalid name or duration" };

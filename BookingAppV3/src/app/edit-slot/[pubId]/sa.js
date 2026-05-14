@@ -7,7 +7,6 @@ import { revalidatePath } from "next/cache";
 import { getUserPlus } from "@/app/lib/getUser";
 import { sendCancelationEmails } from "@/app/lib/sendCancelationEmail";
 
-
 export async function editSlotServerAction(formData) {
     const currentUser = await getUserPlus();
 
@@ -16,11 +15,10 @@ export async function editSlotServerAction(formData) {
     }
 
     const adminId = currentUser.admin_id;
-
     const slotPubId = formData.get("slotPubId");
 
     if (!slotPubId) {
-        redirect("/edit-template");
+        redirect("/manage-generated-slots");
     }
 
     const fetchSlot = await db.execute(
@@ -29,8 +27,10 @@ export async function editSlotServerAction(formData) {
     );
 
     if (fetchSlot?.rows.length === 0) {
-        redirect("/edit-slot");
+        redirect("/manage-generated-slots");
     }
+
+    const currentSlot = fetchSlot.rows[0];
 
     const startTimeFromUser = getMinutes(
         formData.get("startHr"),
@@ -56,77 +56,75 @@ export async function editSlotServerAction(formData) {
         formData.get("breakEndMeridiem")
     );
 
-    const bufferTimeFromUser = formData.get("buffer");
+    const bufferTimeFromUser = Number(formData.get("buffer"));
     const statusFromUser = formData.get("status");
 
-    if (
-        startTimeFromUser === null ||
-        endTimeFromUser === null ||
-        breakStartFromUser === null ||
-        breakEndFromUser === null ||
-        !bufferTimeFromUser ||
-        !statusFromUser
-    ) {
-        redirect("/edit-template");
-    }
+    const dateIso = currentSlot.full_date_at_period.split(/[ T]/)[0];
 
-    const {
-        id,
-        status,
-        start_time,
-        end_time,
-        break_start,
-        break_end,
-        buffer_minutes,
-    } = fetchSlot.rows[0];
+    const hasChanged =
+        currentSlot.status !== statusFromUser ||
+        currentSlot.start_time !== startTimeFromUser ||
+        currentSlot.end_time !== endTimeFromUser ||
+        currentSlot.break_start !== breakStartFromUser ||
+        currentSlot.break_end !== breakEndFromUser ||
+        currentSlot.buffer_minutes !== bufferTimeFromUser;
 
-    if (
-        status === statusFromUser &&
-        start_time === startTimeFromUser &&
-        end_time === endTimeFromUser &&
-        break_start === breakStartFromUser &&
-        break_end === breakEndFromUser &&
-        buffer_minutes === Number(bufferTimeFromUser)
-    ) {
+    if (!hasChanged) {
         redirect(`/edit-slot/${slotPubId}`);
     }
 
+    let affectedBookings = [];
+
     try {
-        await db.execute(
-            `UPDATE slots 
-             SET status = ?, start_time = ?, end_time = ?, break_start = ?, break_end = ?, buffer_minutes = ? 
-             WHERE id = ?`,
+        const batchResults = await db.batch(
             [
-                statusFromUser,
-                startTimeFromUser,
-                endTimeFromUser,
-                breakStartFromUser,
-                breakEndFromUser,
-                Number(bufferTimeFromUser),
-                id,
-            ]
+                {
+                    sql: `UPDATE slots 
+                          SET status = ?, start_time = ?, end_time = ?, break_start = ?, break_end = ?, buffer_minutes = ? 
+                          WHERE id = ?`,
+                    args: [
+                        statusFromUser,
+                        startTimeFromUser,
+                        endTimeFromUser,
+                        breakStartFromUser,
+                        breakEndFromUser,
+                        bufferTimeFromUser,
+                        currentSlot.id,
+                    ],
+                },
+                {
+                    sql: `UPDATE bookings 
+                          SET status = 'revoked' 
+                          WHERE admin_id = ? 
+                          AND doctor_id = ? 
+                          AND booking_date_iso = ?
+                          AND status IN ('pending','unverified','verified')
+                          RETURNING patient_email, patient_name, doctor_name`,
+                    args: [adminId, currentSlot.doctor_id, dateIso],
+                },
+            ],
+            "write"
         );
 
-        const dateIso = fetchSlot.rows[0].full_date_at_period.split("T")[0];
+        affectedBookings = batchResults[1].rows;
 
-        const getAndUpdateBookings = await db.execute(
-            `UPDATE bookings 
-             SET status = 'revoked' 
-             WHERE admin_id = ? 
-             AND booking_date_iso = ? 
-             AND status != 'revoked'
-             RETURNING patient_email, patient_name, doctor_name`,
-            [adminId, dateIso]
-        );
-
-        if (getAndUpdateBookings.rows.length > 0) {
-            await sendCancelationEmails(getAndUpdateBookings.rows, 100);
+        if (affectedBookings.length > 0) {
+            try {
+                await sendCancelationEmails(affectedBookings, 100);
+            } catch (emailErr) {
+                console.error(
+                    "Critical: Schedule updated but emails failed:",
+                    emailErr
+                );
+            }
         }
     } catch (e) {
-        console.error("Update failed:", e);
-        throw new Error("Could not update slot");
+        console.error("Batch update failed:", e);
+        return null;
     }
 
     revalidatePath(`/edit-slot/${slotPubId}`);
-    redirect(`/edit-slot/${slotPubId}`);
+    revalidatePath("/manage-generated-slots");
+
+    redirect(`/edit-slot/${slotPubId}?success=true`);
 }

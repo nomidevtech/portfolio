@@ -170,7 +170,7 @@ export async function initSlotsTable() {
                 full_date_at_period TEXT,
 
 
-                UNIQUE(admin_id, doctor_id, month_number, year, date_number) ON CONFLICT IGNORE,
+                UNIQUE(admin_id, doctor_id, full_date_at_period) ON CONFLICT IGNORE,
 
                 FOREIGN KEY (doctor_id) REFERENCES doctors (id) ON DELETE CASCADE,
                 FOREIGN KEY (admin_id) REFERENCES admins (id) ON DELETE CASCADE

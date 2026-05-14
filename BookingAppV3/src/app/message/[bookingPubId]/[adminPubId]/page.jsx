@@ -6,7 +6,7 @@ import DownloadTicketButton from "./client";
 import { redisIpLimit } from "@/app/lib/redis";
 
 export default async function Message({ params }) {
-    
+
     const redisLimit = await redisIpLimit(20, "message", 60 * 15);
     if (!redisLimit.ok) return <p>{redisLimit.message}</p>
 
@@ -23,9 +23,10 @@ export default async function Message({ params }) {
 
     const booking = fetch.rows[0];
 
-    if (booking.status === "cancelled") return <p>Appointment has been cancelled. Book again.</p>;
+    if (booking.status === "cancelled") return <p>You have cancelled this booking. Please Book again.</p>;
+    if (booking.status === "revoked") return <p>Appointment has been revoked by the clinic. We are sorry for the inconvenience. Please Book again.</p>;
 
-    
+
 
     return (<>
         <p>Appointment Date: {booking.date_number > 9 ? booking.date_number : "0" + booking.date_number} {getMonthName(booking.month_number)} {booking.year}</p>

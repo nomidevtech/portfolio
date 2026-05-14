@@ -27,8 +27,8 @@ export async function updateAdminPassword(_, formData) {
             return { ok: false, message: "Passwords do not match" };
         }
 
-        const fetchAdminData = await db.execute("SELECT * FROM admins WHERE public_id = ?", [adminPubId]);
-        if (fetchAdminData.rows.length === 0) return { ok: false, message: "Admin not found" };
+        const fetchAdminData = await db.execute("SELECT * FROM admins WHERE public_id = ? AND recovery_token_hash IS NOT NULL", [adminPubId]);
+        if (fetchAdminData.rows.length === 0) return { ok: false, message: "Invalid or expired recovery link." };
 
         const admin = fetchAdminData.rows[0];
 
@@ -48,17 +48,25 @@ export async function updateAdminPassword(_, formData) {
 
         const hashedPassword = await hash(password, 12);
 
-        await Promise.all([
-            db.execute(
-                "UPDATE admins SET password = ?, recovery_token_hash = null, recovery_token_created_at = null WHERE public_id = ?",
-                [hashedPassword, adminPubId]
-            ),
-            db.execute(
-                "UPDATE users SET password = ? WHERE admin_id = ?",
-                [hashedPassword, admin.id]
-            ),
-        ]);
+        const fetchUserId = await db.execute("SELECT id FROM users WHERE admin_id = ?", [admin.id]);
+        if (fetchUserId.rows.length === 0) return { ok: false, message: "Something went wrong" };
 
+        const user = fetchUserId.rows[0];
+
+        await db.batch([
+            {
+                sql: "UPDATE admins SET password = ?, recovery_token_hash = null, recovery_token_created_at = null WHERE public_id = ?",
+                args: [hashedPassword, adminPubId]
+            },
+            {
+                sql: "UPDATE users SET password = ? WHERE admin_id = ?",
+                args: [hashedPassword, admin.id]
+            },
+            {
+                sql: "DELETE FROM sessions WHERE user_id = ?",
+                args: [user.id]
+            }
+        ]);
     } catch (error) {
         console.error(error);
         return { ok: false, message: "Something went wrong" };

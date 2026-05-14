@@ -65,7 +65,19 @@ export async function addDoctorServerAction(prevState, formData) {
 
         revalidatePath("/add-doctor");
         return { ok: true, message: "Doctor successfully added" };
-    } catch (e) {
-        return { ok: false, message: "Database error: Could not save doctor" };
+    } catch (error) {
+        console.error(error);
+
+        if (error.message?.includes("UNIQUE constraint failed") || error.code === "SQLITE_CONSTRAINT") {
+            return {
+                ok: false,
+                message: "Username is already taken"
+            };
+        } else {
+            return {
+                ok: false,
+                message: "Something went wrong, please try again"
+            };
+        }
     }
 }

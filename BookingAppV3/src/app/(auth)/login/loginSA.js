@@ -55,6 +55,10 @@ export async function loginSA(_, formData) {
         d.setDate(d.getDate() + 14);
         const expires = d.toISOString();
 
+        await db.execute(
+            "DELETE FROM sessions WHERE expires_at < CURRENT_TIMESTAMP"
+        );
+
         await db.execute(`INSERT INTO sessions (session_id, user_id, expires_at) VALUES (?, ?, ?)`, [sessionToken, user.id, expires]);
 
 

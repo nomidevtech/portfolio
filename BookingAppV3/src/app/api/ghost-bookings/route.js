@@ -14,7 +14,7 @@ export async function GET(request) {
 
     await db.execute(`
         DELETE FROM bookings
-        WHERE status = 'pending'
+        WHERE status IN ('pending', 'unverified')
         AND booking_registered_at <= DATETIME('now', '-30 minutes')
     `);
 

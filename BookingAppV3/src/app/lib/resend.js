@@ -31,13 +31,15 @@ export async function sendBulkCancelationEmails(payload = {}) {
 
     for (const chunk of Object.keys(payload)) {
         const clause = payload[chunk].map(item => {
+            const name = item.patient_name?.split(" ").map(word => word[0].toUpperCase() + word.slice(1)).join(" ") || "Valued Patient";
+            const docName = item.doctor_name?.split(" ").map(word => "Dr." + word[0].toUpperCase() + word.slice(1)).join(" ") || "The Doctor";
             return {
                 from: `NomiDev <bookings@nomidev.com>`,
                 to: [item.patient_email],
                 subject: "Appointment Cancellation",
                 html: `
-                <p>Dear ${item.patient_name.split(" ").map(word => word[0].toUpperCase() + word.slice(1)).join(" ")}</p>
-                <p>This is to inform you that your scheduled appointment with Dr. ${item.doctor_name.split(" ").map(word => word[0].toUpperCase() + word.slice(1)).join(" ")} has been cancelled by the clinic.</p>
+                <p>Dear ${name}</p>
+                <p>This is to inform you that your scheduled appointment with ${docName} has been cancelled by the clinic.</p>
                 <p>Please Visit our website to schedule another appointment.</p>
                 `
             }

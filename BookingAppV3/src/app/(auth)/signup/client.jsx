@@ -9,6 +9,7 @@ export default function ClientSignUp() {
     const [state, action, isPending] = useActionState(signupServerAction, { ok: false, message: null })
 
     return (<>
+        {state.message && <p>{state.message}</p>}
         <Form action={action}>
             <input type="text" name="full_name" placeholder="Full Name" />
             <input type="text" name="admin_email" placeholder="admin@email.com" />
