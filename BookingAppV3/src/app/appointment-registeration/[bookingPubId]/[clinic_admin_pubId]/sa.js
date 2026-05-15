@@ -35,12 +35,11 @@ export async function appointmentRegisterationServerAction(_, formData) {
     const hashed = await hash(email_token);
 
     try {
-        const fetch = await db.execute(`SELECT id FROM bookings WHERE public_id = ? AND admin_id = ? AND status = 'pending'`, [bookingPubId, adminId]);
-        if (fetch.rows.length === 0) return { ok: false, message: "Booking not found." };
-
         const update = await db.execute(
-            `UPDATE bookings SET patient_name = ?, patient_email = ?, patient_phone = ?, status = ?, email_token_hash = ?, email_token_created_at = CURRENT_TIMESTAMP WHERE id = ? AND admin_id = ? AND status IN ('pending', 'unverified')`,
-            [name, email, phone, "unverified", hashed, fetch.rows[0].id, adminId]
+            `UPDATE bookings SET patient_name = ?, patient_email = ?, patient_phone = ?, 
+            status = 'unverified', email_token_hash = ?, email_token_created_at = CURRENT_TIMESTAMP 
+            WHERE public_id = ? AND admin_id = ? AND status = 'pending'`,
+            [name, email, phone, hashed, bookingPubId, adminId]
         );
 
         if (update.rowsAffected === 0) return { ok: false, message: "Slot already reserved by someone else." };

@@ -58,8 +58,8 @@ export async function addDoctorServerAction(prevState, formData) {
                 args: [nanoid(12), adminId, doctorId, fetchTreatment.rows[0].id]
             },
             {
-                sql: `INSERT INTO users (public_id, doctor_id, role, username, password) VALUES (?, ?, ?, ?, ?)`,
-                args: [nanoid(12), doctorId, "doctor", username, passwordHash]
+                sql: `INSERT INTO users (public_id, doctor_id, role, username, password, status) VALUES (?, ?, ?, ?, ?, ?)`,
+                args: [nanoid(12), doctorId, "doctor", username, passwordHash, "verified"]
             }
         ], "write");
 

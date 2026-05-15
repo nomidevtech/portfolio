@@ -4,6 +4,7 @@ import { getMonthName } from "@/app/utils/getDateData";
 import { minutesToMeridiem } from "@/app/utils/minutes-to-meridiem";
 import DownloadTicketButton from "./client";
 import { redisIpLimit } from "@/app/lib/redis";
+import ResendCancelBookingEmail from "@/app/components/cancel-book-email/PatientResendCancelBookingEmail";
 
 export default async function Message({ params }) {
 
@@ -39,5 +40,6 @@ export default async function Message({ params }) {
         {booking.status === "verified" && <><p>Slot Booked Successfully.</p>
             <DownloadTicketButton bookingPubId={bookingPubId} adminPubId={adminPubId} />
         </>}
+        <ResendCancelBookingEmail bookingPubId={bookingPubId} />
     </>);
 }
