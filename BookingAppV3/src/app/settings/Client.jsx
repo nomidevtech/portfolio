@@ -8,12 +8,14 @@ export default function ClientSettings(props) {
     const [adminState, adminFormAction, adminPending] = useActionState(updateAdmin, { ok: null, message: "" });
     const [doctorState, doctorFormAction, doctorPending] = useActionState(updateDoctor, { ok: null, message: "" });
 
+    const name = props.admin_name?.split("-").map(word => word[0].toUpperCase() + word.slice(1)).join(" ");
+
     if (props.role === "admin") {
         return (
             <>
                 <Form action={adminFormAction}>
                     <input type="hidden" name="adminPubId" value={props.adminPubId} />
-                    <input type="text" name="name" placeholder="Name" defaultValue={props.admin_name} />
+                    <input type="text" name="name" placeholder="Name" defaultValue={name} />
                     <input type="text" name="username" placeholder="username" defaultValue={props.admin_username} />
                     <input type="email" name="email" placeholder="example@ex.com" defaultValue={props.admin_email} />
                     <input type="text" name="clinic_name" placeholder="Clinic Name" defaultValue={props.clinic_name} />

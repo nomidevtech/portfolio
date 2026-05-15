@@ -6,7 +6,7 @@ import { minutesToMeridiem } from "@/app/utils/minutes-to-meridiem";
 import Link from "next/link";
 import { getUserPlus } from "@/app/lib/getUser";
 import { redirect } from "next/navigation";
-import { deleteWeeklyTemplateServerAction } from "@/app/lib/deleteWeeklyTemplate";
+import { DeleteTemplateButton } from "@/app/components/DeleteTemplateButton";
 
 
 export default async function DoctorCreateTemplate({ params }) {
@@ -27,18 +27,11 @@ export default async function DoctorCreateTemplate({ params }) {
 
     let currentTemplates = fetchExisTemplates.rows.length > 0 ? fetchExisTemplates.rows : [];
 
-
     currentTemplates = currentTemplates?.sort((a, b) => a.day_number - b.day_number);
-
-
-
-
-
 
     const existDays = fetchExisTemplates.rows.map(fn => (
         getDayName(fn.day_number)
     ));
-
 
     let defaultBuffer = 10;
     let defaultStartHr = "09";
@@ -73,8 +66,6 @@ export default async function DoctorCreateTemplate({ params }) {
 
     const meridiem = ["AM", "PM"];
 
-
-
     return (<>
         <div>
             <h2>{`Dr. ${name.split("-").map(fn => fn[0].toUpperCase() + fn.slice(1)).join(" ")}`}</h2>
@@ -87,16 +78,16 @@ export default async function DoctorCreateTemplate({ params }) {
                         <p>Break Duration: {minutesToMeridiem(temp.break_start, true)} - {minutesToMeridiem(temp.break_end, true)}</p>
                         <p>Buffer: {temp.buffer_minutes} minutes</p>
                         <Link href={`/edit-template/${docPubId}/${temp.public_id}`}>Edit⬅</Link>
-                        <Form action={deleteWeeklyTemplateServerAction}>
-                            <input type="hidden" name="templatePubId" value={temp.public_id} />
-                            <input type="hidden" name="docPubId" value={docPubId} />
-                            <button type="submit">Delete</button>
-                        </Form>
+
+                        <DeleteTemplateButton
+                            templatePubId={temp.public_id}
+                            docPubId={docPubId}
+                            dayName={getDayName(temp.day_number)}
+                        />
                     </div>
                 ))}
             </>}
         </div>
-
 
         <h1>Create New Template for Dr. {name[0].toUpperCase() + name.slice(1)}</h1>
         <Form action={createTemplateServerAction} className="space-y-6 p-6 bg-gray-50 dark:bg-gray-900 rounded-md">
@@ -112,178 +103,61 @@ export default async function DoctorCreateTemplate({ params }) {
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
                 Buffer in minutes
             </label>
-            <input defaultValue={defaultBuffer} type="number" name="buffer" placeholder="Buffer in minutes" className="border border-gray-300 dark:border-gray-700 rounded-md px-3 py-2 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-gray-100" />
+            <input type="number" name="buffer" defaultValue={defaultBuffer} />
 
-            <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
-                    Select Clinic Start time
-                </label>
-                <div className="flex gap-2 items-center">
-                    <select
-                        name="startHr"
-                        className="border border-gray-300 dark:border-gray-700 rounded-md px-3 py-2 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-gray-100"
-                        defaultValue={defaultStartHr}
-                    >
-                        {dummyHrs.map((hr) => (
-                            <option value={hr} key={hr}>
-                                {hr}
-                            </option>
-                        ))}
-                    </select>
-                    <select
-                        name="startMin"
-                        className="border border-gray-300 dark:border-gray-700 rounded-md px-3 py-2 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-gray-100"
-                        defaultValue={defaultStartMin}
-                    >
-                        {dummyMinutes.map((min) => (
-                            <option value={min} key={min}>
-                                {min}
-                            </option>
-                        ))}
-                    </select>
-                    <select
-                        defaultValue={defaultStartMeridiem}
-                        name="startMeridiem"
-                        className="border border-gray-300 dark:border-gray-700 rounded-md px-3 py-2 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-gray-100"
-                    >
-                        {meridiem.map((mer) => (
-                            <option value={mer} key={mer}>
-                                {mer}
-                            </option>
-                        ))}
-                    </select>
-                </div>
+            <div className="border-2 border-amber-100 p-2 mb-4">
+                <label className="block font-bold">Clinic Start</label>
+                <select name="startHr" defaultValue={defaultStartHr}>
+                    {dummyHrs.map((hr) => <option value={hr} key={hr}>{hr}</option>)}
+                </select>
+                <select name="startMin" defaultValue={defaultStartMin}>
+                    {dummyMinutes.map((min) => <option value={min} key={min}>{min}</option>)}
+                </select>
+                <select name="startMeridiem" defaultValue={defaultStartMeridiem}>
+                    {meridiem.map((mer) => <option value={mer} key={mer}>{mer}</option>)}
+                </select>
             </div>
 
-            <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
-                    Select Clinic End time
-                </label>
-                <div className="flex gap-2 items-center">
-                    <select
-                        defaultValue={defaultEndHr}
-                        name="endHr"
-                        className="border border-gray-300 dark:border-gray-700 rounded-md px-3 py-2 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-gray-100"
-                    >
-                        {dummyHrs.map((hr) => (
-                            <option value={hr} key={hr}>
-                                {hr}
-                            </option>
-                        ))}
-                    </select>
-                    <select
-                        defaultValue={defaultEndMin}
-                        name="endMin"
-                        className="border border-gray-300 dark:border-gray-700 rounded-md px-3 py-2 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-gray-100"
-                    >
-                        {dummyMinutes.map((min) => (
-                            <option value={min} key={min}>
-                                {min}
-                            </option>
-                        ))}
-                    </select>
-                    <select
-                        defaultValue={defaultEndMeridiem}
-                        name="endMeridiem"
-                        className="border border-gray-300 dark:border-gray-700 rounded-md px-3 py-2 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-gray-100"
-                    >
-                        {meridiem.map((mer) => (
-                            <option value={mer} key={mer}>
-                                {mer}
-                            </option>
-                        ))}
-                    </select>
-                </div>
+            <div className="border-2 border-amber-100 p-2 mb-4">
+                <label className="block font-bold">Clinic End</label>
+                <select name="endHr" defaultValue={defaultEndHr}>
+                    {dummyHrs.map((hr) => <option value={hr} key={hr}>{hr}</option>)}
+                </select>
+                <select name="endMin" defaultValue={defaultEndMin}>
+                    {dummyMinutes.map((min) => <option value={min} key={min}>{min}</option>)}
+                </select>
+                <select name="endMeridiem" defaultValue={defaultEndMeridiem}>
+                    {meridiem.map((mer) => <option value={mer} key={mer}>{mer}</option>)}
+                </select>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">Break Start</label>
-                    <div className="flex gap-2 items-center">
-                        <select
-                            defaultValue={defaultBreakStartHr}
-                            name="breakStartHr"
-                            className="border border-gray-300 dark:border-gray-700 rounded-md px-3 py-2 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-gray-100"
-                        >
-                            {dummyHrs.map((hr) => (
-                                <option value={hr} key={hr}>
-                                    {hr}
-                                </option>
-                            ))}
-                        </select>
-                        <select
-                            defaultValue={defaultBreakStartMin}
-                            name="breakStartMin"
-                            className="border border-gray-300 dark:border-gray-700 rounded-md px-3 py-2 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-gray-100"
-                        >
-                            {dummyMinutes.map((min) => (
-                                <option value={min} key={min}>
-                                    {min}
-                                </option>
-                            ))}
-                        </select>
-                        <select
-                            defaultValue={defaultBreakStartMeridiem}
-                            name="breakStartMeridiem"
-                            className="border border-gray-300 dark:border-gray-700 rounded-md px-3 py-2 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-gray-100"
-                        >
-                            {meridiem.map((mer) => (
-                                <option value={mer} key={mer}>
-                                    {mer}
-                                </option>
-                            ))}
-                        </select>
-                    </div>
-                </div>
-
-                <div className="space-y-2">
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">Break End</label>
-                    <div className="flex gap-2 items-center">
-                        <select
-                            defaultValue={defaultBreakEndHr}
-                            name="breakEndHr"
-                            className="border border-gray-300 dark:border-gray-700 rounded-md px-3 py-2 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-gray-100"
-                        >
-                            {dummyHrs.map((hr) => (
-                                <option value={hr} key={hr}>
-                                    {hr}
-                                </option>
-                            ))}
-                        </select>
-                        <select
-                            defaultValue={defaultBreakEndMin}
-                            name="breakEndMin"
-                            className="border border-gray-300 dark:border-gray-700 rounded-md px-3 py-2 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-gray-100"
-                        >
-                            {dummyMinutes.map((min) => (
-                                <option value={min} key={min}>
-                                    {min}
-                                </option>
-                            ))}
-                        </select>
-                        <select
-                            defaultValue={defaultBreakEndMeridiem}
-                            name="breakEndMeridiem"
-                            className="border border-gray-300 dark:border-gray-700 rounded-md px-3 py-2 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-gray-100"
-                        >
-                            {meridiem.map((mer) => (
-                                <option value={mer} key={mer}>
-                                    {mer}
-                                </option>
-                            ))}
-                        </select>
-                    </div>
-                </div>
+            <div className="border-2 border-blue-100 p-2 mb-4">
+                <label className="block font-bold">Break Start</label>
+                <select name="breakStartHr" defaultValue={defaultBreakStartHr}>
+                    {dummyHrs.map((hr) => <option value={hr} key={hr}>{hr}</option>)}
+                </select>
+                <select name="breakStartMin" defaultValue={defaultBreakStartMin}>
+                    {dummyMinutes.map((min) => <option value={min} key={min}>{min}</option>)}
+                </select>
+                <select name="breakStartMeridiem" defaultValue={defaultBreakStartMeridiem}>
+                    {meridiem.map((mer) => <option value={mer} key={mer}>{mer}</option>)}
+                </select>
             </div>
 
-            <div>
-                <button
-                    type="submit"
-                    className="mt-2 inline-flex items-center justify-center rounded-md bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 px-4 py-2 text-sm font-semibold text-white focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
-                >
-                    Submit
-                </button>
+            <div className="border-2 border-blue-100 p-2 mb-4">
+                <label className="block font-bold">Break End</label>
+                <select name="breakEndHr" defaultValue={defaultBreakEndHr}>
+                    {dummyHrs.map((hr) => <option value={hr} key={hr}>{hr}</option>)}
+                </select>
+                <select name="breakEndMin" defaultValue={defaultBreakEndMin}>
+                    {dummyMinutes.map((min) => <option value={min} key={min}>{min}</option>)}
+                </select>
+                <select name="breakEndMeridiem" defaultValue={defaultBreakEndMeridiem}>
+                    {meridiem.map((mer) => <option value={mer} key={mer}>{mer}</option>)}
+                </select>
             </div>
+
+            <button type="submit">Create Template</button>
         </Form>
     </>);
 }

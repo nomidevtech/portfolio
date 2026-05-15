@@ -4,8 +4,7 @@ import { minutesToMeridiem } from "@/app/utils/minutes-to-meridiem";
 import { getDayName } from "@/app/utils/getDateData";
 import { getUserPlus } from "@/app/lib/getUser";
 import { redirect } from "next/navigation";
-import { deleteWeeklyTemplateServerAction } from "@/app/lib/deleteWeeklyTemplate";
-import Form from "next/form";
+import { DeleteTemplateButton } from "@/app/components/DeleteTemplateButton"; // NEW
 
 
 export default async function DoctorEditTemplates({ params }) {
@@ -25,7 +24,6 @@ export default async function DoctorEditTemplates({ params }) {
     const fetchTemplates = await db.execute(`SELECT * FROM weekly_templates WHERE doctor_id = ? AND admin_id = ?`, [id, adminId]);
     if (fetchTemplates.rows.length === 0) return <p>No templates found.  <Link href={`/create-template/${docPubId}`}>Click Here⬅</Link></p>
 
-
     return (<>
         <h2>Dr. {name[0].toUpperCase() + name.slice(1)}'s Templates</h2>
         {fetchTemplates.rows.map(temp => (
@@ -35,16 +33,16 @@ export default async function DoctorEditTemplates({ params }) {
                 <p>Break Duration: {minutesToMeridiem(temp.break_start, true)} - {minutesToMeridiem(temp.break_end, true)}</p>
                 <p>Buffer: {temp.buffer_minutes} minutes</p>
                 <Link href={`/edit-template/${docPubId}/${temp.public_id}`}>Edit⬅</Link>
-                <Form action={deleteWeeklyTemplateServerAction}>
-                    <input type="hidden" name="templatePubId" value={temp.public_id} />
-                    <input type="hidden" name="docPubId" value={docPubId} />
-                    <button type="submit">Delete</button>
-                </Form>
+
+                
+                <DeleteTemplateButton
+                    templatePubId={temp.public_id}
+                    docPubId={docPubId}
+                    dayName={getDayName(temp.day_number)}
+                />
             </div>
         ))}
 
         <Link href={`/create-template/${docPubId}`}>Create New Template</Link>
-
-
     </>);
 }
