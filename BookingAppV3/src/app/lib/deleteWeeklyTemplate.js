@@ -53,7 +53,7 @@ export async function deleteWeeklyTemplateWithCleanupSA(formData) {
 
     if (!docPubId || !templatePubId) redirect("/edit-template");
 
-    // Verify doctor belongs to this admin
+
     const fetchDoctor = await db.execute(
         `SELECT id FROM doctors WHERE public_id = ? AND admin_id = ?`,
         [docPubId, adminId]
@@ -61,7 +61,6 @@ export async function deleteWeeklyTemplateWithCleanupSA(formData) {
     if (fetchDoctor.rows.length === 0) redirect("/edit-template");
     const doctorId = fetchDoctor.rows[0].id;
 
-    // Fetch the template to get its day_number
     const fetchTemplate = await db.execute(
         `SELECT id, day_number FROM weekly_templates WHERE public_id = ? AND admin_id = ? AND doctor_id = ?`,
         [templatePubId, adminId, doctorId]
@@ -71,8 +70,6 @@ export async function deleteWeeklyTemplateWithCleanupSA(formData) {
     const { id: templateId, day_number } = fetchTemplate.rows[0];
 
     try {
-        // Step 1: Revoke all future bookings that fall on slots matching this template's day.
-        //         We use a subquery so we grab exactly the slots that would disappear.
         const revokedResult = await db.execute(
             `UPDATE bookings
              SET status = 'revoked'
@@ -91,17 +88,14 @@ export async function deleteWeeklyTemplateWithCleanupSA(formData) {
             [adminId, doctorId, adminId, doctorId, day_number]
         );
 
-        // Step 2: Send cancellation emails to affected patients (fire-and-forget style —
-        //         we log the error but never block the deletion if email fails)
         if (revokedResult.rows.length > 0) {
             try {
-                await sendCancelationEmails(revokedResult.rows, 100);
+                const emailableRows = revokedResult.rows.filter(r => r.patient_email);
+                if (emailableRows.length > 0) await sendCancelationEmails(emailableRows, 100);
             } catch (emailErr) {
                 console.error("Template deleted but patient emails failed to send:", emailErr);
             }
         }
-
-        // Step 3: Delete all future slots generated from this template (same doctor + day)
         await db.execute(
             `DELETE FROM slots
              WHERE admin_id = ?
@@ -111,14 +105,12 @@ export async function deleteWeeklyTemplateWithCleanupSA(formData) {
             [adminId, doctorId, day_number]
         );
 
-        // Step 4: Delete the template itself
+
         await db.execute(
             `DELETE FROM weekly_templates WHERE id = ? AND admin_id = ?`,
             [templateId, adminId]
         );
 
-        // Step 5: Re-run rolling window for this admin so the slots table is readjusted
-        //         (fills any gaps caused by the deletion for remaining templates)
         await rollingWindow(adminId);
 
     } catch (error) {

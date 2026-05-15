@@ -39,7 +39,16 @@ export async function createTemplateServerAction(formData) {
         const breakEndInMinutes =
             getMinutes(formData.get("breakEndHr"), formData.get("breakEndMin"), formData.get("breakEndMeridiem"));
 
-        if (startInMinutes === null || endInMinutes === null || breakStartInMinutes === null || breakEndInMinutes === null || isNaN(buffer)) throw new Error("Invalid input");
+        if (startInMinutes === null || endInMinutes === null || breakStartInMinutes === null || breakEndInMinutes === null || isNaN(buffer)) return { ok: false, message: "Invalid input." };
+
+        if (startInMinutes >= endInMinutes)
+            return { ok: false, message: "Start time must be before end time" };
+
+        if (breakStartInMinutes <= startInMinutes || breakStartInMinutes >= breakEndInMinutes) return { ok: false, message: "Break start must be between start and end" };
+
+        if (breakEndInMinutes >= endInMinutes) return { ok: false, message: "Break end must be before clinic end" };
+        if (buffer < 0) return { ok: false, message: "Buffer cannot be negative" };
+
 
 
 

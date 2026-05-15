@@ -39,6 +39,15 @@ export async function updateWeeklyTemplateServerAction(formData) {
 
   if (startTime === null || endTime === null || breakStart === null || breakEnd === null || isNaN(buffer_time)) return redirect("/edit-template");
 
+
+  if (startTime >= endTime)
+    return { ok: false, message: "Start time must be before end time" };
+
+  if (breakStart <= startTime || breakStart >= breakEnd) return { ok: false, message: "Break start must be between start and end" };
+
+  if (breakEnd >= endTime) return { ok: false, message: "Break end must be before clinic end" };
+  if (buffer_time < 0) return { ok: false, message: "Buffer cannot be negative" };
+
   try {
     await db.execute({
       sql: `UPDATE weekly_templates 

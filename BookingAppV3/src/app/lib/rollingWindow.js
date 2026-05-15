@@ -17,8 +17,7 @@ export async function rollingWindow(adminId = null, win = 31) {
         const d = new Date();
 
         for (let i = 0; i < win; i++) {
-            const current = new Date(d);
-            current.setDate(d.getDate() + i);
+            const current = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() + i));
 
             const dateAtPeriod = current.getUTCDate();
             const monthAtPeriod = current.getUTCMonth();
@@ -60,7 +59,7 @@ export async function rollingWindow(adminId = null, win = 31) {
             buffer_minutes, full_date_at_period
         `;
 
-        const CHUNK_SIZE = 1000; 
+        const CHUNK_SIZE = 1000;
 
         for (let i = 0; i < slotsArrSorted.length; i += CHUNK_SIZE) {
             const chunk = slotsArrSorted.slice(i, i + CHUNK_SIZE);
@@ -99,7 +98,7 @@ export async function rollingWindow(adminId = null, win = 31) {
             }
         } // loop ends
 
-        
+
         await db.execute(
             `DELETE FROM slots 
              WHERE DATE(full_date_at_period) < DATE('now')`

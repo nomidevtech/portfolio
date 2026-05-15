@@ -30,7 +30,8 @@ export async function toggleSlotStatus(slotPubId) {
                 [adminId, currentSlot.doctor_id, currentSlot.full_date_at_period]
             );
             if (getAndUpdateBookings.rows.length > 0) {
-                await sendCancelationEmails(getAndUpdateBookings.rows, 100);
+                const emailableRows = getAndUpdateBookings.rows.filter(r => r.patient_email);
+                if (emailableRows.length > 0) await sendCancelationEmails(emailableRows, 100);
             }
         }
 

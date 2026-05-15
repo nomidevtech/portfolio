@@ -56,6 +56,15 @@ export async function editSlotServerAction(formData) {
         formData.get("breakEndMeridiem")
     );
 
+    if (startTimeFromUser >= endTimeFromUser)
+        return { ok: false, message: "Start time must be before end time" };
+
+    if (breakStartFromUser <= startTimeFromUser || breakStartFromUser >= breakEndFromUser) return { ok: false, message: "Break start must be between start and end" };
+
+    if (breakEndFromUser >= endTimeFromUser) return { ok: false, message: "Break end must be before clinic end" };
+    if (Number(formData.get("buffer")) < 0) return { ok: false, message: "Buffer cannot be negative" };
+
+
     const bufferTimeFromUser = Number(formData.get("buffer"));
     const statusFromUser = formData.get("status");
 
@@ -110,7 +119,8 @@ export async function editSlotServerAction(formData) {
 
         if (affectedBookings.length > 0) {
             try {
-                await sendCancelationEmails(affectedBookings, 100);
+                const emailableRows = affectedBookings.filter(r => r.patient_email);
+                if (emailableRows.length > 0) await sendCancelationEmails(emailableRows, 100);
             } catch (emailErr) {
                 console.error(
                     "Critical: Schedule updated but emails failed:",

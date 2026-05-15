@@ -18,8 +18,7 @@ async function getDoctorId(doctorPubId, adminId) {
         `SELECT id FROM doctors WHERE public_id = ? AND admin_id = ?`,
         [doctorPubId, adminId]
     );
-    if (result.rows.length === 0) return null;
-    return result.rows[0].id;
+    return result.rows.length === 0 ? null : result.rows[0].id;
 }
 
 async function getTreatmentId(treatmentPubId, adminId) {
@@ -28,15 +27,11 @@ async function getTreatmentId(treatmentPubId, adminId) {
         `SELECT id FROM treatments WHERE public_id = ? AND admin_id = ?`,
         [treatmentPubId, adminId]
     );
-    if (result.rows.length === 0) return null;
-    return result.rows[0].id;
+    return result.rows.length === 0 ? null : result.rows[0].id;
 }
 
-export async function editDoctorServerAction(formData) {
-
+export async function editDoctorServerAction(prevState, formData) {
     const adminId = await verify();
-    if (!adminId) return null;
-
     const doctorPubId = formData?.get("doctor_pubId");
     const name = formData?.get("name")?.replace(/\s/g, "-").toLowerCase();
     const username = formData?.get("username");
@@ -44,11 +39,11 @@ export async function editDoctorServerAction(formData) {
     const department = formData?.get("department")?.replace(/\s/g, "-").toLowerCase();
     const qualification = formData.get("qualification")?.toString().split(/[ ,]+/).filter(Boolean).map(q => q.trim().toLowerCase());
 
-    if (!doctorPubId || !name || !department || !username) return null;
+    if (!doctorPubId || !name || !department || !username) return { message: "Missing fields" };
 
     try {
         const doctorId = await getDoctorId(doctorPubId, adminId);
-        if (!doctorId) return null;
+        if (!doctorId) return { message: "Doctor not found" };
 
         if (newPassword) {
             const passwordHash = await hash(newPassword);
@@ -67,79 +62,62 @@ export async function editDoctorServerAction(formData) {
                 `UPDATE doctors SET name = ?, username = ?, department = ?, qualifications = ? WHERE id = ? AND admin_id = ?`,
                 [name, username, department, JSON.stringify(qualification), doctorId, adminId]
             );
-            await db.execute(
-                `UPDATE users SET username = ? WHERE doctor_id = ?`,
-                [username, doctorId]
-            );
+            await db.execute(`UPDATE users SET username = ? WHERE doctor_id = ?`, [username, doctorId]);
         }
-
     } catch (error) {
-        console.error(error);
-        return null;
+        return { message: "Database error" };
     }
     redirect(`/edit-doctor/${doctorPubId}`);
 }
 
-export async function removeDoctorTreatment(formData) {
-
+export async function removeDoctorTreatment(prevState, formData) {
     const adminId = await verify();
-    if (!adminId) return null;
-
     const doctorPubId = formData?.get("doctor_pubId");
     const treatmentPubId = formData?.get("remove_treatment");
-    if (!doctorPubId || !treatmentPubId) return null;
+    if (!doctorPubId || !treatmentPubId) return { message: "Missing IDs" };
     try {
         const doctorId = await getDoctorId(doctorPubId, adminId);
         const treatmentId = await getTreatmentId(treatmentPubId, adminId);
-        if (!doctorId || !treatmentId) return null;
+        if (!doctorId || !treatmentId) return { message: "Not found" };
         await db.execute(
             `DELETE FROM doctor_treatments WHERE doctor_id = ? AND treatment_id = ? AND admin_id = ?`,
             [doctorId, treatmentId, adminId]
         );
     } catch (error) {
-        console.error(error);
-        return null;
+        return { message: "Database error" };
     }
     redirect(`/edit-doctor/${doctorPubId}`);
 }
 
-export async function addDoctorTreatment(formData) {
-
+export async function addDoctorTreatment(prevState, formData) {
     const adminId = await verify();
-    if (!adminId) return null;
-
     const doctorPubId = formData?.get("doctor_pubId");
     const treatmentPubId = formData?.get("treatment");
-    if (!doctorPubId || !treatmentPubId) return null;
+    if (!doctorPubId || !treatmentPubId) return { message: "Missing IDs" };
     try {
         const doctorId = await getDoctorId(doctorPubId, adminId);
         const treatmentId = await getTreatmentId(treatmentPubId, adminId);
-        if (!doctorId || !treatmentId) return null;
+        if (!doctorId || !treatmentId) return { message: "Not found" };
         await db.execute(
             `INSERT OR IGNORE INTO doctor_treatments (public_id, admin_id, doctor_id, treatment_id) VALUES (?, ?, ?, ?)`,
             [nanoid(12), adminId, doctorId, treatmentId]
         );
     } catch (error) {
-        console.error(error);
-        return null;
+        return { message: "Database error" };
     }
     redirect(`/edit-doctor/${doctorPubId}`);
 }
 
-export async function deleteDoctor(formData) {
-
+export async function deleteDoctor(prevState, formData) {
     const adminId = await verify();
-    if (!adminId) return null;
-
     const doctorPubId = formData?.get("doctor_pubId");
-    if (!doctorPubId) return null;
+    if (!doctorPubId) return { message: "Missing ID" };
     try {
         const doctorId = await getDoctorId(doctorPubId, adminId);
-        if (!doctorId) return null;
+        if (!doctorId) return { message: "Not found" };
         await db.execute(`DELETE FROM doctors WHERE id = ? AND admin_id = ?`, [doctorId, adminId]);
     } catch (error) {
-        console.error(error);
-        return null;
+        return { message: "Database error" };
     }
     redirect(`/add-doctor`);
 }
