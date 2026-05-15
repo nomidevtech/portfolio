@@ -235,14 +235,23 @@ export async function loginSA(_, formData) {
         const passwordHash = user.password;
 
         const isPasswordValid = await compare(password, passwordHash);
-
         if (!isPasswordValid) return { ok: false, message: "Invalid credentials" };
 
+        let adminPubId = null;
 
-        const fetchAdminPublicId = await db.execute("SELECT public_id FROM admins WHERE id = ?", [user.admin_id]);
-        if (fetchAdminPublicId.rows.length === 0) return { ok: false, message: "Invalid credentials" };
+        if (user.role === "admin") {
+            const fetchAdminPublicId = await db.execute("SELECT public_id FROM admins WHERE id = ?", [user.admin_id]);
+            if (fetchAdminPublicId.rows.length === 0) return { ok: false, message: "Invalid credentials" };
+            adminPubId = fetchAdminPublicId.rows[0].public_id;
+        }
+        if (user.role === "doctor") {
+            const fetchAdminPublicId = await db.execute("SELECT admins.public_id AS admin_public_id FROM doctors LEFT JOIN admins ON doctors.admin_id = admins.id WHERE doctors.id = ?", [user.doctor_id]);
+            if (fetchAdminPublicId.rows.length === 0) return { ok: false, message: "Invalid credentials" };
+            adminPubId = fetchAdminPublicId.rows[0].admin_public_id;
+        }
 
-        if (user.status !== "verified") return { ok: false, message: "Please verify your email before logging in.", redirectUrl: `${process.env.NEXT_PUBLIC_APP_URL}/verification/${fetchAdminPublicId.rows[0].public_id}` };
+
+        if (user.status !== "verified") return { ok: false, message: "Please verify your email before logging in.", redirectUrl: `${process.env.NEXT_PUBLIC_APP_URL}/verification/${adminPubId}` };
 
 
         const sessionToken = crypto.randomBytes(64).toString("hex");
@@ -1193,8 +1202,12 @@ import { redirect } from "next/navigation";
 import crypto from "crypto";
 import { hash } from "@/app/utils/bcrypt";
 import { sendEmail } from "@/app/lib/resend";
+import { redisIpLimit } from "@/app/lib/redis";
 
 export async function appointmentRegisterationServerAction(_, formData) {
+
+    const redisLimit = await redisIpLimit(20, "appointmentRegisteration", 60 * 15);
+    if (!redisLimit.ok) return { ok: false, message: redisLimit.message };
 
     const adminPubId = formData.get("adminPubId");
     if (!adminPubId) return { ok: false, message: "Invalid admin." };
@@ -3676,7 +3689,6 @@ export async function updateWeeklyTemplateServerAction(formData) {
 ---
 ## src\app\lib\deleteWeeklyTemplate.js
 ```
-// src/app/lib/deleteWeeklyTemplate.js
 "use server";
 
 import { db } from "@/app/lib/turso";
@@ -3684,39 +3696,6 @@ import { redirect } from "next/navigation";
 import { getUserPlus } from "@/app/lib/getUser";
 import { sendCancelationEmails } from "@/app/lib/sendCancelationEmail";
 import { rollingWindow } from "@/app/lib/rollingWindow";
-
-
-// ─── Original simple delete (kept as-is for backward compatibility) ───────────
-export async function deleteWeeklyTemplateServerAction(formData) {
-
-    const currentUser = await getUserPlus();
-    if (!currentUser || currentUser.role !== "admin" || !currentUser.admin_id) redirect("/login");
-
-    const adminId = currentUser.admin_id;
-    const docPubId = formData.get("docPubId");
-    const templatePubId = formData.get("templatePubId");
-
-    const fetchDocId = await db.execute(`SELECT id FROM doctors WHERE public_id = ? AND admin_id = ?`, [docPubId, adminId]);
-    if (fetchDocId?.rows.length === 0) return redirect("/edit-template");
-
-    if (!docPubId || !templatePubId) return;
-
-    let success = false;
-
-    try {
-        const result = await db.execute(
-            `DELETE FROM weekly_templates 
-             WHERE public_id = ? AND admin_id = ? AND doctor_id = ?`,
-            [templatePubId, adminId, fetchDocId.rows[0].id]
-        );
-        if (result.rowsAffected > 0) success = true;
-
-    } catch (error) {
-        console.error(error);
-    }
-
-    if (success) return redirect(`/edit-template/${docPubId}`);
-}
 
 
 
@@ -4731,7 +4710,7 @@ export default async function Message({ params }) {
         {booking.status === "verified" && <><p>Slot Booked Successfully.</p>
             <DownloadTicketButton bookingPubId={bookingPubId} adminPubId={adminPubId} />
         </>}
-        <ResendCancelBookingEmail bookingPubId={bookingPubId} />
+        {booking.status === "verified" && <ResendCancelBookingEmail bookingPubId={bookingPubId} />}
     </>);
 }
 ```

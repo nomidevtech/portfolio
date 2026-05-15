@@ -1,4 +1,3 @@
-// src/app/lib/deleteWeeklyTemplate.js
 "use server";
 
 import { db } from "@/app/lib/turso";
