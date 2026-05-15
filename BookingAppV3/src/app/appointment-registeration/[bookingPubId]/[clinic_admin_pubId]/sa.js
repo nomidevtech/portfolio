@@ -5,8 +5,12 @@ import { redirect } from "next/navigation";
 import crypto from "crypto";
 import { hash } from "@/app/utils/bcrypt";
 import { sendEmail } from "@/app/lib/resend";
+import { redisIpLimit } from "@/app/lib/redis";
 
 export async function appointmentRegisterationServerAction(_, formData) {
+
+    const redisLimit = await redisIpLimit(20, "appointmentRegisteration", 60 * 15);
+    if (!redisLimit.ok) return { ok: false, message: redisLimit.message };
 
     const adminPubId = formData.get("adminPubId");
     if (!adminPubId) return { ok: false, message: "Invalid admin." };

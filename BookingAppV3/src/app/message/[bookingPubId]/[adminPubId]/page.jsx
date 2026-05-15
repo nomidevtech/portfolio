@@ -40,6 +40,6 @@ export default async function Message({ params }) {
         {booking.status === "verified" && <><p>Slot Booked Successfully.</p>
             <DownloadTicketButton bookingPubId={bookingPubId} adminPubId={adminPubId} />
         </>}
-        <ResendCancelBookingEmail bookingPubId={bookingPubId} />
+        {booking.status === "verified" && <ResendCancelBookingEmail bookingPubId={bookingPubId} />}
     </>);
 }

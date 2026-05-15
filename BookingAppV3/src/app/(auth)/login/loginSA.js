@@ -32,14 +32,23 @@ export async function loginSA(_, formData) {
         const passwordHash = user.password;
 
         const isPasswordValid = await compare(password, passwordHash);
-
         if (!isPasswordValid) return { ok: false, message: "Invalid credentials" };
 
+        let adminPubId = null;
 
-        const fetchAdminPublicId = await db.execute("SELECT public_id FROM admins WHERE id = ?", [user.admin_id]);
-        if (fetchAdminPublicId.rows.length === 0) return { ok: false, message: "Invalid credentials" };
+        if (user.role === "admin") {
+            const fetchAdminPublicId = await db.execute("SELECT public_id FROM admins WHERE id = ?", [user.admin_id]);
+            if (fetchAdminPublicId.rows.length === 0) return { ok: false, message: "Invalid credentials" };
+            adminPubId = fetchAdminPublicId.rows[0].public_id;
+        }
+        if (user.role === "doctor") {
+            const fetchAdminPublicId = await db.execute("SELECT admins.public_id AS admin_public_id FROM doctors LEFT JOIN admins ON doctors.admin_id = admins.id WHERE doctors.id = ?", [user.doctor_id]);
+            if (fetchAdminPublicId.rows.length === 0) return { ok: false, message: "Invalid credentials" };
+            adminPubId = fetchAdminPublicId.rows[0].admin_public_id;
+        }
 
-        if (user.status !== "verified") return { ok: false, message: "Please verify your email before logging in.", redirectUrl: `${process.env.NEXT_PUBLIC_APP_URL}/verification/${fetchAdminPublicId.rows[0].public_id}` };
+
+        if (user.status !== "verified") return { ok: false, message: "Please verify your email before logging in.", redirectUrl: `${process.env.NEXT_PUBLIC_APP_URL}/verification/${adminPubId}` };
 
 
         const sessionToken = crypto.randomBytes(64).toString("hex");
