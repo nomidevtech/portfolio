@@ -62,7 +62,8 @@ export default async function VerifyEmail({ params }) {
             await sendEmail({
                 to: booking.patient_email,
                 subject: `Cancel Your Appointment`,
-                html: `<p>Dear ${name}, You can cancel your appointment.</p><p>Click on button to cancel your appointment.</p><a href="${process.env.NEXT_PUBLIC_APP_URL}/cancel/${cancel_token}/${bookingPubId}/${adminPubId}">Cancel Appointment</a>`
+                html: `<p>Dear ${name}, You can cancel your appointment.</p><p>Click on button to cancel your appointment.</p><a href="${process.env.NEXT_PUBLIC_APP_URL}/cancel/${cancel_token}/${bookingPubId}/${adminPubId}">Cancel Appointment</a>
+                <p>Click here to check current status of your booking.</p><a href="${process.env.NEXT_PUBLIC_APP_URL}/message/${bookingPubId}/${adminPubId}">Check Booking Status</a>`,
             });
         }
 

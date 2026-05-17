@@ -41,7 +41,7 @@ export default async function AddDoctor() {
                             <p>
                                 Name: Dr. {doctor.name.split("-").map(w => w[0].toUpperCase() + w.slice(1)).join(" ")} -
                                 Qualifications: {JSON.parse(doctor.qualifications || "[]").join(", ").toUpperCase()} -
-                                Dept: {doctor.department}
+                                Dept: {doctor.department[0].toUpperCase() + doctor.department.slice(1)}
                             </p>
                             <Link href={`/edit-doctor/${doctor.public_id}`}>Edit⬅</Link>
                         </div>
