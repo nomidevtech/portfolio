@@ -3,6 +3,11 @@ import { getUserPlus } from "../lib/getUser";
 import { redirect } from "next/navigation";
 import ClientAddTreatment from "./Client";
 
+export const metadata = {
+    title: "Add Treatment",
+    description: "Create clinic treatments and durations for appointment booking.",
+};
+
 export default async function AddTreatment() {
     const currentUser = await getUserPlus();
     if (!currentUser) return redirect("/login");

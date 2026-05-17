@@ -4,17 +4,22 @@ import { getDayName, getMonthName } from "@/app/utils/getDateData";
 import ClientBookASlot from "./Client";
 import { redisIpLimit } from "@/app/lib/redis";
 
+export const metadata = {
+    title: "Available Slots",
+    description: "Select an available appointment slot for a doctor and treatment.",
+};
+
 export default async function DoctorBookings({ params }) {
 
     const redisLimit = await redisIpLimit(15, "bookingsPerDoc", 60 * 15);
-    if (!redisLimit.ok) return <p>{redisLimit.message}</p>
+    if (!redisLimit.ok) return <main className="page-shell"><p className="status-error">{redisLimit.message}</p></main>
 
 
     const { clinic_admin_pubId, docName, docPubId, treatmentPubId } = await params;
-    if (!clinic_admin_pubId || !docPubId || !docName || !treatmentPubId) return <p>Broken Link. Please try again.</p>;
+    if (!clinic_admin_pubId || !docPubId || !docName || !treatmentPubId) return <main className="page-shell"><p className="status-error">Broken Link. Please try again.</p></main>;
 
     const fetchAdmin = await db.execute(`SELECT * FROM admins WHERE public_id = ?`, [clinic_admin_pubId]);
-    if (fetchAdmin.rows.length === 0) return <p>Broken Link. Please try again.</p>;
+    if (fetchAdmin.rows.length === 0) return <main className="page-shell"><p className="status-error">Broken Link. Please try again.</p></main>;
 
     const adminId = fetchAdmin.rows[0].id;
 
@@ -23,8 +28,8 @@ export default async function DoctorBookings({ params }) {
         db.execute(`SELECT * FROM treatments where public_id = ? AND admin_id = ?`, [treatmentPubId, adminId])
     ]);
 
-    if (fetchDoctor.rows.length === 0) return <p>Broken Link. Please try again.</p>;
-    if (fetchTreatment.rows.length === 0) return <p>Broken Link. Please try again.</p>;
+    if (fetchDoctor.rows.length === 0) return <main className="page-shell"><p className="status-error">Broken Link. Please try again.</p></main>;
+    if (fetchTreatment.rows.length === 0) return <main className="page-shell"><p className="status-error">Broken Link. Please try again.</p></main>;
 
     const docId = fetchDoctor?.rows[0]?.id;
     const treatmentId = fetchTreatment?.rows[0]?.id;
@@ -36,8 +41,8 @@ export default async function DoctorBookings({ params }) {
         db.execute(`SELECT * FROM bookings WHERE admin_id = ? AND doctor_id = ? AND status NOT IN('cancelled', 'revoked')`, [adminId, docId])
     ]);
 
-    if (fetchRecord.rows.length === 0) return <p>Broken Link. Please try again.</p>;
-    if (fetchSlots.rows.length === 0) return <p>No slots available.</p>;
+    if (fetchRecord.rows.length === 0) return <main className="page-shell"><p className="status-error">Broken Link. Please try again.</p></main>;
+    if (fetchSlots.rows.length === 0) return <main className="page-shell"><p className="status-warning">No slots available.</p></main>;
 
     const allVirtualSlots = fetchSlots.rows || [];
 
@@ -86,18 +91,24 @@ export default async function DoctorBookings({ params }) {
 
 
 
-    return (<>
-        <div className="p-6">
+    return (<main className="page-shell">
+        <div className="mb-8">
+            <p className="soft-pill">Patient booking</p>
+            <h1 className="mt-4 text-3xl font-black text-slate-950">Available slots</h1>
+            <p className="mt-2 text-slate-600">Choose a time for Dr. {fetchDoctor.rows[0].name[0].toUpperCase() + fetchDoctor.rows[0].name.slice(1)}.</p>
+        </div>
+        <div className="grid gap-5">
             {allVirtualSlots.map((slot, index1) => (
-                <div key={slot.public_id} className="border-2 ">
-                    <p>{getDayName(slot.day_number)} {slot.date_number > 9 ? slot.date_number : `0${slot.date_number}`} {getMonthName(slot.month_number)} {slot.year}</p>
-                    <p>Dr. {fetchDoctor.rows[0].name[0].toUpperCase() + fetchDoctor.rows[0].name.slice(1)} {JSON.parse(fetchDoctor.rows[0].qualifications).join(', ').toUpperCase()}</p>
-                    <p>Slots for ( {fetchTreatment.rows[0].name.split("_").map(fn => fn[0].toUpperCase() + fn.slice(1)).join(" ")} )</p>
-                    <p>Slot Duration: {fetchTreatment.rows[0].duration < 10 ? `0${fetchTreatment.rows[0].duration}` : fetchTreatment.rows[0].duration}min</p>
+                <section key={slot.public_id} className="section-panel">
+                    <h2 className="text-xl font-black text-slate-950">{getDayName(slot.day_number)} {slot.date_number > 9 ? slot.date_number : `0${slot.date_number}`} {getMonthName(slot.month_number)} {slot.year}</h2>
+                    <p className="mt-2 text-sm text-slate-600">Dr. {fetchDoctor.rows[0].name[0].toUpperCase() + fetchDoctor.rows[0].name.slice(1)} {JSON.parse(fetchDoctor.rows[0].qualifications).join(', ').toUpperCase()}</p>
+                    <p className="text-sm text-slate-600">Treatment: {fetchTreatment.rows[0].name.split("_").map(fn => fn[0].toUpperCase() + fn.slice(1)).join(" ")}</p>
+                    <p className="text-sm text-slate-600">Duration: {fetchTreatment.rows[0].duration < 10 ? `0${fetchTreatment.rows[0].duration}` : fetchTreatment.rows[0].duration} min</p>
                     <details>
-                        <summary>Available Slots</summary>
+                        <summary>Available slots</summary>
+                        <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                         {slot.freeVirtualSlots.length > 0 ? slot.freeVirtualSlots.map((freeSlot, index2) => (
-                            <div key={slot.public_id + index1 + index2} className="border-2">
+                            <div key={slot.public_id + index1 + index2}>
                                 <ClientBookASlot
                                     subSlot={freeSlot}
                                     adminPubId={clinic_admin_pubId}
@@ -111,11 +122,12 @@ export default async function DoctorBookings({ params }) {
                                     treatment_end={freeSlot.end}
                                 />
                             </div>
-                        )) : <p>No available slots for this day.</p>}
+                        )) : <p className="text-sm text-slate-600">No available slots for this day.</p>}
+                        </div>
                     </details>
-                </div >
+                </section>
             ))
             }
         </div>
-    </>);
+    </main>);
 }

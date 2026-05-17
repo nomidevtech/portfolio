@@ -7,7 +7,6 @@ export function ToggleSlotButton({ slotPubId, status, numberOfBookings = 0 }) {
     const [isPending, startTransition] = useTransition();
     const [showConfirm, setShowConfirm] = useState(false);
     const router = useRouter();
-
     const isActive = status === "active";
 
     const handleToggle = () => {
@@ -18,57 +17,41 @@ export function ToggleSlotButton({ slotPubId, status, numberOfBookings = 0 }) {
         setShowConfirm(false);
     };
 
-    // Activate doesn't need confirmation
     if (!isActive) {
         return (
-            <button disabled={isPending} onClick={handleToggle}>
+            <button className="btn-primary" disabled={isPending} onClick={handleToggle}>
                 {isPending ? "Updating..." : "Activate"}
             </button>
         );
     }
 
-    // Deactivate flow
     if (!showConfirm) {
         return (
-            <button onClick={() => setShowConfirm(true)} disabled={isPending}>
+            <button className="btn-secondary" onClick={() => setShowConfirm(true)} disabled={isPending}>
                 Deactivate
             </button>
         );
     }
 
     return (
-        <div>
+        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
             {numberOfBookings > 0 && (
-                <p>
-                    ⚠️ There {numberOfBookings === 1 ? "is" : "are"}{" "}
-                    <strong>{numberOfBookings}</strong>{" "}
-                    {numberOfBookings === 1 ? "booking" : "bookings"} for this
-                    day. Inactivating this slot will notify the affected{" "}
-                    {numberOfBookings === 1 ? "patient" : "patients"} to
-                    reschedule.
+                <p className="text-sm font-semibold text-amber-900">
+                    There {numberOfBookings === 1 ? "is" : "are"} <strong>{numberOfBookings}</strong> {numberOfBookings === 1 ? "booking" : "bookings"} for this day. Inactivating this slot will notify affected patients to reschedule.
                 </p>
             )}
-            <p>Are you sure you want to deactivate this slot?</p>
-            <button disabled={isPending} onClick={handleToggle}>
-                {isPending ? "Updating..." : "Yes, deactivate"}
-            </button>
-            <button onClick={() => setShowConfirm(false)} disabled={isPending}>
-                Cancel
-            </button>
+            <p className="mt-2 text-sm text-amber-900">Are you sure you want to deactivate this slot?</p>
+            <div className="mt-4 flex flex-wrap gap-2">
+                <button className="btn-danger" disabled={isPending} onClick={handleToggle}>
+                    {isPending ? "Updating..." : "Yes, deactivate"}
+                </button>
+                <button className="btn-secondary" onClick={() => setShowConfirm(false)} disabled={isPending}>
+                    Cancel
+                </button>
+            </div>
         </div>
     );
-};
-
-
-
-
-
-
-
-
-
-
-
+}
 
 export function EditSlotButton({ slotPubId, numberOfBookings = 0 }) {
     const [showConfirm, setShowConfirm] = useState(false);
@@ -79,31 +62,21 @@ export function EditSlotButton({ slotPubId, numberOfBookings = 0 }) {
     };
 
     if (!showConfirm) {
-        return (
-            <button onClick={() => setShowConfirm(true)}>
-                Edit
-            </button>
-        );
+        return <button className="btn-secondary" onClick={() => setShowConfirm(true)}>Edit</button>;
     }
 
     return (
-        <div>
-            <p>
-                ⚠️ Editing this slot will permanently revoke all current bookings
-                {numberOfBookings > 0 && (
-                    <>
-                        {" "}(<strong>{numberOfBookings}</strong> {numberOfBookings === 1 ? "booking" : "bookings"})
-                    </>
-                )}
-                {" "}and notify {numberOfBookings === 1 ? "the affected patient" : "all affected patients"} to reschedule.
+        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
+            <p className="text-sm font-semibold text-amber-900">
+                Editing this slot permanently revokes current bookings
+                {numberOfBookings > 0 && <> (<strong>{numberOfBookings}</strong> {numberOfBookings === 1 ? "booking" : "bookings"})</>}
+                {" "}and notifies affected patients to reschedule.
             </p>
-            <p>Are you sure you want to proceed?</p>
-            <button onClick={handleConfirm}>
-                Yes, edit slot
-            </button>
-            <button onClick={() => setShowConfirm(false)}>
-                Cancel
-            </button>
+            <p className="mt-2 text-sm text-amber-900">Are you sure you want to proceed?</p>
+            <div className="mt-4 flex flex-wrap gap-2">
+                <button className="btn-danger" onClick={handleConfirm}>Yes, edit slot</button>
+                <button className="btn-secondary" onClick={() => setShowConfirm(false)}>Cancel</button>
+            </div>
         </div>
     );
 }

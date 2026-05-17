@@ -3,6 +3,11 @@ import { getUserPlus } from "../lib/getUser";
 import { getDashboardStats } from "./sa";
 import ClientDashboard from "./Client";
 
+export const metadata = {
+  title: "Dashboard",
+  description: "View clinic and appointment booking statistics.",
+};
+
 export default async function Dashboard() {
   const currentUser = await getUserPlus();
 
@@ -18,7 +23,7 @@ export default async function Dashboard() {
   const statsRes = await getDashboardStats();
 
   if (!statsRes.ok) {
-    return <div className="p-6 text-red-500 font-medium">{statsRes.message}</div>;
+    return <main className="page-shell"><p className="status-error">{statsRes.message}</p></main>;
   }
 
   // Pass data to Client Component

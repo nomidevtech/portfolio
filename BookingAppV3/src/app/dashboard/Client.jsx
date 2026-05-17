@@ -1,55 +1,59 @@
 "use client";
 
 export default function ClientDashboard({ role, stats }) {
-    if (!stats) return <p className="p-6">Loading stats...</p>;
+    if (!stats) return <main className="page-shell"><p className="section-panel">Loading stats...</p></main>;
 
     const { bookingsCount, activeUpcomingSlots, totalBookings, totalDoctors } = stats;
 
     return (
-        <div className="p-6 max-w-7xl mx-auto">
-            <h1 className="text-3xl font-bold text-gray-900 mb-8">
-                {role === "admin" ? "Clinic Dashboard" : "My Dashboard"}
-            </h1>
+        <main className="page-shell">
+            <div className="mb-8">
+                <p className="soft-pill">{role === "admin" ? "Clinic overview" : "Doctor overview"}</p>
+                <h1 className="mt-4 text-3xl font-black text-slate-950">
+                    {role === "admin" ? "Clinic dashboard" : "My dashboard"}
+                </h1>
+                <p className="mt-2 text-slate-600">Monitor bookings, active slots, and current appointment status.</p>
+            </div>
 
-            {/* Top Level Stats */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                {role === "admin" && (
-                    <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-                        <p className="text-sm font-medium text-gray-500 mb-1">Total Doctors</p>
-                        <p className="text-3xl font-bold text-gray-900">{totalDoctors}</p>
+            <div className="mb-8 grid grid-cols-1 gap-4 md:grid-cols-3">
+                {role === "admin" && <MetricCard label="Total doctors" value={totalDoctors} />}
+                <MetricCard label="Lifetime bookings" value={totalBookings} />
+                <MetricCard label="Active upcoming slots" value={activeUpcomingSlots} emphasis />
+            </div>
+
+            <section className="section-panel">
+                <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
+                    <div>
+                        <h2 className="text-xl font-black text-slate-950">Bookings breakdown</h2>
+                        <p className="mt-1 text-sm text-slate-600">Current status distribution across booking records.</p>
                     </div>
-                )}
-
-                <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-                    <p className="text-sm font-medium text-gray-500 mb-1">Total Lifetime Bookings</p>
-                    <p className="text-3xl font-bold text-gray-900">{totalBookings}</p>
                 </div>
-
-                <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-                    <p className="text-sm font-medium text-gray-500 mb-1">Active Upcoming Slots</p>
-                    <p className="text-3xl font-bold text-blue-600">{activeUpcomingSlots}</p>
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
+                    <StatCard title="Verified" count={bookingsCount.verified} color="text-emerald-700" bg="bg-emerald-50" border="border-emerald-200" />
+                    <StatCard title="Pending" count={bookingsCount.pending} color="text-amber-700" bg="bg-amber-50" border="border-amber-200" />
+                    <StatCard title="Unverified" count={bookingsCount.unverified} color="text-orange-700" bg="bg-orange-50" border="border-orange-200" />
+                    <StatCard title="Cancelled" count={bookingsCount.cancelled} color="text-rose-700" bg="bg-rose-50" border="border-rose-200" />
+                    <StatCard title="Revoked" count={bookingsCount.revoked} color="text-slate-700" bg="bg-slate-100" border="border-slate-200" />
                 </div>
-            </div>
+            </section>
+        </main>
+    );
+}
 
-            {/* Booking Breakdown Stats */}
-            <h2 className="text-xl font-bold text-gray-900 mb-4">Bookings Breakdown</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-                <StatCard title="Verified" count={bookingsCount.verified} color="text-green-700" bg="bg-green-50" border="border-green-200" />
-                <StatCard title="Pending" count={bookingsCount.pending} color="text-yellow-700" bg="bg-yellow-50" border="border-yellow-200" />
-                <StatCard title="Unverified" count={bookingsCount.unverified} color="text-orange-700" bg="bg-orange-50" border="border-orange-200" />
-                <StatCard title="Cancelled" count={bookingsCount.cancelled} color="text-red-700" bg="bg-red-50" border="border-red-200" />
-                <StatCard title="Revoked" count={bookingsCount.revoked} color="text-gray-700" bg="bg-gray-100" border="border-gray-300" />
-            </div>
+function MetricCard({ label, value, emphasis = false }) {
+    return (
+        <div className={emphasis ? "rounded-2xl border border-teal-200 bg-teal-700 p-6 text-white shadow-sm" : "data-card"}>
+            <p className={emphasis ? "text-sm font-semibold text-emerald-100" : "text-sm font-semibold text-slate-500"}>{label}</p>
+            <p className="mt-2 text-4xl font-black">{value || 0}</p>
         </div>
     );
 }
 
-// Reusable mini-component for the stat cards
 function StatCard({ title, count, color, bg, border }) {
     return (
-        <div className={`p-5 rounded-2xl border ${border} ${bg}`}>
-            <p className="text-sm font-semibold text-gray-600 mb-1 uppercase tracking-wide">{title}</p>
-            <p className={`text-3xl font-black ${color}`}>{count || 0}</p>
+        <div className={`rounded-2xl border p-5 ${border} ${bg}`}>
+            <p className="text-sm font-bold uppercase text-slate-600">{title}</p>
+            <p className={`mt-2 text-3xl font-black ${color}`}>{count || 0}</p>
         </div>
     );
 }

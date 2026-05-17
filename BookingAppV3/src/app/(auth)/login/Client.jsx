@@ -10,70 +10,53 @@ export default function Client() {
     const [state, formAction, isPending] = useActionState(loginSA, initialState);
 
     return (
-        <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4 py-12">
-            <div className="w-full max-w-sm">
-                <div className="text-center mb-8">
-                    <h1 className="text-2xl font-bold text-gray-900">Welcome back</h1>
-                    <p className="text-sm text-gray-500 mt-1">Sign in to your account</p>
+        <main className="page-shell-narrow">
+            <div className="mx-auto w-full max-w-md">
+                <div className="mb-8 text-center">
+                    <p className="soft-pill mx-auto">Clinic workspace</p>
+                    <h1 className="mt-4 text-3xl font-black text-slate-950">Welcome back</h1>
+                    <p className="mt-2 text-sm text-slate-600">Sign in to manage bookings and schedules.</p>
                 </div>
 
-                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-                    <Form action={formAction} className="flex flex-col gap-4">
-                        <div className="flex flex-col gap-1.5">
-                            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                                Username
-                            </label>
-                            <input
-                                name="username"
-                                type="text"
-                                placeholder="your_username"
-                                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900 placeholder-gray-400 bg-white focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent transition-all"
-                            />
-                        </div>
+                <div className="form-panel">
+                    <Form action={formAction} className="stack-form">
+                        <label className="grid gap-1.5">
+                            <span className="field-label">Username</span>
+                            <input name="username" type="text" placeholder="your_username" />
+                        </label>
 
-                        <div className="flex flex-col gap-1.5">
-                            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                                Password
-                            </label>
-                            <input
-                                name="password"
-                                type="password"
-                                placeholder="••••••••"
-                                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900 placeholder-gray-400 bg-white focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent transition-all"
-                            />
-                        </div>
+                        <label className="grid gap-1.5">
+                            <span className="field-label">Password</span>
+                            <input name="password" type="password" placeholder="Password" />
+                        </label>
 
                         {state.message && (
-                            <p className={`text-sm px-4 py-3 rounded-xl border ${state.ok
-                                    ? "text-green-700 bg-green-50 border-green-200"
-                                    : "text-red-600 bg-red-50 border-red-200"
-                                }`}>
-                                {state.ok ? "Login successful! Redirecting…" : state.message}
+                            <p className={state.ok ? "status-success" : "status-error"}>
+                                {state.ok ? "Login successful. Redirecting..." : state.message}
                             </p>
                         )}
 
-                        <button
-                            type="submit"
-                            disabled={isPending}
-                            className="w-full bg-gray-900 text-white rounded-xl py-3 text-sm font-semibold hover:bg-gray-700 active:bg-gray-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors mt-1"
-                        >
-                            {isPending ? "Signing in…" : "Sign in"}
+                        <button type="submit" disabled={isPending} className="btn-primary w-full">
+                            {isPending ? "Signing in..." : "Sign in"}
                         </button>
                     </Form>
                 </div>
 
-                <p className="text-sm text-gray-500 text-center mt-6">
-                    Don't have an account?{" "}
-                    <Link href="/signup" className="font-semibold text-gray-900 hover:underline">
-                        Sign up
-                    </Link>
-                </p>
-                <p className="text-sm text-gray-500 text-center mt-6">Forgot password? 
-                    <Link href="/recovery" className="font-semibold text-gray-900 hover:underline">
-                        Click Here
-                    </Link>
-                </p>
+                <div className="mt-6 grid gap-3 text-center text-sm text-slate-600">
+                    <p>
+                        Don&apos;t have an account?{" "}
+                        <Link href="/signup" className="font-semibold text-teal-800 hover:underline">
+                            Sign up
+                        </Link>
+                    </p>
+                    <p>
+                        Forgot password?{" "}
+                        <Link href="/recovery" className="font-semibold text-teal-800 hover:underline">
+                            Recover access
+                        </Link>
+                    </p>
+                </div>
             </div>
-        </div>
+        </main>
     );
 }

@@ -18,26 +18,26 @@ export function DeleteTemplateButton({ templatePubId, docPubId, dayName }) {
 
     if (!showConfirm) {
         return (
-            <button onClick={() => setShowConfirm(true)} disabled={isPending}>
+            <button className="btn-danger" onClick={() => setShowConfirm(true)} disabled={isPending}>
                 Delete
             </button>
         );
     }
 
     return (
-        <div>
-            <p>
-                ⚠️ Deleting the <strong>{dayName}</strong> template will permanently remove all
-                upcoming <strong>{dayName}</strong> slots for this doctor. If any patients have
-                bookings on those slots, they will be automatically notified by email to reschedule.
+        <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4">
+            <p className="text-sm font-semibold text-rose-800">
+                Deleting the <strong>{dayName}</strong> template permanently removes upcoming {dayName} slots for this doctor and notifies booked patients to reschedule.
             </p>
-            <p>Are you sure you want to delete this template?</p>
-            <button disabled={isPending} onClick={handleDelete}>
-                {isPending ? "Deleting..." : "Yes, delete template"}
-            </button>
-            <button onClick={() => setShowConfirm(false)} disabled={isPending}>
-                Cancel
-            </button>
+            <p className="mt-2 text-sm text-rose-800">Are you sure you want to delete this template?</p>
+            <div className="mt-4 flex flex-wrap gap-2">
+                <button className="btn-danger" disabled={isPending} onClick={handleDelete}>
+                    {isPending ? "Deleting..." : "Yes, delete template"}
+                </button>
+                <button className="btn-secondary" onClick={() => setShowConfirm(false)} disabled={isPending}>
+                    Cancel
+                </button>
+            </div>
         </div>
     );
 }

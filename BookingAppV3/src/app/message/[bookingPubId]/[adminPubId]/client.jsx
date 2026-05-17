@@ -9,17 +9,13 @@ export default function DownloadTicketButton({ bookingPubId, adminPubId }) {
     async function handleDownload() {
         try {
             setLoading(true);
-
             const pdfBytes = await generateTicketPdf(bookingPubId, adminPubId);
-
             const blob = new Blob([pdfBytes], { type: "application/pdf" });
             const url = URL.createObjectURL(blob);
-
             const link = document.createElement("a");
             link.href = url;
             link.download = `ticket-${bookingPubId}.pdf`;
             link.click();
-
             URL.revokeObjectURL(url);
         } finally {
             setLoading(false);
@@ -27,8 +23,8 @@ export default function DownloadTicketButton({ bookingPubId, adminPubId }) {
     }
 
     return (
-        <button onClick={handleDownload} disabled={loading}>
-            {loading ? "Generating..." : "Download Ticket"}
+        <button className="btn-primary" onClick={handleDownload} disabled={loading}>
+            {loading ? "Generating..." : "Download ticket"}
         </button>
     );
 }

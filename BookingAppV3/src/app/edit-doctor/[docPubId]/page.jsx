@@ -3,6 +3,11 @@ import { getUserPlus } from "@/app/lib/getUser";
 import { redirect } from "next/navigation";
 import ClientEditDoctor from "./Client";
 
+export const metadata = {
+    title: "Edit Doctor",
+    description: "Update doctor profile details and treatment assignments.",
+};
+
 export default async function EditDoctor({ params }) {
     const currentUser = await getUserPlus();
     if (!currentUser) return redirect("/login");
@@ -18,7 +23,7 @@ export default async function EditDoctor({ params }) {
         [adminId, docPubId]
     );
 
-    if (fetchDoctor.rows.length === 0) return <p>Broken link. Doctor not found.</p>;
+    if (fetchDoctor.rows.length === 0) return <main className="page-shell"><p className="status-error">Broken link. Doctor not found.</p></main>;
 
     const doctorId = fetchDoctor.rows[0].id;
     const fetchDepartments = await db.execute(`SELECT department FROM doctors WHERE admin_id = ?`, [adminId]);

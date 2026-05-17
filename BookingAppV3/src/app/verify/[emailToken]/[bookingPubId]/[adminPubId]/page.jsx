@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/error-boundaries, react-hooks/purity */
 import { redisIpLimit } from "@/app/lib/redis";
 import { db } from "@/app/lib/turso";
 import { compare, hash } from "@/app/utils/bcrypt";
@@ -7,16 +8,21 @@ import { sendEmail } from "@/app/lib/resend";
 import Link from "next/link";
 import { isRedirectError } from "next/dist/client/components/redirect-error";
 
+export const metadata = {
+    title: "Verify Booking Email",
+    description: "Verify patient email to confirm an appointment booking.",
+};
+
 export default async function VerifyEmail({ params }) {
     try {
         const redisLimit = await redisIpLimit(15, "verify", 60 * 15);
-        if (!redisLimit.ok) return <p>{redisLimit.message}</p>;
+        if (!redisLimit.ok) return <main className="page-shell-narrow"><p className="status-error">{redisLimit.message}</p></main>;
 
         const { emailToken, bookingPubId, adminPubId } = await params;
-        if (!emailToken || !bookingPubId || !adminPubId) return <p>Broken link. Email not found.</p>;
+        if (!emailToken || !bookingPubId || !adminPubId) return <main className="page-shell-narrow"><p className="status-error">Broken link. Email not found.</p></main>;
 
         const fetchAdmin = await db.execute(`SELECT id FROM admins WHERE public_id = ?`, [adminPubId]);
-        if (fetchAdmin.rows.length === 0) return <p>Broken link. Email not found.</p>;
+        if (fetchAdmin.rows.length === 0) return <main className="page-shell-narrow"><p className="status-error">Broken link. Email not found.</p></main>;
 
         const adminId = fetchAdmin.rows[0].id;
 
@@ -26,17 +32,17 @@ export default async function VerifyEmail({ params }) {
         );
 
         const booking = fetchBooking.rows[0];
-        if (!booking || !booking.email_token_created_at) return <p>Broken link. Email not found.</p>;
+        if (!booking || !booking.email_token_created_at) return <main className="page-shell-narrow"><p className="status-error">Broken link. Email not found.</p></main>;
 
         const tokenAge = Date.now() - new Date(booking.email_token_created_at).getTime();
         if (tokenAge > 1000 * 60 * 60 * 24) {
-            return <p>Link expired. Please request a new one <Link href={`/message/${bookingPubId}/${adminPubId}`}>here</Link>.</p>;
+            return <main className="page-shell-narrow"><p className="status-warning">Link expired. Please request a new one <Link href={`/message/${bookingPubId}/${adminPubId}`} className="font-bold underline">here</Link>.</p></main>;
         }
 
         if (!booking.email_token_hash) redirect(`/message/${bookingPubId}/${adminPubId}`);
 
         const verified = await compare(emailToken, booking.email_token_hash);
-        if (!verified) return <p>Broken link. Email not found.</p>;
+        if (!verified) return <main className="page-shell-narrow"><p className="status-error">Broken link. Email not found.</p></main>;
 
         const cancel_token = crypto.randomBytes(32).toString("hex");
         const hashed = await hash(cancel_token);
@@ -71,6 +77,6 @@ export default async function VerifyEmail({ params }) {
 
     } catch (error) {
         if (isRedirectError(error)) throw error;
-        return <p>Something went wrong. Please try again.</p>;
+        return <main className="page-shell-narrow"><p className="status-error">Something went wrong. Please try again.</p></main>;
     }
 }

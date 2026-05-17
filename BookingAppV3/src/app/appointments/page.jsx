@@ -3,6 +3,11 @@ import { getUserPlus } from "../lib/getUser";
 import AdminComponent from "./admin-component";
 import DoctorComponent from "./doctor-component";
 
+export const metadata = {
+    title: "Appointments",
+    description: "View and manage active clinic appointments.",
+};
+
 export default async function Appointments() {
 
     const currentUser = await getUserPlus();
@@ -11,7 +16,7 @@ export default async function Appointments() {
 
 
     if (currentUser.role === "doctor") {
-        if (currentUser.status !== "verified") return <p>Your account is not verified to continue please contact the admin.</p>
+        if (currentUser.status !== "verified") return <main className="page-shell"><p className="status-warning">Your account is not verified. Please contact the admin.</p></main>
         return <DoctorComponent currentUser={currentUser} />
     }
 

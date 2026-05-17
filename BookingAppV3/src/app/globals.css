@@ -1,8 +1,16 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #f6faf8;
+  --foreground: #10201c;
+  --surface: #ffffff;
+  --surface-muted: #edf7f2;
+  --border: #cfe3db;
+  --primary: #0f6b5b;
+  --primary-dark: #0a4f45;
+  --accent: #d98c30;
+  --danger: #b42318;
+  --success: #147a3f;
 }
 
 @theme inline {
@@ -12,15 +20,110 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    min-height: 100vh;
+  }
+
+  a {
+    color: inherit;
+  }
+
+  input:not([type="hidden"]),
+  select,
+  textarea {
+    @apply w-full rounded-xl border border-emerald-100 bg-white px-4 py-3 text-sm text-slate-900 shadow-sm outline-none transition focus:border-teal-600 focus:ring-4 focus:ring-teal-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500;
+  }
+
+  button {
+    @apply inline-flex min-h-10 items-center justify-center rounded-xl border border-emerald-200 bg-white px-4 py-2 text-sm font-semibold text-teal-800 transition hover:border-teal-300 hover:bg-emerald-50 disabled:cursor-not-allowed disabled:opacity-55;
+  }
+
+  details {
+    @apply rounded-2xl border border-emerald-100 bg-white p-4 shadow-sm;
+  }
+
+  summary {
+    @apply cursor-pointer list-none font-semibold text-slate-900;
+  }
+
+  summary::-webkit-details-marker {
+    display: none;
+  }
+}
+
+@layer components {
+  .page-shell {
+    @apply mx-auto w-full max-w-6xl px-4 py-8 sm:px-6 lg:px-8;
+  }
+
+  .page-shell-narrow {
+    @apply mx-auto w-full max-w-3xl px-4 py-8 sm:px-6 lg:px-8;
+  }
+
+  .section-panel {
+    @apply rounded-2xl border border-emerald-100 bg-white p-5 shadow-sm sm:p-6;
+  }
+
+  .form-panel {
+    @apply rounded-2xl border border-emerald-100 bg-white p-5 shadow-sm sm:p-6;
+  }
+
+  .stack-form {
+    @apply grid gap-4;
+  }
+
+  .field-label {
+    @apply text-xs font-bold uppercase text-slate-500;
+  }
+
+  .btn-primary {
+    @apply border-transparent bg-teal-700 text-white shadow-sm hover:border-transparent hover:bg-teal-800;
+  }
+
+  .btn-secondary {
+    @apply border border-emerald-200 bg-white text-teal-800 hover:border-teal-300 hover:bg-emerald-50;
+  }
+
+  .btn-danger {
+    @apply border-transparent bg-rose-700 text-white shadow-sm hover:border-transparent hover:bg-rose-800;
+  }
+
+  .btn-ghost {
+    @apply text-slate-700 hover:bg-emerald-50 hover:text-teal-800;
+  }
+
+  .status-success {
+    @apply rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800;
+  }
+
+  .status-error {
+    @apply rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700;
+  }
+
+  .status-warning {
+    @apply rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800;
+  }
+
+  .data-card {
+    @apply rounded-2xl border border-emerald-100 bg-white p-5 shadow-sm transition hover:border-teal-200 hover:shadow-md;
+  }
+
+  .soft-pill {
+    @apply inline-flex items-center rounded-full border border-emerald-100 bg-emerald-50 px-3 py-1 text-xs font-semibold text-teal-800;
+  }
 }

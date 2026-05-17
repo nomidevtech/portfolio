@@ -4,6 +4,10 @@ import { getUserPlus } from "../lib/getUser";
 import { redirect } from "next/navigation";
 import ClientAddDoctor from "./Client";
 
+export const metadata = {
+    title: "Add Doctor",
+    description: "Create doctor profiles and assign treatments in ClinicFlow.",
+};
 
 export default async function AddDoctor() {
     const currentUser = await getUserPlus();
@@ -30,24 +34,29 @@ export default async function AddDoctor() {
     }));
 
     return (
-        <>
+        <main className="page-shell">
             <ClientAddDoctor departments={departments} treatments={treatments} />
 
             {docRes.rows.length > 0 && (
-                <details className="mt-4">
+                <details className="mt-6">
                     <summary>Current Doctors</summary>
-                    {docRes.rows.map((doctor) => (
-                        <div key={doctor.public_id} className="border-2 p-2 my-1">
-                            <p>
-                                Name: Dr. {doctor.name.split("-").map(w => w[0].toUpperCase() + w.slice(1)).join(" ")} -
-                                Qualifications: {JSON.parse(doctor.qualifications || "[]").join(", ").toUpperCase()} -
-                                Dept: {doctor.department[0].toUpperCase() + doctor.department.slice(1)}
-                            </p>
-                            <Link href={`/edit-doctor/${doctor.public_id}`}>Edit⬅</Link>
-                        </div>
-                    ))}
+                    <div className="mt-4 grid gap-3">
+                        {docRes.rows.map((doctor) => (
+                            <div key={doctor.public_id} className="data-card">
+                                <p className="font-semibold text-slate-900">
+                                    Dr. {doctor.name.split("-").map(w => w[0].toUpperCase() + w.slice(1)).join(" ")}
+                                </p>
+                                <p className="mt-1 text-sm text-slate-600">
+                                    {JSON.parse(doctor.qualifications || "[]").join(", ").toUpperCase() || "No qualifications"} - {doctor.department[0].toUpperCase() + doctor.department.slice(1)}
+                                </p>
+                                <Link href={`/edit-doctor/${doctor.public_id}`} className="mt-3 inline-flex font-semibold text-teal-800 hover:underline">
+                                    Edit doctor
+                                </Link>
+                            </div>
+                        ))}
+                    </div>
                 </details>
             )}
-        </>
+        </main>
     );
 }
