@@ -56,22 +56,259 @@ export default function RootLayout({ children }) {
 ---
 ## src\app\page.js
 ```
-//import { initDatabase, resetDatabase } from "./Models/initTables";
+import Link from "next/link";
 
+export const metadata = {
+  title: "ClinicFlow — Smart Clinic Booking & Management",
+  description:
+    "Appointment scheduling platform for patients, clinics, and doctors.",
+};
 
-export default async function Home() {
+export default function Home() {
+  return (
+    <main className="min-h-screen bg-white text-gray-900">
+      <section className="relative overflow-hidden border-b border-gray-100">
+        <div className="absolute inset-0 bg-gradient-to-br from-gray-50 via-white to-gray-100" />
 
-  // await resetDatabase();
-  // await initDatabase();
+        <div className="relative max-w-7xl mx-auto px-6 py-24 lg:py-32">
+          <div className="max-w-4xl">
+            <div className="inline-flex items-center rounded-full border border-gray-200 bg-white px-4 py-2 text-sm font-medium shadow-sm">
+              Modern Clinic & Appointment Platform
+            </div>
 
-  return (<>
+            <h1 className="mt-8 text-5xl lg:text-7xl font-black tracking-tight leading-tight">
+              Healthcare booking
+              <span className="block text-gray-500">
+                built for both patients & clinics
+              </span>
+            </h1>
 
-  </>
+            <p className="mt-8 text-lg text-gray-600 leading-8 max-w-3xl">
+              Patients can instantly book appointments online. Clinics can
+              manage doctors, schedules, treatments, cancellations, and patient
+              flows from one centralized system.
+            </p>
+          </div>
+
+          <div className="mt-20 grid lg:grid-cols-2 gap-8">
+            <div className="rounded-[32px] border border-gray-200 bg-white shadow-xl p-8 hover:-translate-y-1 transition">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-semibold uppercase tracking-[0.2em] text-gray-500">
+                    For Patients
+                  </p>
+
+                  <h2 className="mt-3 text-4xl font-black">
+                    Book appointments online
+                  </h2>
+                </div>
+
+                <div className="h-16 w-16 rounded-3xl bg-gray-900 text-white flex items-center justify-center text-2xl">
+                  🩺
+                </div>
+              </div>
+
+              <p className="mt-6 text-gray-600 leading-7 text-lg">
+                Browse clinics, select available slots, verify your booking, and
+                manage appointments without phone calls or waiting lines.
+              </p>
+
+              <div className="mt-8 space-y-4">
+                {[
+                  "Find available clinics instantly",
+                  "Book verified appointment slots",
+                  "Receive email confirmations",
+                  "Simple and fast scheduling flow",
+                ].map((item, idx) => (
+                  <div
+                    key={idx}
+                    className="flex items-center gap-3 rounded-2xl bg-gray-50 px-4 py-4"
+                  >
+                    <div className="h-2.5 w-2.5 rounded-full bg-gray-900" />
+                    <p className="font-medium">{item}</p>
+                  </div>
+                ))}
+              </div>
+
+              <Link
+                href="/bookings"
+                className="mt-10 inline-flex items-center justify-center rounded-2xl bg-gray-900 px-7 py-4 text-sm font-semibold text-white hover:bg-gray-700 transition"
+              >
+                Book Appointment
+              </Link>
+            </div>
+
+            <div className="rounded-[32px] border border-gray-900 bg-gray-900 text-white shadow-2xl p-8 hover:-translate-y-1 transition">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-semibold uppercase tracking-[0.2em] text-gray-400">
+                    For Clinics
+                  </p>
+
+                  <h2 className="mt-3 text-4xl font-black">
+                    Run your clinic efficiently
+                  </h2>
+                </div>
+
+                <div className="h-16 w-16 rounded-3xl bg-white text-gray-900 flex items-center justify-center text-2xl">
+                  🏥
+                </div>
+              </div>
+
+              <p className="mt-6 text-gray-300 leading-7 text-lg">
+                Manage doctors, appointments, patient schedules, treatments,
+                cancellations, and clinic workflows with a secure admin system.
+              </p>
+
+              <div className="mt-8 space-y-4">
+                {[
+                  "Doctor & department management",
+                  "Treatment scheduling system",
+                  "Appointment control dashboard",
+                  "Automated booking workflows",
+                ].map((item, idx) => (
+                  <div
+                    key={idx}
+                    className="flex items-center gap-3 rounded-2xl border border-gray-700 bg-gray-800/50 px-4 py-4"
+                  >
+                    <div className="h-2.5 w-2.5 rounded-full bg-white" />
+                    <p className="font-medium">{item}</p>
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-10 flex flex-wrap gap-4">
+                <Link
+                  href="/signup"
+                  className="inline-flex items-center justify-center rounded-2xl bg-white px-7 py-4 text-sm font-semibold text-gray-900 hover:bg-gray-200 transition"
+                >
+                  Create Clinic Account
+                </Link>
+
+                <Link
+                  href="/pricing"
+                  className="inline-flex items-center justify-center rounded-2xl border border-gray-600 px-7 py-4 text-sm font-semibold text-white hover:bg-gray-800 transition"
+                >
+                  View Pricing
+                </Link>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-24 grid md:grid-cols-3 gap-6">
+            <div className="rounded-3xl border border-gray-200 p-8">
+              <h3 className="text-4xl font-black">24/7</h3>
+              <p className="mt-3 text-gray-600">
+                Patients can book appointments anytime.
+              </p>
+            </div>
+
+            <div className="rounded-3xl border border-gray-200 p-8">
+              <h3 className="text-4xl font-black">Secure</h3>
+              <p className="mt-3 text-gray-600">
+                Verification flows and protected sessions included.
+              </p>
+            </div>
+
+            <div className="rounded-3xl border border-gray-200 p-8">
+              <h3 className="text-4xl font-black">Simple</h3>
+              <p className="mt-3 text-gray-600">
+                Minimal operational workflow for clinics and staff.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="max-w-7xl mx-auto px-6 py-24">
+        <div className="text-center max-w-3xl mx-auto">
+          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-gray-500">
+            Platform Features
+          </p>
+
+          <h2 className="mt-4 text-4xl lg:text-5xl font-black tracking-tight">
+            Everything needed for clinic operations
+          </h2>
+        </div>
+
+        <div className="mt-20 grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+          {[
+            {
+              title: "Appointment Booking",
+              desc: "Patients can reserve slots online with verification-based confirmation.",
+            },
+            {
+              title: "Doctor Management",
+              desc: "Add doctors, departments, schedules, and linked treatments.",
+            },
+            {
+              title: "Treatment Management",
+              desc: "Configure treatments with durations and scheduling support.",
+            },
+            {
+              title: "Cancellation Handling",
+              desc: "Single or bulk booking revocation with notification support.",
+            },
+            {
+              title: "Authentication System",
+              desc: "Role-based login, sessions, recovery, and verification flows.",
+            },
+            {
+              title: "Automated Cleanup",
+              desc: "Background cleanup for ghost and expired bookings.",
+            },
+          ].map((feature, idx) => (
+            <div
+              key={idx}
+              className="rounded-3xl border border-gray-200 bg-white p-8 hover:shadow-xl transition"
+            >
+              <div className="h-14 w-14 rounded-2xl bg-gray-900 text-white flex items-center justify-center text-lg font-bold">
+                {idx + 1}
+              </div>
+
+              <h3 className="mt-6 text-2xl font-bold">
+                {feature.title}
+              </h3>
+
+              <p className="mt-4 text-gray-600 leading-7">
+                {feature.desc}
+              </p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="bg-gray-900 text-white">
+        <div className="max-w-5xl mx-auto px-6 py-24 text-center">
+          <h2 className="text-4xl lg:text-6xl font-black tracking-tight">
+            Start managing appointments smarter
+          </h2>
+
+          <p className="mt-6 text-lg text-gray-300 leading-8">
+            Whether you are booking as a patient or operating a clinic, the
+            platform adapts to your workflow.
+          </p>
+
+          <div className="mt-10 flex flex-wrap justify-center gap-4">
+            <Link
+              href="/bookings"
+              className="rounded-2xl bg-white px-8 py-4 font-semibold text-gray-900 hover:bg-gray-200 transition"
+            >
+              I’m a Patient
+            </Link>
+
+            <Link
+              href="/pricing"
+              className="rounded-2xl border border-gray-700 px-8 py-4 font-semibold text-white hover:bg-gray-800 transition"
+            >
+              I’m a Clinic Admin
+            </Link>
+          </div>
+        </div>
+      </section>
+    </main>
   );
 }
-
-
-
 ```
 ---
 ## src\app\(auth)\activation\[emailToken]\[adminPubId]\page.jsx
@@ -435,8 +672,13 @@ import Link from "next/link";
 import { db } from "@/app/lib/turso";
 import { compare } from "@/app/utils/bcrypt";
 import ClientNewPassword from "./Client";
+import { redisIpLimit } from "@/app/lib/redis";
 
 export default async function NewPassword({ params }) {
+
+    const apiLimit = await redisIpLimit(25, "recovery", 60 * 15);
+    if (!apiLimit.ok) return <div>{apiLimit.message}</div>;
+
     const { recoveryToken, adminPubId } = await params;
     if (!recoveryToken || !adminPubId) return <div>Broken Link</div>;
 
@@ -453,7 +695,7 @@ export default async function NewPassword({ params }) {
     const match = await compare(recoveryToken, admin.recovery_token_hash);
     if (!match) return <div>Failed to verify. Please try again.</div>;
 
-   
+
     return <ClientNewPassword adminPubId={admin.public_id} recoveryToken={recoveryToken} />;
 }
 ```
@@ -727,7 +969,7 @@ export default async function AdminVerification({ params }) {
   const { adminPubId } = await params;
   if (!adminPubId) return <p>Broken link</p>
 
-  const redisLimit = await redisIpLimit(5, "verification", 60 * 15);
+  const redisLimit = await redisIpLimit(25, "verification", 60 * 15);
   if (!redisLimit.ok) return <p>{redisLimit.message}</p>
 
   const fetchAdmin = await db.execute(`SELECT id, status, admin_email FROM admins WHERE public_id = ?`, [adminPubId]);
@@ -1175,6 +1417,8 @@ export default async function AppointmentRegisteration({ params }) {
 
     const booking = fetchBooking.rows[0];
 
+    if (booking.status !== 'pending') return <p>This slot is no longer available.</p>
+
     const [fetchDoctor, fetchTreatment] = await Promise.all([
         db.execute(`SELECT * FROM doctors WHERE id = ?`, [booking.doctor_id]),
         db.execute(`SELECT * FROM treatments WHERE id = ?`, [booking.treatment_id])
@@ -1185,7 +1429,7 @@ export default async function AppointmentRegisteration({ params }) {
     return (<>
         <p>Appointment Date: {booking.date_number > 9 ? booking.date_number : "0" + booking.date_number} {getMonthName(booking.month_number)} {booking.year}</p>
         <p>Timing: {minutesToMeridiem(booking.treatment_start, true)} - {minutesToMeridiem(booking.treatment_end, true)}</p>
-        <p>Doctor: {fetchDoctor.rows[0].name.split(" ").map(word => word[0].toUpperCase() + word.slice(1)).join(" ")}</p><p>Treatment: {fetchTreatment.rows[0].name.split("_").map(word => word[0].toUpperCase() + word.slice(1)).join(" ")}</p>
+        <p>Doctor: {fetchDoctor.rows[0].name.split("-").map(word => word[0].toUpperCase() + word.slice(1)).join(" ")}</p><p>Treatment: {fetchTreatment.rows[0].name.split("_").map(word => word[0].toUpperCase() + word.slice(1)).join(" ")}</p>
         <p>Session Duration: {fetchTreatment.rows[0].duration} minutes</p>
 
         <ClientAppointmentRegisteration bookingPubId={bookingPubId} adminPubId={clinic_admin_pubId} />
@@ -1311,7 +1555,7 @@ export default async function AdminComponent({ currentUser }) {
               <p>Treatment: {booking.treatment_name ? booking.treatment_name.split("_").map(word => word[0].toUpperCase() + word.slice(1)).join(" ") : "N/A"}</p>
               <p>Session Duration: {booking.treatment_duration} minutes</p>
               <p>Booking Status: {booking.status[0].toUpperCase() + booking.status.slice(1)}</p>
-              <p>Patient Name: {booking?.patient_name ? booking.patient_name.split(" ").map(word => word[0].toUpperCase() + word.slice(1)).join(" ") : "N/A"}</p>
+              <p>Patient Name: {booking?.patient_name ? booking.patient_name.split("-").map(word => word[0].toUpperCase() + word.slice(1)).join(" ") : "N/A"}</p>
               <p>Patient Phone: {booking?.patient_phone ? booking.patient_phone : "N/A"}</p>
               <p>Patient Email: {booking?.patient_email ? booking.patient_email : "N/A"}</p>
 
@@ -2264,7 +2508,7 @@ import { compare } from "@/app/utils/bcrypt";
 import { redirect } from "next/navigation";
 import { isRedirectError } from "next/dist/client/components/redirect-error";
 
-export default async function cancelAppointment({ params }) {
+export default async function CancelAppointment({ params }) {
     try {
 
         const redisLimit = await redisIpLimit(15, "cancel", 60 * 15);
@@ -2291,7 +2535,9 @@ export default async function cancelAppointment({ params }) {
         const verified = await compare(cancelToken, fetchBooking.rows[0].cancel_token_hash);
         if (!verified) return <p>Broken link. Email not found.</p>;
 
-        await db.execute(`UPDATE bookings SET cancel_token_hash = NULL, status = 'cancelled' WHERE admin_id = ? AND public_id = ? AND status = 'verified'`, [adminId, bookingPubId]);
+        const updateBooking = await db.execute(`UPDATE bookings SET cancel_token_hash = NULL, status = 'cancelled' WHERE admin_id = ? AND public_id = ? AND status = 'verified'`, [adminId, bookingPubId]);
+
+        if (updateBooking.rowsAffected === 0) return <p>Something went wrong. Please try again.</p>;
 
 
         redirect(`/message/${bookingPubId}/${adminPubId}`);
@@ -2516,7 +2762,7 @@ export default function SideNav({ user }) {
 }
 ```
 ---
-## src\app\components\cancel-book-email\PatientResendCancelBookingEmail.jsx
+## src\app\components\cancel-book-email\Client.jsx
 ```
 'use client';
 
@@ -2524,7 +2770,7 @@ import Form from "next/form";
 import { patientResendCancelationEmail } from "./sa";
 import { useActionState } from "react";
 
-export default function ResendCancelBookingEmail({ bookingPubId }) {
+export default function ClientResendCancelBookingEmail({ bookingPubId }) {
   const [state, action, isPending] = useActionState(patientResendCancelationEmail, { ok: null, message: null });
 
   return (<>
@@ -2538,6 +2784,22 @@ export default function ResendCancelBookingEmail({ bookingPubId }) {
 }
 ```
 ---
+## src\app\components\cancel-book-email\PatientResendCancelBookingEmail.jsx
+```
+import { redisIpLimit } from "@/app/lib/redis";
+import ClientResendCancelBookingEmail from "./Client";
+
+export default async function ResendCancelBookingEmail({ bookingPubId }) {
+
+  const apiLimit = await redisIpLimit(15, "cancel", 60 * 15);
+  if (!apiLimit.ok) return <div>{apiLimit.message}</div>;
+
+  return (<>
+    <ClientResendCancelBookingEmail bookingPubId={bookingPubId} />
+  </>);
+}
+```
+---
 ## src\app\components\cancel-book-email\sa.js
 ```
 "use server";
@@ -2546,9 +2808,15 @@ import crypto from "crypto";
 import { db } from "@/app/lib/turso";
 import { hash } from "@/app/utils/bcrypt";
 import { sendEmail } from "@/app/lib/resend";
+import { redisIpLimit } from "@/app/lib/redis";
 
 export async function patientResendCancelationEmail(_, formData) {
     try {
+
+        const redisLimit = await redisIpLimit(20, "patientResendCancelationEmail", 60 * 15);
+        if (!redisLimit.ok) return { ok: false, message: redisLimit.message };
+
+
         const bookingPubId = formData?.get("bookingPubId");
         if (!bookingPubId) return { ok: false, message: "Missing required fields." };
 
@@ -3772,6 +4040,10 @@ export async function deleteWeeklyTemplateWithCleanupSA(formData) {
 
     } catch (error) {
         console.error("deleteWeeklyTemplateWithCleanupSA failed:", error);
+        return {
+            ok: false,
+            message: "Failed to delete template"
+        };
     }
 
     redirect(`/edit-template/${docPubId}`);
@@ -4133,7 +4405,7 @@ import crypto from "crypto";
 
 export async function resendingAdminEmail(_, formData) {
 
-    const apiLimit = await redisIpLimit(25, "resendingAdminEmail", 60 * 15);
+    const apiLimit = await redisIpLimit(10, "resendingAdminEmail", 60 * 15);
     if (!apiLimit.ok) return { ok: false, message: apiLimit.message };
 
     const adminPubId = formData.get("adminPubId");
@@ -4196,7 +4468,7 @@ export async function resendingPatientEmail(_, formData) {
         const fetch = await db.execute(`SELECT patient_email FROM bookings WHERE admin_id = ? AND public_id = ? AND status = 'unverified'`, [adminId, bookingPubId]);
         if (fetch.rows.length === 0) throw new Error("Invalid booking.");
 
-        await db.execute(`UPDATE bookings SET email_token_hash = ?, email_token_created_at = CURRENT_TIMESTAMP WHERE admin_id = ? AND public_id = ?`, [hashed, adminId, bookingPubId]);
+        await db.execute(`UPDATE bookings SET email_token_hash = ?, email_token_created_at = CURRENT_TIMESTAMP WHERE admin_id = ? AND public_id = ? AND status = 'unverified'`, [hashed, adminId, bookingPubId]);
 
 
 
@@ -5173,13 +5445,36 @@ export async function updateAdmin(_, formData) {
     if (!adminPubId || !name || !username || !email || !clinic_name || !clinic_phone || !clinic_address)
         return { ok: false, message: "Missing fields" };
 
-    if ((current_password && !new_password) || (!current_password && new_password)) {
+    if ((current_password && !new_password) || (!current_password && new_password))
         return { ok: false, message: "Both current and new passwords are required to change your password." };
-    }
+
+    if ((!name.match(/^[a-zA-Z-]+$/)) || name.length > 20 || name.length < 3)
+        return { ok: false, message: "Name should only contain letters and spaces and should be 3-20 characters long." };
+
+    if (!email.match(/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/))
+        return { ok: false, message: "Invalid email address." };
+
+    if (!/^\+?[0-9]{7,15}$/.test(clinic_phone))
+        return { ok: false, message: "Phone number must contain only digits (7–15), with an optional leading +." };
+
+    if (username.length > 15 || username.length < 3)
+        return { ok: false, message: "Username should be 3-15 characters long." };
+
+    if (new_password && new_password.length < 8)
+        return { ok: false, message: "New password must be at least 8 characters." };
 
     const getCurrentUser = await getUserPlus();
     if (!getCurrentUser || getCurrentUser.role !== "admin") redirect("/login");
     if (getCurrentUser.admin_details.public_id !== adminPubId) return { ok: false, message: "Unauthorized" };
+
+    if (username !== getCurrentUser.admin_details.admin_username) {
+        const checkUsernameAvailability = await Promise.all([
+            db.execute("SELECT id FROM admins WHERE admin_username = ?", [username]),
+            db.execute("SELECT id FROM users WHERE username = ?", [username]),
+        ]);
+        if (checkUsernameAvailability[0].rows.length > 0 || checkUsernameAvailability[1].rows.length > 0)
+            return { ok: false, message: "Username is already taken." };
+    }
 
     const adminIdInAdminTable = getCurrentUser.admin_id;
     const userIdInUsersTable = getCurrentUser.id;
@@ -5199,7 +5494,7 @@ export async function updateAdmin(_, formData) {
     let email_token_hash = null;
     if (emailChanged) {
         email_token = crypto.randomBytes(32).toString("hex");
-        email_token_hash = await hash(email_token);
+        email_token_hash = await hash(email_token, 12);
     }
 
     try {
@@ -5210,10 +5505,8 @@ export async function updateAdmin(_, formData) {
             );
             await db.execute("UPDATE users SET username=?, password=?, status='unverified' WHERE id=?",
                 [username, new_passwordHash, userIdInUsersTable]);
-
             await db.execute("DELETE FROM sessions WHERE user_id = ? AND session_id != ?",
-                [userIdInUsersTable, currentSessionToken]
-            );
+                [userIdInUsersTable, currentSessionToken]);
         } else if (emailChanged) {
             await db.execute(
                 "UPDATE admins SET admin_name=?, admin_username=?, admin_email=?, clinic_name=?, clinic_phone=?, clinic_address=?, status='unverified', email_token_hash=?, email_token_created_at=CURRENT_TIMESTAMP WHERE id=?",
@@ -5221,6 +5514,8 @@ export async function updateAdmin(_, formData) {
             );
             await db.execute("UPDATE users SET username=?, status='unverified' WHERE id=?",
                 [username, userIdInUsersTable]);
+            await db.execute("DELETE FROM sessions WHERE user_id = ? AND session_id != ?",
+                [userIdInUsersTable, currentSessionToken]);
         } else if (new_passwordHash) {
             await db.execute(
                 "UPDATE admins SET admin_name=?, admin_username=?, clinic_name=?, clinic_phone=?, clinic_address=?, password=? WHERE id=?",
@@ -5228,10 +5523,8 @@ export async function updateAdmin(_, formData) {
             );
             await db.execute("UPDATE users SET username=?, password=? WHERE id=?",
                 [username, new_passwordHash, userIdInUsersTable]);
-
             await db.execute("DELETE FROM sessions WHERE user_id = ? AND session_id != ?",
-                [userIdInUsersTable, currentSessionToken]
-            );
+                [userIdInUsersTable, currentSessionToken]);
         } else {
             await db.execute(
                 "UPDATE admins SET admin_name=?, admin_username=?, clinic_name=?, clinic_phone=?, clinic_address=? WHERE id=?",
@@ -5254,13 +5547,19 @@ export async function updateAdmin(_, formData) {
     redirect("/settings");
 };
 
+
+
+
+
+
 export async function updateDoctor(_, formData) {
     const docPublicId = formData.get("docPublicId")?.trim();
     const name = formData.get("name")?.trim().replace(/\s/g, "-").toLowerCase();
     const username = formData.get("username")?.trim();
     const current_password = formData.get("current_password");
     const new_password = formData.get("new_password");
-    const qualificationsRaw = formData.get("qualifications")?.split(",").map((q) => q.trim().toUpperCase()).filter(Boolean) || [];
+    const qualificationsRaw = formData.get("qualifications")
+        ?.split(",").map((q) => q.trim().toUpperCase()).filter(Boolean).slice(0, 10) || [];
     const qualificationsJson = JSON.stringify(qualificationsRaw);
 
     if (!docPublicId || !name || !username) return { ok: false, message: "Missing fields" };
@@ -5268,10 +5567,34 @@ export async function updateDoctor(_, formData) {
     const getCurrentUser = await getUserPlus();
     if (!getCurrentUser || getCurrentUser.role !== "doctor") redirect("/login");
 
+    if ((!name.match(/^[a-zA-Z-]+$/)) || name.length > 20 || name.length < 3)
+        return { ok: false, message: "Name should only contain letters and spaces and should be 3-20 characters long." };
+
+    if (username.length > 15 || username.length < 3)
+        return { ok: false, message: "Username should be 3-15 characters long." };
+
+    if ((current_password && !new_password) || (!current_password && new_password))
+        return { ok: false, message: "Both current and new passwords are required to change your password." };
+
+    if (new_password && new_password.length < 8)
+        return { ok: false, message: "New password must be at least 8 characters." };
+
+    if (username !== getCurrentUser.username) {
+        const checkUsernameAvailability = await Promise.all([
+            db.execute("SELECT id FROM admins WHERE admin_username = ?", [username]),
+            db.execute("SELECT id FROM users WHERE username = ?", [username]),
+        ]);
+        if (checkUsernameAvailability[0].rows.length > 0 || checkUsernameAvailability[1].rows.length > 0)
+            return { ok: false, message: "Username is already taken." };
+    }
+
     const doctorIdInTable = getCurrentUser.doctor_id;
     const userIdInUsersTable = getCurrentUser.id;
 
     if (getCurrentUser.doctor_details.public_id !== docPublicId) return { ok: false, message: "Unauthorized" };
+
+    const cookieStore = await cookies();
+    const currentSessionToken = cookieStore.get("token")?.value;
 
     try {
         let new_passwordHash = null;
@@ -5286,6 +5609,8 @@ export async function updateDoctor(_, formData) {
                 [name, username, qualificationsJson, new_passwordHash, doctorIdInTable]);
             await db.execute("UPDATE users SET username = ?, password = ? WHERE id = ?",
                 [username, new_passwordHash, userIdInUsersTable]);
+            await db.execute("DELETE FROM sessions WHERE user_id = ? AND session_id != ?",
+                [userIdInUsersTable, currentSessionToken]);
         } else {
             await db.execute("UPDATE doctors SET name = ?, username = ?, qualifications = ? WHERE id = ?",
                 [name, username, qualificationsJson, doctorIdInTable]);
@@ -5419,6 +5744,7 @@ import { compare, hash } from "@/app/utils/bcrypt";
 import { redirect } from "next/navigation";
 import crypto from "crypto";
 import { sendEmail } from "@/app/lib/resend";
+import Link from "next/link";
 import { isRedirectError } from "next/dist/client/components/redirect-error";
 
 
@@ -5439,8 +5765,11 @@ export default async function VerifyEmail({ params }) {
         const adminId = fetchAdmin.rows[0].id;
 
 
-        const fetchBooking = await db.execute(`SELECT id, patient_email, patient_name, email_token_hash FROM bookings WHERE admin_id = ? AND public_id = ?`, [adminId, bookingPubId]);
-        if (fetchBooking.rows.length === 0) return <p>Broken link. Email not found.</p>;
+        const fetchBooking = await db.execute(`SELECT id, patient_email, patient_name, email_token_hash, email_token_created_at FROM bookings WHERE admin_id = ? AND public_id = ?`, [adminId, bookingPubId]);
+        if (fetchBooking.rows.length === 0 || !fetchBooking.rows[0].email_token_created_at) return <p>Broken link. Email not found.</p>;
+
+        const tokenAge = Date.now() - new Date(fetchBooking.rows[0].email_token_created_at).getTime();
+        if (tokenAge > 1000 * 60 * 60 * 24) return <p>Link expired. Please request a new one <Link href={`/message/${bookingPubId}/${adminPubId}`}>here</Link>.</p>
 
 
         if (!fetchBooking.rows[0].email_token_hash) {

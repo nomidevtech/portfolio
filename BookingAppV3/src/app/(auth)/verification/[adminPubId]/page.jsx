@@ -8,7 +8,7 @@ export default async function AdminVerification({ params }) {
   const { adminPubId } = await params;
   if (!adminPubId) return <p>Broken link</p>
 
-  const redisLimit = await redisIpLimit(5, "verification", 60 * 15);
+  const redisLimit = await redisIpLimit(25, "verification", 60 * 15);
   if (!redisLimit.ok) return <p>{redisLimit.message}</p>
 
   const fetchAdmin = await db.execute(`SELECT id, status, admin_email FROM admins WHERE public_id = ?`, [adminPubId]);

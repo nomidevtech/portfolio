@@ -9,7 +9,7 @@ import { redisIpLimit } from "@/app/lib/redis";
 export async function findEMail(_, formData) {
     try {
 
-        const redisLimit = await redisIpLimit(5, "recovery", 60 * 15);
+        const redisLimit = await redisIpLimit(5, "request_recovery_email", 60 * 15);
         if (!redisLimit.ok) return { ok: false, message: redisLimit.message };
 
         const emailFromClient = formData.get("email");

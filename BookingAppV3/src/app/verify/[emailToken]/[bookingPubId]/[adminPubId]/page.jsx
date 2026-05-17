@@ -4,6 +4,7 @@ import { compare, hash } from "@/app/utils/bcrypt";
 import { redirect } from "next/navigation";
 import crypto from "crypto";
 import { sendEmail } from "@/app/lib/resend";
+import Link from "next/link";
 import { isRedirectError } from "next/dist/client/components/redirect-error";
 
 
@@ -24,8 +25,11 @@ export default async function VerifyEmail({ params }) {
         const adminId = fetchAdmin.rows[0].id;
 
 
-        const fetchBooking = await db.execute(`SELECT id, patient_email, patient_name, email_token_hash FROM bookings WHERE admin_id = ? AND public_id = ?`, [adminId, bookingPubId]);
-        if (fetchBooking.rows.length === 0) return <p>Broken link. Email not found.</p>;
+        const fetchBooking = await db.execute(`SELECT id, patient_email, patient_name, email_token_hash, email_token_created_at FROM bookings WHERE admin_id = ? AND public_id = ?`, [adminId, bookingPubId]);
+        if (fetchBooking.rows.length === 0 || !fetchBooking.rows[0].email_token_created_at) return <p>Broken link. Email not found.</p>;
+
+        const tokenAge = Date.now() - new Date(fetchBooking.rows[0].email_token_created_at).getTime();
+        if (tokenAge > 1000 * 60 * 60 * 24) return <p>Link expired. Please request a new one <Link href={`/message/${bookingPubId}/${adminPubId}`}>here</Link>.</p>
 
 
         if (!fetchBooking.rows[0].email_token_hash) {

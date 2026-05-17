@@ -1,18 +1,12 @@
-'use client';
+import { redisIpLimit } from "@/app/lib/redis";
+import ClientResendCancelBookingEmail from "./Client";
 
-import Form from "next/form";
-import { patientResendCancelationEmail } from "./sa";
-import { useActionState } from "react";
+export default async function ResendCancelBookingEmail({ bookingPubId }) {
 
-export default function ResendCancelBookingEmail({ bookingPubId }) {
-  const [state, action, isPending] = useActionState(patientResendCancelationEmail, { ok: null, message: null });
+  const apiLimit = await redisIpLimit(15, "view_message_page", 60 * 15);
+  if (!apiLimit.ok) return <div>{apiLimit.message}</div>;
 
   return (<>
-    <p>A cancelation email has been sent to your provided email.</p>
-    <Form action={action}>
-      <input type="hidden" name="bookingPubId" value={bookingPubId} />
-      <button type="submit">{isPending ? "Sending..." : "Send Email Again⬅"}</button>
-    </Form>
-    {state.ok && !isPending && <p>Sent</p>}
+    <ClientResendCancelBookingEmail bookingPubId={bookingPubId} />
   </>);
 }

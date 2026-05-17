@@ -2,8 +2,13 @@ import Link from "next/link";
 import { db } from "@/app/lib/turso";
 import { compare } from "@/app/utils/bcrypt";
 import ClientNewPassword from "./Client";
+import { redisIpLimit } from "@/app/lib/redis";
 
 export default async function NewPassword({ params }) {
+
+    const apiLimit = await redisIpLimit(25, "view_recovery_link", 60 * 15);
+    if (!apiLimit.ok) return <div>{apiLimit.message}</div>;
+
     const { recoveryToken, adminPubId } = await params;
     if (!recoveryToken || !adminPubId) return <div>Broken Link</div>;
 
@@ -20,6 +25,6 @@ export default async function NewPassword({ params }) {
     const match = await compare(recoveryToken, admin.recovery_token_hash);
     if (!match) return <div>Failed to verify. Please try again.</div>;
 
-   
+
     return <ClientNewPassword adminPubId={admin.public_id} recoveryToken={recoveryToken} />;
 }

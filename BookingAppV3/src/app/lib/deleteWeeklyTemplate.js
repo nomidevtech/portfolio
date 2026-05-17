@@ -81,6 +81,10 @@ export async function deleteWeeklyTemplateWithCleanupSA(formData) {
 
     } catch (error) {
         console.error("deleteWeeklyTemplateWithCleanupSA failed:", error);
+        return {
+            ok: false,
+            message: "Failed to delete template"
+        };
     }
 
     redirect(`/edit-template/${docPubId}`);

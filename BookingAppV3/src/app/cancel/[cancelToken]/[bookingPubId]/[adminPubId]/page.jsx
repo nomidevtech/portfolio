@@ -4,10 +4,10 @@ import { compare } from "@/app/utils/bcrypt";
 import { redirect } from "next/navigation";
 import { isRedirectError } from "next/dist/client/components/redirect-error";
 
-export default async function cancelAppointment({ params }) {
+export default async function CancelAppointment({ params }) {
     try {
 
-        const redisLimit = await redisIpLimit(15, "cancel", 60 * 15);
+        const redisLimit = await redisIpLimit(15, "cancel_booking", 60 * 15);
         if (!redisLimit.ok) return <p>{redisLimit.message}</p>
 
         const { cancelToken, bookingPubId, adminPubId } = await params;
@@ -31,7 +31,9 @@ export default async function cancelAppointment({ params }) {
         const verified = await compare(cancelToken, fetchBooking.rows[0].cancel_token_hash);
         if (!verified) return <p>Broken link. Email not found.</p>;
 
-        await db.execute(`UPDATE bookings SET cancel_token_hash = NULL, status = 'cancelled' WHERE admin_id = ? AND public_id = ? AND status = 'verified'`, [adminId, bookingPubId]);
+        const updateBooking = await db.execute(`UPDATE bookings SET cancel_token_hash = NULL, status = 'cancelled' WHERE admin_id = ? AND public_id = ? AND status = 'verified'`, [adminId, bookingPubId]);
+
+        if (updateBooking.rowsAffected === 0) return <p>Something went wrong. Please try again.</p>;
 
 
         redirect(`/message/${bookingPubId}/${adminPubId}`);

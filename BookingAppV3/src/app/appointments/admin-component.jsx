@@ -43,7 +43,7 @@ export default async function AdminComponent({ currentUser }) {
               <p>Treatment: {booking.treatment_name ? booking.treatment_name.split("_").map(word => word[0].toUpperCase() + word.slice(1)).join(" ") : "N/A"}</p>
               <p>Session Duration: {booking.treatment_duration} minutes</p>
               <p>Booking Status: {booking.status[0].toUpperCase() + booking.status.slice(1)}</p>
-              <p>Patient Name: {booking?.patient_name ? booking.patient_name.split(" ").map(word => word[0].toUpperCase() + word.slice(1)).join(" ") : "N/A"}</p>
+              <p>Patient Name: {booking?.patient_name ? booking.patient_name.split("-").map(word => word[0].toUpperCase() + word.slice(1)).join(" ") : "N/A"}</p>
               <p>Patient Phone: {booking?.patient_phone ? booking.patient_phone : "N/A"}</p>
               <p>Patient Email: {booking?.patient_email ? booking.patient_email : "N/A"}</p>
 

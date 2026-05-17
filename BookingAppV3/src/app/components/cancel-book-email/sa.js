@@ -4,9 +4,15 @@ import crypto from "crypto";
 import { db } from "@/app/lib/turso";
 import { hash } from "@/app/utils/bcrypt";
 import { sendEmail } from "@/app/lib/resend";
+import { redisIpLimit } from "@/app/lib/redis";
 
 export async function patientResendCancelationEmail(_, formData) {
     try {
+
+        const redisLimit = await redisIpLimit(20, "patientResendCancelationEmail", 60 * 15);
+        if (!redisLimit.ok) return { ok: false, message: redisLimit.message };
+
+
         const bookingPubId = formData?.get("bookingPubId");
         if (!bookingPubId) return { ok: false, message: "Missing required fields." };
 

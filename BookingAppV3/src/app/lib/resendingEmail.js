@@ -8,7 +8,7 @@ import crypto from "crypto";
 
 export async function resendingAdminEmail(_, formData) {
 
-    const apiLimit = await redisIpLimit(25, "resendingAdminEmail", 60 * 15);
+    const apiLimit = await redisIpLimit(10, "resendingAdminEmail", 60 * 15);
     if (!apiLimit.ok) return { ok: false, message: apiLimit.message };
 
     const adminPubId = formData.get("adminPubId");
@@ -71,7 +71,7 @@ export async function resendingPatientEmail(_, formData) {
         const fetch = await db.execute(`SELECT patient_email FROM bookings WHERE admin_id = ? AND public_id = ? AND status = 'unverified'`, [adminId, bookingPubId]);
         if (fetch.rows.length === 0) throw new Error("Invalid booking.");
 
-        await db.execute(`UPDATE bookings SET email_token_hash = ?, email_token_created_at = CURRENT_TIMESTAMP WHERE admin_id = ? AND public_id = ?`, [hashed, adminId, bookingPubId]);
+        await db.execute(`UPDATE bookings SET email_token_hash = ?, email_token_created_at = CURRENT_TIMESTAMP WHERE admin_id = ? AND public_id = ? AND status = 'unverified'`, [hashed, adminId, bookingPubId]);
 
 
 
