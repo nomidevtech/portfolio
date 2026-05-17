@@ -32,7 +32,7 @@ export async function appointmentRegisterationServerAction(_, formData) {
     if (!email.match(/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/))
         return { ok: false, message: "Invalid email address." };
 
-    if (phone.length > 15 || phone.length < 7)
+    if (!/^\+?[0-9]{7,15}$/.test(phone))
         return { ok: false, message: "Invalid phone number." };
 
     const email_token = crypto.randomBytes(16).toString("hex");

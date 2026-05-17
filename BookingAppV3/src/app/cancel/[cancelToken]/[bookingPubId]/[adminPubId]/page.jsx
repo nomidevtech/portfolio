@@ -3,6 +3,7 @@ import { db } from "@/app/lib/turso";
 import { compare } from "@/app/utils/bcrypt";
 import { redirect } from "next/navigation";
 import { isRedirectError } from "next/dist/client/components/redirect-error";
+import Link from "next/link";
 
 export default async function CancelAppointment({ params }) {
     try {
@@ -20,12 +21,16 @@ export default async function CancelAppointment({ params }) {
         const adminId = fetchAdmin.rows[0].id;
 
 
-        const fetchBooking = await db.execute(`SELECT id, cancel_token_hash FROM bookings WHERE admin_id = ? AND public_id = ?`, [adminId, bookingPubId]);
+        const fetchBooking = await db.execute(`SELECT id, cancel_token_hash, cancel_token_created_at FROM bookings WHERE admin_id = ? AND public_id = ?`, [adminId, bookingPubId]);
         if (fetchBooking.rows.length === 0) return <p>Broken link. Email not found.</p>;
 
         if (!fetchBooking.rows[0].cancel_token_hash) {
             redirect(`/message/${bookingPubId}/${adminPubId}`);
         }
+
+        const tokenAge = Date.now() - new Date(fetchBooking.rows[0].cancel_token_created_at).getTime();
+        if (isNaN(tokenAge) || tokenAge > 1000 * 60 * 60 * 24 * 7)
+            return <p>This cancel link has expired. Request a new one <Link href={`/message/${bookingPubId}/${adminPubId}`} className="underline text-blue-600">here</Link></p>;
 
 
         const verified = await compare(cancelToken, fetchBooking.rows[0].cancel_token_hash);

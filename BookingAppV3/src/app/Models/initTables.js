@@ -67,7 +67,8 @@ export async function initDoctorTable() {
                 username TEXT UNIQUE,
                 password TEXT,
                 status TEXT DEFAULT 'verified',
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (admin_id) REFERENCES admins (id) ON DELETE CASCADE
             )
         `);
     } catch (error) {
@@ -85,7 +86,8 @@ export async function initTreatmentTable() {
                 admin_id INTEGER,
                 name TEXT,
                 duration INTEGER,
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (admin_id) REFERENCES admins (id) ON DELETE CASCADE
             )
         `);
     } catch (error) {

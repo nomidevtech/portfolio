@@ -603,7 +603,7 @@ import { redisIpLimit } from "@/app/lib/redis";
 export async function findEMail(_, formData) {
     try {
 
-        const redisLimit = await redisIpLimit(5, "recovery", 60 * 15);
+        const redisLimit = await redisIpLimit(5, "request_recovery_email", 60 * 15);
         if (!redisLimit.ok) return { ok: false, message: redisLimit.message };
 
         const emailFromClient = formData.get("email");
@@ -676,7 +676,7 @@ import { redisIpLimit } from "@/app/lib/redis";
 
 export default async function NewPassword({ params }) {
 
-    const apiLimit = await redisIpLimit(25, "recovery", 60 * 15);
+    const apiLimit = await redisIpLimit(25, "view_recovery_link", 60 * 15);
     if (!apiLimit.ok) return <div>{apiLimit.message}</div>;
 
     const { recoveryToken, adminPubId } = await params;
@@ -1473,7 +1473,7 @@ export async function appointmentRegisterationServerAction(_, formData) {
     if (!email.match(/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/))
         return { ok: false, message: "Invalid email address." };
 
-    if (phone.length > 15 || phone.length < 7)
+    if (!/^\+?[0-9]{7,15}$/.test(phone))
         return { ok: false, message: "Invalid phone number." };
 
     const email_token = crypto.randomBytes(16).toString("hex");
@@ -2507,11 +2507,12 @@ import { db } from "@/app/lib/turso";
 import { compare } from "@/app/utils/bcrypt";
 import { redirect } from "next/navigation";
 import { isRedirectError } from "next/dist/client/components/redirect-error";
+import Link from "next/link";
 
 export default async function CancelAppointment({ params }) {
     try {
 
-        const redisLimit = await redisIpLimit(15, "cancel", 60 * 15);
+        const redisLimit = await redisIpLimit(15, "cancel_booking", 60 * 15);
         if (!redisLimit.ok) return <p>{redisLimit.message}</p>
 
         const { cancelToken, bookingPubId, adminPubId } = await params;
@@ -2524,12 +2525,16 @@ export default async function CancelAppointment({ params }) {
         const adminId = fetchAdmin.rows[0].id;
 
 
-        const fetchBooking = await db.execute(`SELECT id, cancel_token_hash FROM bookings WHERE admin_id = ? AND public_id = ?`, [adminId, bookingPubId]);
+        const fetchBooking = await db.execute(`SELECT id, cancel_token_hash, cancel_token_created_at FROM bookings WHERE admin_id = ? AND public_id = ?`, [adminId, bookingPubId]);
         if (fetchBooking.rows.length === 0) return <p>Broken link. Email not found.</p>;
 
         if (!fetchBooking.rows[0].cancel_token_hash) {
             redirect(`/message/${bookingPubId}/${adminPubId}`);
         }
+
+        const tokenAge = Date.now() - new Date(fetchBooking.rows[0].cancel_token_created_at).getTime();
+        if (isNaN(tokenAge) || tokenAge > 1000 * 60 * 60 * 24 * 7)
+            return <p>This cancel link has expired. Request a new one <Link href={`/message/${bookingPubId}/${adminPubId}`} className="underline text-blue-600">here</Link></p>;
 
 
         const verified = await compare(cancelToken, fetchBooking.rows[0].cancel_token_hash);
@@ -2791,7 +2796,7 @@ import ClientResendCancelBookingEmail from "./Client";
 
 export default async function ResendCancelBookingEmail({ bookingPubId }) {
 
-  const apiLimit = await redisIpLimit(15, "cancel", 60 * 15);
+  const apiLimit = await redisIpLimit(15, "view_message_page", 60 * 15);
   if (!apiLimit.ok) return <div>{apiLimit.message}</div>;
 
   return (<>
@@ -5058,7 +5063,8 @@ export async function initDoctorTable() {
                 username TEXT UNIQUE,
                 password TEXT,
                 status TEXT DEFAULT 'verified',
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (admin_id) REFERENCES admins (id) ON DELETE CASCADE
             )
         `);
     } catch (error) {
@@ -5076,7 +5082,8 @@ export async function initTreatmentTable() {
                 admin_id INTEGER,
                 name TEXT,
                 duration INTEGER,
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (admin_id) REFERENCES admins (id) ON DELETE CASCADE
             )
         `);
     } catch (error) {
