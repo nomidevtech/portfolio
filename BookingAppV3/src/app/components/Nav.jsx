@@ -39,7 +39,7 @@ export default async function NavBar() {
                             {user.role}
                         </span>
                     ) : (
-                        <Link href="/login" className="btn-secondary">
+                        <Link href="/login" className="btn-secondary p-1">
                             Login
                         </Link>
                     )}
