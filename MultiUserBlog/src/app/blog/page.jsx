@@ -116,13 +116,25 @@ function ListPost({ post, currentUser }) {
 export default async function Blog({ searchParams }) {
   let { page } = await searchParams;
   if (!page || page < 1) page = 1;
-  const fetchTotal = await db.execute("SELECT COUNT(*) as total FROM posts");
+  let fetchTotal;
+  try {
+    fetchTotal = await db.execute("SELECT COUNT(*) as total FROM posts");
+  } catch (error) {
+    if (!String(error?.message).includes("no such table")) throw error;
+    fetchTotal = { rows: [{ total: 0 }] };
+  }
   if (!fetchTotal?.rows?.length) return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 py-16 text-center">
       <p className="font-sans text-[var(--text-muted)]">No posts yet.</p>
     </div>
   );
   const totalPosts = fetchTotal.rows[0].total;
+  if (totalPosts === 0) return (
+    <div className="max-w-3xl mx-auto px-4 sm:px-6 py-16 text-center">
+      <h1 className="text-2xl font-bold text-[var(--text)] mb-2">No posts yet</h1>
+      <p className="font-sans text-sm text-[var(--text-muted)]">Create an account and publish the first article.</p>
+    </div>
+  );
   const offset = (page - 1) * 10;
   const fetchPosts = await db.execute(`
     SELECT posts.*, taxonomies.name as taxonomy,
@@ -152,7 +164,7 @@ export default async function Blog({ searchParams }) {
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8">
       {/* Header */}
-      <div className="flex items-start justify-between mb-8 pb-4 border-b-2 border-[var(--text)]">
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-8 pb-4 border-b-2 border-[var(--text)]">
         <div>
           <h1 className="text-2xl font-bold text-[var(--text)]">Latest</h1>
           <p className="font-sans text-sm text-[var(--text-faint)] mt-0.5">{totalPosts} articles</p>
@@ -175,20 +187,20 @@ export default async function Blog({ searchParams }) {
         <div className="flex items-center justify-center gap-2 mt-10 font-sans">
           {Number(page) > 1 && (
             <Link href={`/blog?page=${Number(page) - 1}`}
-              className="text-sm border border-[var(--border)] text-[var(--text-muted)] px-4 py-2 rounded-full hover:border-[var(--text)] hover:text-[var(--text)] transition-colors">
-              ← Previous
+              className="text-sm border border-[var(--border)] text-[var(--text-muted)] px-4 py-2 rounded-md hover:border-[var(--text)] hover:text-[var(--text)] transition-colors">
+              Previous
             </Link>
           )}
           {paginatedBtnsArr.map((btn, i) => (
             <Link key={i} href={`/blog?page=${btn}`}
-              className={`text-sm px-4 py-2 rounded-full transition-colors ${Number(page) === btn ? "bg-[var(--text)] text-[var(--bg)] font-semibold" : "border border-[var(--border)] text-[var(--text-muted)] hover:border-[var(--text)] hover:text-[var(--text)]"}`}>
+              className={`text-sm px-4 py-2 rounded-md transition-colors ${Number(page) === btn ? "bg-[var(--text)] text-[var(--bg)] font-semibold" : "border border-[var(--border)] text-[var(--text-muted)] hover:border-[var(--text)] hover:text-[var(--text)]"}`}>
               {btn}
             </Link>
           ))}
           {Number(page) < Math.ceil(totalPosts / 10) && (
             <Link href={`/blog?page=${Number(page) + 1}`}
-              className="text-sm border border-[var(--border)] text-[var(--text-muted)] px-4 py-2 rounded-full hover:border-[var(--text)] hover:text-[var(--text)] transition-colors">
-              Next →
+              className="text-sm border border-[var(--border)] text-[var(--text-muted)] px-4 py-2 rounded-md hover:border-[var(--text)] hover:text-[var(--text)] transition-colors">
+              Next
             </Link>
           )}
         </div>

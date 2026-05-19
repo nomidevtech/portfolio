@@ -5,12 +5,25 @@ import { db } from "../lib/turso";
 
 export default async function AddPost() {
     const currentUser = await getUser();
-    if (!currentUser?.id) return <p>You must <a href="/login">login</a></p>
+    if (!currentUser?.id) return (
+        <div className="max-w-3xl mx-auto px-4 py-16">
+            <p className="font-sans text-[var(--text-muted)]">
+                You must <Link href="/login" className="underline underline-offset-4 hover:text-[var(--accent)] transition-colors">login</Link> to write a post.
+            </p>
+        </div>
+    );
 
-    if (currentUser?.email_verified === 0) return <div><p>Please verify your email first.</p><p><Link href="/settings">click here to go to Settings</Link></p></div>
-
-    const dummyTaxonomies = ['NEXTJS', 'REACT', 'VUEJS'];
-    const dummnyAllTags = ['tag1', 'tag2', 'tag3'];
+    if (currentUser?.email_verified === 0) return (
+        <div className="max-w-3xl mx-auto px-4 py-16">
+            <div className="border border-[var(--border)] bg-[var(--bg-raised)] rounded-lg p-5">
+                <h1 className="text-xl font-bold text-[var(--text)] mb-2">Verify your email first</h1>
+                <p className="font-sans text-sm text-[var(--text-muted)] mb-4">Verified accounts can publish posts and join the discussion.</p>
+                <Link href="/settings" className="font-sans text-sm font-semibold bg-[var(--text)] text-[var(--bg)] px-4 py-2 rounded-md hover:opacity-85 transition-opacity">
+                    Go to settings
+                </Link>
+            </div>
+        </div>
+    );
 
     const fetchTaxonomies = await db.execute(`
         SELECT name FROM taxonomies`);

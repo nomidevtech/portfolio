@@ -1,7 +1,8 @@
 'use client'
 import { postUpsert } from "@/app/lib/posts/upsert";
 import Form from "next/form";
-import { useState, useEffect, useActionState } from "react";
+import Image from "next/image";
+import { useState, useActionState } from "react";
 
 const IC = "w-full font-sans bg-[var(--bg-subtle)] border border-[var(--border)] text-[var(--text)] placeholder-[var(--text-faint)] rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--text)] focus:border-transparent transition-colors";
 const LC = "block font-sans text-xs text-[var(--text-faint)] uppercase tracking-widest mb-1.5";
@@ -11,9 +12,8 @@ export default function PostForm({ post = {}, taxonomies = [], tags = [] }) {
   post.content?.forEach(item => { if (item.type && item.value) prevContent.push([item.type, item.value]); });
   const initialState = { ok: null, message: "" };
   const [state, formAction, isPending] = useActionState(postUpsert, initialState);
-  const [blocks, setBlocks] = useState([]);
+  const [blocks, setBlocks] = useState(() => prevContent);
   const [userTags, setUserTags] = useState(post.tags || []);
-  useEffect(() => { setBlocks(prevContent); }, []);
 
   const addBlock = (type) => setBlocks(prev => [...prev, [type, null]]);
   const removeBlock = (i) => setBlocks(prev => prev.filter((_, j) => j !== i));
@@ -22,10 +22,13 @@ export default function PostForm({ post = {}, taxonomies = [], tags = [] }) {
 
   return (
     <div className="max-w-2xl mx-auto px-4 sm:px-6 py-8">
-      <h1 className="text-2xl font-bold text-[var(--text)] mb-6">{post.post_public_id ? "Edit Post" : "New Post"}</h1>
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-[var(--text)]">{post.post_public_id ? "Edit post" : "New post"}</h1>
+        <p className="font-sans text-sm text-[var(--text-faint)] mt-1">Shape your article with clean blocks, topics, and tags.</p>
+      </div>
       {state.message && <div className={msgCls(state.ok)}>{state.message}</div>}
       <Form action={formAction} className="space-y-5">
-        <input name="post_public_id" type="hidden" readOnly value={post.post_public_id} />
+        <input name="post_public_id" type="hidden" readOnly value={post.post_public_id ?? ""} />
         <div><label className={LC}>Title</label><input name="title" type="text" placeholder="Post title" defaultValue={post.title ?? ""} className={IC} /></div>
         <div><label className={LC}>Excerpt</label><textarea name="excerpt" placeholder="Short summary..." rows={3} defaultValue={post.excerpt ?? ""} className={`${IC} resize-none`} /></div>
         <div>
@@ -56,7 +59,7 @@ export default function PostForm({ post = {}, taxonomies = [], tags = [] }) {
           <label className={LC}>Content</label>
           <div className="space-y-3">
             {blocks.map(([key, value], index) => (
-              <div key={index} className="border border-[var(--border)] rounded-xl p-4 bg-[var(--bg-subtle)]">
+              <div key={index} className="border border-[var(--border)] rounded-lg p-4 bg-[var(--bg-subtle)]">
                 <div className="flex items-center justify-between mb-3">
                   <span className="font-sans text-xs uppercase tracking-widest text-[var(--text-faint)] font-semibold">{key}</span>
                   <button type="button" onClick={() => removeBlock(index)} className="font-sans text-xs text-red-500 hover:underline cursor-pointer">Remove</button>
@@ -64,7 +67,7 @@ export default function PostForm({ post = {}, taxonomies = [], tags = [] }) {
                 {key === "heading" && <input name={`heading-${index}`} type="text" placeholder="Heading" defaultValue={value} className={IC} />}
                 {key === "paragraph" && <textarea name={`paragraph-${index}`} rows={5} placeholder="Paragraph..." defaultValue={value} className={`${IC} resize-none`} />}
                 {key === "image" && (value?.url
-                  ? <><img src={value.url} alt="block" className="w-full max-h-64 object-cover rounded-lg mb-2" /><input name={`image-${index}`} type="hidden" value={JSON.stringify(value)} /></>
+                  ? <><Image src={value.url} alt="Uploaded content preview" width={800} height={500} className="w-full max-h-64 object-cover rounded-lg mb-2" /><input name={`image-${index}`} type="hidden" value={JSON.stringify(value)} /></>
                   : <input name={`image-${index}`} type="file" className="font-sans text-sm text-[var(--text-muted)] file:mr-3 file:py-1.5 file:px-4 file:rounded-full file:border file:border-[var(--border)] file:text-xs file:font-semibold file:bg-[var(--bg)] file:text-[var(--text-muted)] cursor-pointer" />
                 )}
                 <div className="flex gap-2 mt-3 pt-3 border-t border-[var(--border)]">

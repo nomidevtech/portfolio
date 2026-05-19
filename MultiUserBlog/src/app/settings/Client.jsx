@@ -32,7 +32,7 @@ export default function SettingsForm({ serializedUser }) {
                 className="font-sans text-xs font-semibold border border-amber-400 text-amber-700 dark:text-amber-300 px-3 py-1 rounded-full hover:bg-amber-100 dark:hover:bg-amber-900 transition-colors cursor-pointer">
                 Send verification email
               </button>
-            : <p className="font-sans text-xs text-green-700 dark:text-green-400">Email sent — check your inbox and refresh this page.</p>
+            : <p className="font-sans text-xs text-green-700 dark:text-green-400">Email sent. Check your inbox and refresh this page.</p>
           }
         </div>
       )}
@@ -46,18 +46,18 @@ export default function SettingsForm({ serializedUser }) {
           <div>
             <label className={LC}>Username</label>
             <input name="username" defaultValue={user.username} className={IC} onBlur={(e) => startTransition(() => usernameAction(e.target.value))} />
-            {usernamePending && <p className="font-sans mt-1 text-xs text-[var(--text-faint)]">Checking…</p>}
+            {usernamePending && <p className="font-sans mt-1 text-xs text-[var(--text-faint)]">Checking...</p>}
             {usernameState?.message && <p className={`font-sans mt-1 text-xs ${usernameState.ok ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>{usernameState.message}</p>}
           </div>
           <div>
             <label className={LC}>Email</label>
             <input name="email" defaultValue={user.email} type="email" className={IC} onBlur={(e) => startTransition(() => emailAction(e.target.value))} />
-            {emailPending && <p className="font-sans mt-1 text-xs text-[var(--text-faint)]">Checking…</p>}
+            {emailPending && <p className="font-sans mt-1 text-xs text-[var(--text-faint)]">Checking...</p>}
             {emailState?.message && <p className={`font-sans mt-1 text-xs ${emailState.ok ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>{emailState.message}</p>}
           </div>
           <button type="submit" disabled={isPending}
             className="font-sans font-semibold bg-[var(--text)] text-[var(--bg)] px-6 py-2 rounded-full text-sm hover:opacity-80 disabled:opacity-50 transition-opacity cursor-pointer">
-            {isPending ? "Saving…" : "Save Changes"}
+            {isPending ? "Saving..." : "Save changes"}
           </button>
         </Form>
       </div>

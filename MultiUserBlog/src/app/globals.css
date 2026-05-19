@@ -1,30 +1,74 @@
 @import "tailwindcss";
 
-/* Light theme defaults */
 :root {
-  --bg: #ffffff;
-  --bg-subtle: #f8f8f7;
-  --border: #e5e5e3;
-  --text: #1a1a18;
-  --text-muted: #6b6b67;
-  --text-faint: #9b9b97;
-  --accent: #c0392b;
+  color-scheme: light;
+  --bg: #fbfaf7;
+  --bg-raised: #ffffff;
+  --bg-subtle: #f3f1ec;
+  --border: #ded9cf;
+  --text: #1d1b18;
+  --text-muted: #5f5a52;
+  --text-faint: #8d877d;
+  --accent: #b53a2f;
+  --accent-soft: #f7e9e5;
+  --shadow: 0 20px 50px rgba(29, 27, 24, 0.08);
+  --font-sans: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-serif: Georgia, "Times New Roman", serif;
 }
 
-/* Dark mode overrides — applied when <html class="dark"> */
 .dark {
-  --bg: #111110;
-  --bg-subtle: #1a1a18;
-  --border: #2e2e2b;
-  --text: #f0ede8;
-  --text-muted: #9b9b97;
-  --text-faint: #6b6b67;
-  --accent: #e05444;
+  color-scheme: dark;
+  --bg: #12110f;
+  --bg-raised: #191815;
+  --bg-subtle: #201f1b;
+  --border: #343128;
+  --text: #f4f0e8;
+  --text-muted: #c6bfb1;
+  --text-faint: #8f8779;
+  --accent: #f06d5b;
+  --accent-soft: #331b17;
+  --shadow: 0 20px 50px rgba(0, 0, 0, 0.28);
+}
+
+* {
+  box-sizing: border-box;
 }
 
 body {
   background: var(--bg);
   color: var(--text);
-  font-family: Georgia, 'Times New Roman', serif;
+  font-family: var(--font-sans);
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
   transition: background 0.2s ease, color 0.2s ease;
+}
+
+h1,
+h2,
+h3,
+.font-serif {
+  font-family: var(--font-serif);
+}
+
+a,
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+::selection {
+  background: var(--accent-soft);
+  color: var(--text);
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+img {
+  max-width: 100%;
+  height: auto;
 }

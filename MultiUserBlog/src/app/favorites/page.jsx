@@ -1,18 +1,33 @@
 import { getUser } from "../lib/getUser";
 import { db } from "../lib/turso";
-import FavoritesClinetComponent from "./FavClient";
+import FavoritesClientComponent from "./FavClient";
+import Link from "next/link";
 
 export default async function Favorites() {
 
   const currentUser = await getUser();
-  if (!currentUser?.id) return <p>You must <a href="/login">login</a></p>
+  if (!currentUser?.id) return (
+    <div className="max-w-3xl mx-auto px-4 py-16">
+      <p className="font-sans text-[var(--text-muted)]">
+        You must <Link href="/login" className="underline underline-offset-4 hover:text-[var(--accent)] transition-colors">login</Link> to view your favorites.
+      </p>
+    </div>
+  );
 
   const getPostIds = await db.execute(`
     SELECT post_id FROM favorites WHERE user_id = ? 
   `, [currentUser.id]);
 
   if (getPostIds.rows.length === 0) {
-    return <p>No posts added to favorites yet.</p>;
+    return (
+      <div className="max-w-3xl mx-auto px-4 sm:px-6 py-16 text-center">
+        <h1 className="text-2xl font-bold text-[var(--text)] mb-2">No favorites yet</h1>
+        <p className="font-sans text-sm text-[var(--text-muted)] mb-5">Save posts from the blog and they will appear here.</p>
+        <Link href="/blog" className="font-sans text-sm font-semibold bg-[var(--text)] text-[var(--bg)] px-5 py-2 rounded-md hover:opacity-85 transition-opacity">
+          Browse posts
+        </Link>
+      </div>
+    );
   }
 
 
@@ -49,6 +64,6 @@ export default async function Favorites() {
   }
 
   return (
-    <FavoritesClinetComponent postsSerialized={JSON.stringify(posts)} />
+    <FavoritesClientComponent postsSerialized={JSON.stringify(posts)} />
   )
 }

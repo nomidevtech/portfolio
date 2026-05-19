@@ -1,5 +1,5 @@
 'use client';
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useState } from "react";
 import { commentsSA } from "./commentsSA";
 import Form from "next/form";
 
@@ -8,23 +8,31 @@ function formatDate(d) {
   return new Date(d).toLocaleDateString("en-US", { day: "numeric", month: "short" });
 }
 
+function applyCommentResult(comments, state) {
+  if (!state.ok) return comments;
+  if (state.deleted) return comments.filter(c => c.cPId !== state.cPId);
+
+  const nextComment = {
+    cPId: state.cPId,
+    comment: state.comment,
+    username: state.username,
+    isOwned: true,
+  };
+
+  const idx = comments.findIndex(c => c.cPId === state.cPId);
+  if (idx === -1) return [nextComment, ...comments];
+
+  const next = [...comments];
+  next[idx] = { ...next[idx], ...nextComment };
+  return next;
+}
+
 export default function Comments({ commentsSerialized, isLoggedIn, postPublicId, userPublicId, isVerified }) {
   const comments = JSON.parse(commentsSerialized);
   const initialState = { ok: false, message: "", comment: null, deleted: false, cPId: null };
   const [state, action, isPending] = useActionState(commentsSA, initialState);
-  const [commentsState, setCommentsState] = useState(comments);
   const [isEditing, setIsEditing] = useState("");
-
-  useEffect(() => {
-    if (!state.ok) return;
-    setCommentsState(prev => {
-      if (state.deleted) return prev.filter(c => c.cPId !== state.cPId);
-      const idx = prev.findIndex(c => c.cPId === state.cPId);
-      if (idx !== -1) { const next = [...prev]; next[idx] = { ...next[idx], comment: state.comment, username: state.username, isOwned: true }; return next; }
-      return [{ cPId: state.cPId, comment: state.comment, username: state.username, isOwned: true }, ...prev];
-    });
-    setIsEditing("");
-  }, [state]);
+  const commentsState = applyCommentResult(comments, state);
 
   const inputCls = "w-full font-sans bg-[var(--bg-subtle)] border border-[var(--border)] text-[var(--text)] placeholder-[var(--text-faint)] rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--text)] resize-none transition-colors";
 
@@ -34,14 +42,18 @@ export default function Comments({ commentsSerialized, isLoggedIn, postPublicId,
         Comments {commentsState.length > 0 && <span className="text-[var(--text-faint)] font-normal text-base">({commentsState.length})</span>}
       </h3>
 
+      {state.ok === false && state.message && (
+        <p className="font-sans text-sm text-red-600 dark:text-red-400 mb-4">{state.message}</p>
+      )}
+
       {isLoggedIn && isVerified ? (
         <Form action={action} className="mb-8">
           <input type="hidden" name="post_public_id" value={postPublicId} />
           <input type="hidden" name="user_public_id" value={userPublicId} />
-          <textarea name="comment" placeholder="Write a comment…" rows={3} className={`${inputCls} mb-3`} />
+          <textarea name="comment" placeholder="Write a comment..." rows={3} className={`${inputCls} mb-3`} />
           <button type="submit" disabled={isPending}
             className="font-sans text-sm font-semibold bg-[var(--text)] text-[var(--bg)] px-5 py-2 rounded-full hover:opacity-80 disabled:opacity-50 transition-opacity cursor-pointer">
-            {isPending ? "Posting…" : "Post comment"}
+            {isPending ? "Posting..." : "Post comment"}
           </button>
         </Form>
       ) : (
@@ -81,7 +93,7 @@ export default function Comments({ commentsSerialized, isLoggedIn, postPublicId,
                     )}
                   </>
                 ) : (
-                  <Form action={action} className="space-y-3">
+                  <Form action={action} className="space-y-3" onSubmit={() => setIsEditing("")}>
                     <input type="hidden" name="comment_public_id" value={comment.cPId} />
                     <input type="hidden" name="post_public_id" value={postPublicId} />
                     <input type="hidden" name="user_public_id" value={userPublicId} />

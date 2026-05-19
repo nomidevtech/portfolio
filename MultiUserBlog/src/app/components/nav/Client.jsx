@@ -10,11 +10,10 @@ export default function NavBarClient({ serializedUser }) {
   const user = JSON.parse(serializedUser);
 
   return (
-    <nav className="border-b border-[var(--border)] bg-[var(--bg)]">
-      {/* Top bar */}
+    <nav className="sticky top-0 z-30 border-b border-[var(--border)] bg-[var(--bg)]/95 backdrop-blur supports-[backdrop-filter]:bg-[var(--bg)]/85">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 flex items-center justify-between h-14">
         <Link href="/" className="font-bold text-xl tracking-tight text-[var(--text)] hover:text-[var(--accent)] transition-colors font-serif">
-          MyApp
+          Inkline
         </Link>
 
         <div className="flex items-center gap-3">
@@ -25,7 +24,7 @@ export default function NavBarClient({ serializedUser }) {
           <ThemeToggle />
 
           {!user ? (
-            <Link href="/login" className="text-sm font-semibold text-[var(--bg)] bg-[var(--text)] px-4 py-1.5 rounded-full hover:opacity-80 transition-opacity">
+            <Link href="/login" className="text-sm font-semibold text-[var(--bg)] bg-[var(--text)] px-4 py-1.5 rounded-md hover:opacity-85 transition-opacity">
               Login
             </Link>
           ) : (
@@ -45,7 +44,7 @@ export default function NavBarClient({ serializedUser }) {
               {isOpen && (
                 <>
                   <div className="fixed inset-0 z-10" onClick={() => setIsOpen(false)} />
-                  <div className="absolute right-0 top-full mt-2 w-52 bg-[var(--bg)] border border-[var(--border)] rounded-xl shadow-lg z-20 overflow-hidden">
+                  <div className="absolute right-0 top-full mt-2 w-52 bg-[var(--bg-raised)] border border-[var(--border)] rounded-lg shadow-[var(--shadow)] z-20 overflow-hidden">
                     <div className="px-4 py-3 border-b border-[var(--border)]">
                       <p className="text-sm font-semibold text-[var(--text)]">{user.name}</p>
                       <p className="text-xs text-[var(--text-faint)]">@{user.username}</p>

@@ -1,5 +1,7 @@
 import { redirect } from "next/navigation";
+import { Suspense } from "react";
 import { getUserPlus } from "../lib/getUser";
+import { AppointmentSkeleton } from "../components/Skeletons";
 import AdminComponent from "./admin-component";
 import DoctorComponent from "./doctor-component";
 
@@ -17,14 +19,14 @@ export default async function Appointments() {
 
     if (currentUser.role === "doctor") {
         if (currentUser.status !== "verified") return <main className="page-shell"><p className="status-warning">Your account is not verified. Please contact the admin.</p></main>
-        return <DoctorComponent currentUser={currentUser} />
+        return <Suspense fallback={<AppointmentSkeleton />}><DoctorComponent currentUser={currentUser} /></Suspense>
     }
 
 
     if (currentUser.role !== "admin" || !currentUser.admin_id || currentUser.status !== "verified") redirect(`/verification/${currentUser?.admin_details?.public_id}`);
 
 
-    return <AdminComponent currentUser={currentUser} />
+    return <Suspense fallback={<AppointmentSkeleton />}><AdminComponent currentUser={currentUser} /></Suspense>
 
 
 } 

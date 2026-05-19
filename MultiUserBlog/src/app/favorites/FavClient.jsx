@@ -16,12 +16,15 @@ export default function FavoritesClientComponent({ postsSerialized }) {
 
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8">
-      <div className="flex items-center justify-between mb-8 pb-4 border-b-2 border-[var(--text)]">
-        <h1 className="text-2xl font-bold text-[var(--text)]">Favorites</h1>
-        <div className="flex items-center gap-1 border border-[var(--border)] rounded-full p-1">
+      <div className="flex items-center justify-between gap-4 mb-8 pb-4 border-b-2 border-[var(--text)]">
+        <div>
+          <h1 className="text-2xl font-bold text-[var(--text)]">Favorites</h1>
+          <p className="font-sans text-sm text-[var(--text-faint)] mt-0.5">{posts.length} saved article{posts.length !== 1 ? "s" : ""}</p>
+        </div>
+        <div className="flex items-center gap-1 border border-[var(--border)] rounded-md p-1">
           {[["All", true], ["Mine", false]].map(([label, val]) => (
             <button key={label} onClick={() => setShowAll(val)}
-              className={`font-sans text-xs px-3 py-1 rounded-full transition-colors cursor-pointer ${showAll === val ? "bg-[var(--text)] text-[var(--bg)] font-semibold" : "text-[var(--text-muted)] hover:text-[var(--text)]"}`}>
+              className={`font-sans text-xs px-3 py-1 rounded-sm transition-colors cursor-pointer ${showAll === val ? "bg-[var(--text)] text-[var(--bg)] font-semibold" : "text-[var(--text-muted)] hover:text-[var(--text)]"}`}>
               {label}
             </button>
           ))}

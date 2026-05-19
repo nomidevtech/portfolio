@@ -1,0 +1,5 @@
+import { RecoverySkeleton } from "../../components/Skeletons";
+
+export default function Loading() {
+  return <RecoverySkeleton />;
+}

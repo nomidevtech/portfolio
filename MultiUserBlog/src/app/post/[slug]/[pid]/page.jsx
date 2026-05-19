@@ -46,7 +46,7 @@ export default async function DynamicPost({ params }) {
     <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8">
       {post?.slug !== slug && (
         <div className="mb-4 border-l-4 border-amber-500 bg-amber-50 dark:bg-amber-950 px-4 py-3">
-          <p className="font-sans text-sm text-amber-700 dark:text-amber-400">URL conflict — the slug has changed. Please use the updated link.</p>
+          <p className="font-sans text-sm text-amber-700 dark:text-amber-400">URL conflict: the slug has changed. Please use the updated link.</p>
         </div>
       )}
 
