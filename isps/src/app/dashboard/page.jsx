@@ -4,6 +4,11 @@ import { db } from "../lib/turso";
 import { updateRecords } from "../lib/update-records";
 import ClientDashboard from "./ClientDashboard";
 
+export const metadata = {
+    title: "Dashboard - NetAdmin",
+    description: "Overview of your monthly billing stats and user payment status.",
+};
+
 export default async function Dashboard() {
 
     const currentUser = await getUser();

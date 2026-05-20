@@ -4,6 +4,11 @@ import { initPlansTable } from "../models/table-inits";
 import { getUser } from "../lib/getUser";
 import { redirect } from "next/navigation";
 
+export const metadata = {
+    title: "Manage Plans - NetAdmin",
+    description: "Create, update, or remove internet packages and speed tiers.",
+};
+
 export default async function Packages() {
     const currentUser = await getUser();
     if (!currentUser?.id) redirect("/login");

@@ -2,6 +2,11 @@ import { redirect } from "next/navigation";
 import { getUser } from "../lib/getUser";
 import SettingsClient from "./ClientSettings";
 
+export const metadata = {
+    title: "Account Settings - NetAdmin",
+    description: "Manage your admin username, email, password, or delete your account.",
+};
+
 export default async function Settings() {
 
     const currentUser = await getUser();

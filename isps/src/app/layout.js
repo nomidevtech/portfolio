@@ -3,6 +3,13 @@ import Sidebar from "./components/side-navigation";
 import "./globals.css";
 import { getUser } from "./lib/getUser";
 
+export const metadata = {
+  title: "NetAdmin - ISP Management Dashboard",
+  description: "A premium subscriber and billing management platform for local internet service providers.",
+  keywords: ["ISP management", "billing tracking", "subscriber management", "dashboard", "Next.js"],
+  authors: [{ name: "NetAdmin Team" }],
+};
+
 export default async function RootLayout({ children }) {
   const currentUser = await getUser();
 

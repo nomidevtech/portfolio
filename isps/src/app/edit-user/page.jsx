@@ -3,6 +3,11 @@ import { getUser } from "../lib/getUser";
 import MiddleClient from "./MiddleClient";
 import { db } from "../lib/turso";
 
+export const metadata = {
+    title: "Manage Subscribers - NetAdmin",
+    description: "Edit client profiles, update bandwidth speeds, or modify user packages.",
+};
+
 export default async function EditUser() {
 
     const currentUser = await getUser();

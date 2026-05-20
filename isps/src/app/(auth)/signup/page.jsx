@@ -3,6 +3,11 @@ import SignUpClientComponent from "./SUCC";
 import { redirect } from "next/navigation";
 import { initAdminsTable, initBilling_transactionsTable, initPlansTable, initSessionsTable, initUsersTable } from "@/app/models/table-inits";
 
+export const metadata = {
+    title: "Sign Up - NetAdmin",
+    description: "Create a new ISP administrator dashboard account.",
+};
+
 export default async function SignUp() {
 
     await initAdminsTable();

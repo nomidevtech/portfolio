@@ -3,6 +3,11 @@ import AddUserClient from "./AddUserClient";
 import { getUser } from "../lib/getUser";
 import { redirect } from "next/navigation";
 
+export const metadata = {
+    title: "Register Subscriber - NetAdmin",
+    description: "Add a new internet client to your network registry.",
+};
+
 export default async function AddUser() {
 
     const currentUser = await getUser();
