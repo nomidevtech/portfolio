@@ -1,6 +1,11 @@
 import Link from "next/link";
 import { getUser } from "./lib/getUser";
 
+export const metadata = {
+  title: "Home",
+  description: "Inkline is a calmer place to publish and discover writing. Read essays, follow topics, save favorites, and write posts in a focused multi-user environment.",
+};
+
 export default async function Home() {
   const user = await getUser();
   return (

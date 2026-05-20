@@ -11,6 +11,32 @@ function formatDate(d) {
   return new Date(d).toLocaleDateString("en-US", { day: "numeric", month: "long", year: "numeric" });
 }
 
+export async function generateMetadata({ params }) {
+  const { pid } = await params;
+  if (!pid) return {};
+  try {
+    const fetchPost = await db.execute(
+      `SELECT title, excerpt FROM posts WHERE public_id = ? LIMIT 1`,
+      [pid]
+    );
+    if (fetchPost.rows?.length > 0) {
+      const post = fetchPost.rows[0];
+      const desc = post.excerpt || "Read this post on Inkline.";
+      return {
+        title: post.title,
+        description: desc,
+        openGraph: {
+          title: post.title,
+          description: desc,
+        },
+      };
+    }
+  } catch (error) {
+    console.error("Error generating metadata:", error);
+  }
+  return {};
+}
+
 export default async function DynamicPost({ params }) {
   const { slug, pid } = await params;
   if (!slug || !pid) return <div className="max-w-3xl mx-auto px-4 py-16"><p className="font-sans text-[var(--text-muted)]">Broken link.</p></div>;

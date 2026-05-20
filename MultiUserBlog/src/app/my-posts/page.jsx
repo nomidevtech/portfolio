@@ -3,6 +3,11 @@ import { getUser } from "../lib/getUser";
 import { db } from "../lib/turso";
 import PostCard from "../components/PostCard";
 
+export const metadata = {
+  title: "My Posts",
+  description: "View and manage your published articles, posts, and drafts.",
+};
+
 export default async function MyPosts() {
   const currentUser = await getUser();
   if (!currentUser?.id) return (

@@ -3,6 +3,11 @@ import { db } from "../lib/turso";
 import FavoritesClientComponent from "./FavClient";
 import Link from "next/link";
 
+export const metadata = {
+  title: "Favorites",
+  description: "Read your saved articles, essays, and stories on Inkline.",
+};
+
 export default async function Favorites() {
 
   const currentUser = await getUser();

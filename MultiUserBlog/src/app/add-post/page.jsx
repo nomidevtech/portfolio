@@ -3,6 +3,11 @@ import PostForm from "../components/PostForm";
 import { getUser } from "../lib/getUser";
 import { db } from "../lib/turso";
 
+export const metadata = {
+  title: "New Post",
+  description: "Write and publish a new article or essay on Inkline.",
+};
+
 export default async function AddPost() {
     const currentUser = await getUser();
     if (!currentUser?.id) return (

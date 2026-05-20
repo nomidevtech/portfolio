@@ -2,6 +2,11 @@ import { redirect } from "next/navigation";
 import SettingsForm from "./Client";
 import { getUser } from "../lib/getUser";
 
+export const metadata = {
+  title: "Settings",
+  description: "Manage your profile, change your password, update your email, or delete your account on Inkline.",
+};
+
 export default async function SettingsPage() {
   const result = await getUser();
   if (!result?.id) redirect("/login");

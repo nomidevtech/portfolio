@@ -6,12 +6,16 @@ import SearchBar from "./SearchBar";
 import AddTofavorites from "../components/AddToFavorites";
 import DeleteButton from "../components/DeleteBTN";
 
+export const metadata = {
+  title: "Discover",
+  description: "Browse writing, search topics, explore categories, and discover polished articles from diverse writers.",
+};
+
 function formatDate(d) {
   if (!d) return "";
   return new Date(d).toLocaleDateString("en-US", { day: "numeric", month: "long", year: "numeric" });
 }
 
-/* ── Hero post (first, large) ── */
 function HeroPost({ post, currentUser }) {
   const tags = post.tags ? post.tags.split(",").map(t => t.trim()).filter(Boolean) : [];
   return (
