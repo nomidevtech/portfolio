@@ -23,7 +23,8 @@ export async function deleteAccount(_, formData) {
         const fetchPass = await db.execute(`SELECT password FROM admins WHERE id = ?`, [currentUser.id]);
         const currentPassword = fetchPass.rows[0].password;
 
-        if (password !== currentPassword) return { ok: false, message: "Incorrect password." };
+        const { verifyPassword } = require("../utils/hash");
+        if (!verifyPassword(password, currentPassword)) return { ok: false, message: "Incorrect password." };
 
 
         const cookieStore = await cookies();

@@ -102,12 +102,18 @@ export async function updateUser(_, formData) {
         const newUsername = formData.get("new_username")?.toString().trim() || username;
         const password = formData.get("password")?.toString().trim() || null;
         const contactRaw = formData.get("contact")?.toString().trim();
-        const contact = contactRaw ? Number(contactRaw) : 0;
-        const oldPlanId = formData.get("old_plan_public_id")?.toString().trim();
-        const newPlanId = formData.get("new_plan_public_id")?.toString().trim() || oldPlanId;
 
         if (!userPublicId || !username) return { ok: false, message: "Search term is broken" };
 
+        let contact = 0;
+        if (contactRaw) {
+            contact = Number(contactRaw);
+            if (isNaN(contact) || contact <= 0) {
+                return { ok: false, message: "Contact must be a valid number" };
+            }
+        }
+        const oldPlanId = formData.get("old_plan_public_id")?.toString().trim();
+        const newPlanId = formData.get("new_plan_public_id")?.toString().trim() || oldPlanId;
 
         const fetchUserId = await db.execute(`SELECT id FROM users WHERE public_id = ? AND admin_id = ? AND username = ?`, [userPublicId, adminId, username]);
 

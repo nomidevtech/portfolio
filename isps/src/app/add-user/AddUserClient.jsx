@@ -1,7 +1,7 @@
 'use client';
 
 import Form from "next/form";
-import { startTransition, useActionState } from "react";
+import { startTransition, useActionState, useEffect, useRef } from "react";
 import { addUserServerAction } from "./addUserSA";
 import { checkUsernameServerAction } from "../lib/checkUsernameSA";
 
@@ -9,6 +9,13 @@ export default function AddUserClient({ plans = [] }) {
     const initialState = { ok: null, username: null, message: "" };
     const [state, action, isPending] = useActionState(addUserServerAction, initialState);
     const [stateUsername, actionUsername] = useActionState(checkUsernameServerAction, initialState);
+    const formRef = useRef(null);
+
+    useEffect(() => {
+        if (state.ok === true && formRef.current) {
+            formRef.current.reset();
+        }
+    }, [state]);
 
     return (
         <div className="max-w-lg mx-auto px-4 py-6">
@@ -28,7 +35,7 @@ export default function AddUserClient({ plans = [] }) {
             )}
 
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-                <Form action={action} className="flex flex-col gap-4">
+                <Form ref={formRef} action={action} className="flex flex-col gap-4">
                     <div className="flex flex-col gap-1.5">
                         <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
                             Username <span className="text-red-400">*</span>

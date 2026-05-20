@@ -17,12 +17,24 @@ export async function addUserServerAction(_, formData) {
     try {
         const username = formData.get("username")?.toString().trim();
         const planPublicId = formData.get("plan_public_id")?.toString().trim();
-        const password = formData.get("password")?.toString().trim() || null;
+        let password = formData.get("password")?.toString().trim() || null;
         const contactRaw = formData.get("contact")?.toString().trim();
-        const contact = contactRaw ? Number(contactRaw) : 0;
 
         if (!username || !planPublicId) {
             return { ok: false, message: "Username and plan are required" };
+        }
+
+        let contact = 0;
+        if (contactRaw) {
+            contact = Number(contactRaw);
+            if (isNaN(contact) || contact <= 0) {
+                return { ok: false, message: "Contact must be a valid number" };
+            }
+        }
+
+        // Auto-generate 8-character password if left blank
+        if (!password) {
+            password = Math.random().toString(36).slice(-8);
         }
 
         const adminId = currentUser.id;

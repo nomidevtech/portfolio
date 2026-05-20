@@ -2,6 +2,7 @@
 
 import { db } from "@/app/lib/turso";
 import { getUser } from "../lib/getUser";
+import { hashPassword, verifyPassword } from "@/app/utils/hash";
 
 export async function settingsServerAction(_, formData) {
     try {
@@ -21,10 +22,14 @@ export async function settingsServerAction(_, formData) {
         const fetchPass = await db.execute(`SELECT password FROM admins WHERE id = ?`, [currentUser.id]);
         const currentPassword = fetchPass.rows[0].password;
 
-        if (password !== currentPassword) return { ok: false, message: "Incorrect password" };
+        if (!verifyPassword(password, currentPassword)) return { ok: false, message: "Incorrect password" };
 
         if (newPassword) {
-            await db.execute(`UPDATE admins SET password = ? WHERE id = ?`, [newPassword, currentUser.id]);
+            if (newPassword.length < 6) {
+                return { ok: false, message: "New password must be at least 6 characters long" };
+            }
+            const hashedPassword = hashPassword(newPassword);
+            await db.execute(`UPDATE admins SET password = ? WHERE id = ?`, [hashedPassword, currentUser.id]);
         }
 
         await db.execute(`UPDATE admins SET username = ?, email = ? WHERE id = ?`, [username, email, currentUser.id]);
@@ -33,6 +38,9 @@ export async function settingsServerAction(_, formData) {
 
     } catch (error) {
         console.error(error);
+        if (error.message && error.message.includes("UNIQUE")) {
+            return { ok: false, message: "Username already in use" };
+        }
         return { ok: false, message: "Error updating settings" };
     }
 }

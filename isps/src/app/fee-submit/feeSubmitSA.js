@@ -80,10 +80,9 @@ export async function fetchDetails(_, formData) {
              FROM billing_transactions
              WHERE user_id = ?
              AND admin_id = ?
-             AND username_snapshot = ?
              AND billing_month = ?
              AND billing_year = ?`,
-            [userId, adminId, username, month, year]
+            [userId, adminId, month, year]
         );
 
         const row = fetchCurrentMonthRecord?.rows?.[0];
@@ -103,7 +102,7 @@ export async function fetchDetails(_, formData) {
             remaining_fee: row.remaining_fee,
             plan: row.plan_snapshot,
             contact: row.contact_snapshot,
-            username: row.username_snapshot
+            username: username
         };
 
 
@@ -137,26 +136,28 @@ export async function submit(_, formData) {
         const year = d.getFullYear();
 
         const fetchUserId = await db.execute(`
-            SELECT amount_due, remaining_fee FROM billing_transactions
-            WHERE public_id = ? AND admin_id = ? AND username_snapshot = ? AND billing_month = ? AND billing_year = ?
-        `, [record_public_id, adminId, username, month, year]);
+            SELECT amount_due, remaining_fee, billing_month, billing_year FROM billing_transactions
+            WHERE public_id = ? AND admin_id = ?
+        `, [record_public_id, adminId]);
 
-        if (fetchUserId.rows.length === 0) return { ok: false, message: "update records in settings" };
+        if (fetchUserId.rows.length === 0) return { ok: false, message: "Billing record not found" };
 
         const amount_due = fetchUserId.rows[0].amount_due;
         const remaining_fee = fetchUserId.rows[0].remaining_fee;
+        const record_month = fetchUserId.rows[0].billing_month;
+        const record_year = fetchUserId.rows[0].billing_year;
 
         const remainingFee = remaining_fee - payment;
         const feeStatus = remainingFee <= 0 ? "paid" : (remainingFee === amount_due ? "unpaid" : "partial");
         const amount_paid = amount_due - remainingFee;
 
-        const invoiceId = `${month}${year}-${record_public_id}${nanoid(8)}`;
+        const invoiceId = `${record_month}${record_year}-${record_public_id}${nanoid(8)}`;
 
         const update = await db.execute(`
             UPDATE billing_transactions
-            SET fee_status = ?, amount_paid = ?, remaining_fee = ?, invoice_id = ?
-            WHERE public_id = ? AND admin_id = ? AND username_snapshot = ? AND billing_month = ? AND billing_year = ?
-        `, [feeStatus, amount_paid, remainingFee, invoiceId, record_public_id, adminId, username, month, year]);
+            SET fee_status = ?, amount_paid = ?, remaining_fee = ?, invoice_id = ?, last_updated = CURRENT_TIMESTAMP
+            WHERE public_id = ? AND admin_id = ?
+        `, [feeStatus, amount_paid, remainingFee, invoiceId, record_public_id, adminId]);
 
         return { ok: true, message: "Payment submitted", invoiceId, submitComplete: true };
 

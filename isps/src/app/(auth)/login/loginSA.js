@@ -6,6 +6,7 @@ import { cookies, headers } from "next/headers";
 import { redis } from "@/app/lib/redis";
 import { redirect } from "next/navigation";  // ← fixed import
 import { initSessionsTable } from "@/app/models/table-inits";
+import { verifyPassword } from "@/app/utils/hash";
 
 
 
@@ -63,7 +64,7 @@ export async function loginSA(_, formData) {  // ← prevState added for useActi
         const userId = user.id;
         const loginPassword = user.password;
 
-        const isPasswordValid = loginPassword === password;
+        const isPasswordValid = verifyPassword(password, loginPassword);
 
 
         if (!isPasswordValid) {

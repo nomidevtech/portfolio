@@ -83,6 +83,11 @@ export default function ClientDashboard({ initialData, yearsArr = [], monthsArr 
     const isInitialLoad = state === initialData;
     const users = state.usersByFeeStatus ?? (isInitialLoad ? usersByFeeStatus : {});
 
+    const currentMonthIndex = new Date().getMonth();
+    const defaultMonth = monthsArr[currentMonthIndex] ?? "";
+    const currentYear = new Date().getFullYear();
+    const defaultYear = yearsArr.includes(currentYear) ? currentYear : (yearsArr[0] ?? currentYear);
+
     return (
         <div className="max-w-lg mx-auto px-4 py-6">
             <div className="mb-6">
@@ -95,7 +100,7 @@ export default function ClientDashboard({ initialData, yearsArr = [], monthsArr 
                 <Form action={action} className="flex gap-2.5">
                     <select
                         name="month"
-                        defaultValue=""
+                        defaultValue={defaultMonth}
                         required
                         className="flex-1 border border-gray-200 rounded-xl px-3 py-2.5 text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent transition-all"
                     >
@@ -107,7 +112,7 @@ export default function ClientDashboard({ initialData, yearsArr = [], monthsArr 
 
                     <select
                         name="year"
-                        defaultValue={2026}
+                        defaultValue={defaultYear}
                         required
                         className="w-24 border border-gray-200 rounded-xl px-3 py-2.5 text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent transition-all"
                     >

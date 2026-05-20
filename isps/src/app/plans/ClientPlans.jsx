@@ -12,7 +12,10 @@ export default function ClientPlans({ plans = [] }) {
     const [mode, setMode] = useState("");
 
     useEffect(() => {
-        if (state.ok === true) router.refresh();
+        if (state.ok === true) {
+            setMode("");
+            router.refresh();
+        }
     }, [state]);
 
     const modeButtons = [
