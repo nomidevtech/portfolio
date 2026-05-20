@@ -17,7 +17,7 @@ export default function NavBarClient({ serializedUser }) {
         </Link>
 
         <div className="flex items-center gap-3">
-          <Link href="/blog" className="text-sm text-[var(--text-muted)] hover:text-[var(--text)] transition-colors hidden sm:block">
+          <Link href="/blog" className="text-sm text-[var(--text-muted)] hover:text-[var(--text)] transition-colors">
             Blog
           </Link>
 

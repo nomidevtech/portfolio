@@ -77,6 +77,6 @@ export async function updateUserSA(_, formData) {
 
     } catch (error) {
         console.error("Update failed:", error);
-        return { success: false, message: "Something went wrong. Please try again." };
+        return { ok: false, message: "Something went wrong. Please try again." };
     }
 }

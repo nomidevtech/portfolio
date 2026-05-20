@@ -14,7 +14,7 @@ export async function searchServerAction(_, value) {
                 .toLowerCase()
                 .split(' ')
                 .filter(Boolean)
-                .filter(term => term.length > 2 && term.length < 20)
+                .filter(term => term.length >= 2 && term.length < 20)
                 .slice(0, 20);
 
         if (searchTerms.length === 0) return { ok: false, postTitlesArr: [], message: "invalid search terms." };

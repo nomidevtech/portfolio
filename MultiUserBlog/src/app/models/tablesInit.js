@@ -141,3 +141,21 @@ export async function initCommentsTable() {
         )
     `);
 }
+
+export async function initAllTables() {
+    if (global.__dbInitialized) return;
+    
+    // Create tables in order of foreign key dependencies
+    await initUsersTable();
+    await initSessionsTable();
+    await initPostsTable();
+    await initTaxonomiesTable();
+    await initTagsTable();
+    await initPostTaxonomiesTable();
+    await initPostTagsTable();
+    await initFavoritesTable();
+    await initCommentsTable();
+    
+    global.__dbInitialized = true;
+}
+

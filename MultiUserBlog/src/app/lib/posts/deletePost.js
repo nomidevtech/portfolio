@@ -39,9 +39,14 @@ export async function deletePostServerAction(_, formData) {
         if (result.rowsAffected === 0) {
             return { ok: false, message: "failed to delete post" };
         }
-        const acquireImag = JSON.parse(fetchPost.rows[0].content);
+        let acquireImag = [];
+        try {
+            acquireImag = JSON.parse(fetchPost.rows[0].content || "[]");
+        } catch (e) {
+            console.error("Failed to parse content during post deletion:", e);
+        }
         const ids = [];
-        if(acquireImag.length > 0) {
+        if (acquireImag && acquireImag.length > 0) {
             for (const block of acquireImag) {
                 if (block.type === "image" && block.value?.publicId) {
                     ids.push(block.value.publicId);

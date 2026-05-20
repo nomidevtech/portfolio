@@ -39,8 +39,15 @@ export async function deleteAccount(_, formData) {
 
 
         const cloudinaryIdsToDelete = fetchPostsContent.rows
-            .flatMap(row => JSON.parse(row.content))
-            .filter(item => item.type === 'image' && item.value?.publicId)
+            .flatMap(row => {
+                try {
+                    return JSON.parse(row.content || "[]");
+                } catch (e) {
+                    console.error("Failed to parse post content for user deletion:", row.content, e);
+                    return [];
+                }
+            })
+            .filter(item => item && item.type === 'image' && item.value?.publicId)
             .map(item => item.value.publicId);
 
         if (cloudinaryIdsToDelete.length > 0) {

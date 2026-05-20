@@ -12,7 +12,7 @@ const IC = "w-full font-sans bg-[var(--bg-subtle)] border border-[var(--border)]
 const LC = "block font-sans text-xs text-[var(--text-faint)] uppercase tracking-widest mb-1.5";
 
 export default function SettingsForm({ serializedUser }) {
-  const initialState = { success: null, message: "" };
+  const initialState = { ok: null, message: "" };
   const [state, formAction, isPending] = useActionState(updateUserSA, initialState);
   const [usernameState, usernameAction, usernamePending] = useActionState(checkUsername, initialState);
   const [emailState, emailAction, emailPending] = useActionState(checkEmail, initialState);
@@ -36,7 +36,7 @@ export default function SettingsForm({ serializedUser }) {
           }
         </div>
       )}
-      {state.message && <p className={msgCls(state.success)}>{state.message}</p>}
+      {state.message && <p className={msgCls(state.ok)}>{state.message}</p>}
 
       <div className="border-b border-[var(--border)] pb-6">
         <h2 className="font-sans text-xs font-bold uppercase tracking-widest text-[var(--text-faint)] mb-4">Profile</h2>

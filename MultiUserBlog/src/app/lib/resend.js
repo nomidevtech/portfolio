@@ -5,7 +5,6 @@ import crypto from "crypto";
 import { hash } from "../utils/bcrypt";
 import { db } from "../lib/turso";
 
-
 const resendInstance = new Resend(process.env.RESEND_API_KEY);
 
 export const emailOrchestrator = async (user_pid, email, incomingToken) => {
@@ -23,7 +22,7 @@ export const emailOrchestrator = async (user_pid, email, incomingToken) => {
             if (!inserted) return { ok: false, message: "Something went wrong" };
         }
 
-        return await sendWithResend(resendInstance, user_pid, email, incomingToken);
+        return await sendWithResend(email, incomingToken);
     } catch (error) {
         console.error(error);
         return { ok: false, message: "Something went wrong" };
@@ -46,8 +45,9 @@ const insertTokenIntoDB = async (userPId, token) => {
     return result.rowsAffected === 1;
 }
 
-const sendWithResend = async (resendInstance, user_pid, email, token) => {
-    const url = `https://portfolio-2mnb.vercel.app/verify/?pid=${user_pid}&token=${token}`;
+const sendWithResend = async (email, token) => {
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://portfolio-2mnb.vercel.app";
+    const url = `${appUrl}/verify/?token=${token}`;
     const result = await resendInstance.emails.send({
         from: "MUB <noreply@nomidev.com>",
         to: email,

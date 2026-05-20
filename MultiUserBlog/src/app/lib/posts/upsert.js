@@ -272,10 +272,11 @@ const upsertTags = async (tagsArr) => {
     const clean = [...new Set(tagsArr.filter(Boolean).map(tag => tag.trim().replace(/\s+/g, '-').toLowerCase()))];
     if (clean.length === 0) return [];
 
-    const placeholders = clean.map(() => '(?)').join(', ');
+    const insertPlaceholders = clean.map(() => '(?)').join(', ');
+    const selectPlaceholders = clean.map(() => '?').join(', ');
 
-    await db.execute(`INSERT OR IGNORE INTO tags (name) VALUES ${placeholders}`, clean);
-    const result = await db.execute(`SELECT id FROM tags WHERE name IN (${placeholders})`, clean);
+    await db.execute(`INSERT OR IGNORE INTO tags (name) VALUES ${insertPlaceholders}`, clean);
+    const result = await db.execute(`SELECT id FROM tags WHERE name IN (${selectPlaceholders})`, clean);
 
     return result.rows.map(r => r.id);
 

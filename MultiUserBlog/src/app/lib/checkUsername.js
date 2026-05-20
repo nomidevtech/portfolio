@@ -9,7 +9,7 @@ export async function checkUsername(_, username) {
     if (username.length > 20) return { ok: false, message: 'Username must be at most 20 characters' };
     if (!username.match(/^[a-zA-Z0-9_-]+$/)) return { ok: false, message: 'Username must only contain letters, numbers, hyphen  and underscores' };
 
-    const ipLimit = await redisIpLimit(5, 'username_check');
+    const ipLimit = await redisIpLimit(30, 'username_check');
     if (!ipLimit.ok) return ipLimit;
 
     try {

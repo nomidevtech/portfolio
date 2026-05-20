@@ -6,7 +6,7 @@ import { redisIpLimit } from "../utils/redidIpLimit";
 export async function checkEmail(_, email) {
     if (!email) return { ok: false, message: 'Email is required' };
 
-    const ipLimit = await redisIpLimit(5, 'email_check');
+    const ipLimit = await redisIpLimit(30, 'email_check');
     if (!ipLimit.ok) return ipLimit;
 
 

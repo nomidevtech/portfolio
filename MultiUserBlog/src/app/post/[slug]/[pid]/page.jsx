@@ -30,7 +30,12 @@ export default async function DynamicPost({ params }) {
 
   const post = fetchPost.rows[0];
   const tags = post?.tags?.split(",").map(t => t.trim()).filter(Boolean) || [];
-  const content = JSON.parse(post.content);
+  let content = [];
+  try {
+    content = JSON.parse(post.content || "[]");
+  } catch (e) {
+    content = [{ type: "paragraph", value: post.content }];
+  }
   let isFavorited = false;
   if (currentUser?.id) {
     const r = await db.execute("SELECT * FROM favorites WHERE user_id = ? AND post_id = ?", [currentUser.id, post.id]);

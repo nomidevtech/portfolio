@@ -3,8 +3,6 @@ import { db } from "@/app/lib/turso";
 import PostForm from "@/app/components/PostForm";
 import Link from "next/link";
 
-
-
 export default async function EditPost({ searchParams }) {
 
     const { value } = await searchParams;
@@ -51,17 +49,22 @@ export default async function EditPost({ searchParams }) {
     );
 
     const rawData = fetchPost.rows[0];
+    let content = [];
+    try {
+        content = JSON.parse(rawData.content || "[]");
+    } catch (e) {
+        content = [{ type: "paragraph", value: rawData.content }];
+    }
+
     const post = {
         post_public_id: rawData.public_id,
         title: rawData.title,
         slug: rawData.slug,
         excerpt: rawData.excerpt,
-        content: JSON.parse(rawData.content),
+        content,
         taxonomy: rawData.taxonomy,
         tags: rawData.tags ? rawData.tags.split(",").map((tag) => tag.trim()).filter(Boolean) : [],
-
-    }
-
+    };
 
     return (
         <PostForm post={post} />

@@ -107,15 +107,10 @@ export default function Comments({ commentsSerialized, isLoggedIn, postPublicId,
                         className="font-sans text-xs border border-[var(--border)] text-[var(--text-muted)] px-4 py-1.5 rounded-full hover:border-[var(--text)] transition-colors cursor-pointer">
                         Cancel
                       </button>
-                      <Form action={action} className="inline">
-                        <input type="hidden" name="comment_public_id" value={comment.cPId} />
-                        <input type="hidden" name="post_public_id" value={postPublicId} />
-                        <input type="hidden" name="user_public_id" value={userPublicId} />
-                        <button type="submit" name="delete" value="true"
-                          className="font-sans text-xs border border-[var(--border)] text-red-500 px-3 py-1.5 rounded-full hover:border-red-400 transition-colors cursor-pointer">
-                          Delete
-                        </button>
-                      </Form>
+                      <button type="submit" name="delete" value="true"
+                        className="font-sans text-xs border border-[var(--border)] text-red-500 px-3 py-1.5 rounded-full hover:border-red-400 transition-colors cursor-pointer">
+                        Delete
+                      </button>
                     </div>
                   </Form>
                 )}

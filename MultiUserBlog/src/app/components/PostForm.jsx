@@ -27,7 +27,7 @@ export default function PostForm({ post = {}, taxonomies = [], tags = [] }) {
         <p className="font-sans text-sm text-[var(--text-faint)] mt-1">Shape your article with clean blocks, topics, and tags.</p>
       </div>
       {state.message && <div className={msgCls(state.ok)}>{state.message}</div>}
-      <Form action={formAction} className="space-y-5">
+      <Form action={formAction} encType="multipart/form-data" className="space-y-5">
         <input name="post_public_id" type="hidden" readOnly value={post.post_public_id ?? ""} />
         <div><label className={LC}>Title</label><input name="title" type="text" placeholder="Post title" defaultValue={post.title ?? ""} className={IC} /></div>
         <div><label className={LC}>Excerpt</label><textarea name="excerpt" placeholder="Short summary..." rows={3} defaultValue={post.excerpt ?? ""} className={`${IC} resize-none`} /></div>
