@@ -1,7 +1,6 @@
 "use client";
 import { startTransition, useActionState, useState } from "react";
-import { updateUserSA } from "./SA";
-import Form from "next/form";
+import { updateUserSA, changePasswordSA } from "./SA";
 import { checkUsername } from "../lib/checkUsername";
 import { checkEmail } from "../lib/checkEmail";
 import { emailOrchestrator } from "../lib/resend";
@@ -14,6 +13,7 @@ const LC = "block font-sans text-xs text-[var(--text-faint)] uppercase tracking-
 export default function SettingsForm({ serializedUser }) {
   const initialState = { ok: null, message: "" };
   const [state, formAction, isPending] = useActionState(updateUserSA, initialState);
+  const [passwordState, passwordAction, isPasswordPending] = useActionState(changePasswordSA, initialState);
   const [usernameState, usernameAction, usernamePending] = useActionState(checkUsername, initialState);
   const [emailState, emailAction, emailPending] = useActionState(checkEmail, initialState);
   const [sent, setSent] = useState(false);
@@ -40,7 +40,7 @@ export default function SettingsForm({ serializedUser }) {
 
       <div className="border-b border-[var(--border)] pb-6">
         <h2 className="font-sans text-xs font-bold uppercase tracking-widest text-[var(--text-faint)] mb-4">Profile</h2>
-        <Form action={formAction} className="space-y-4">
+        <form action={formAction} className="space-y-4">
           <input type="hidden" name="ppid" value={user.public_id} readOnly />
           <div><label className={LC}>Full Name</label><input name="name" defaultValue={user.name} className={IC} /></div>
           <div>
@@ -59,17 +59,40 @@ export default function SettingsForm({ serializedUser }) {
             className="font-sans font-semibold bg-[var(--text)] text-[var(--bg)] px-6 py-2 rounded-full text-sm hover:opacity-80 disabled:opacity-50 transition-opacity cursor-pointer">
             {isPending ? "Saving..." : "Save changes"}
           </button>
-        </Form>
+        </form>
+      </div>
+
+      <div className="border-b border-[var(--border)] pb-6">
+        <h2 className="font-sans text-xs font-bold uppercase tracking-widest text-[var(--text-faint)] mb-4">Change Password</h2>
+        {passwordState.message && <p className={msgCls(passwordState.ok) + " mb-4"}>{passwordState.message}</p>}
+        <form action={passwordAction} className="space-y-4">
+          <div>
+            <label className={LC}>Current Password</label>
+            <input name="current_password" type="password" placeholder="••••••••" className={IC} required />
+          </div>
+          <div>
+            <label className={LC}>New Password</label>
+            <input name="new_password" type="password" placeholder="••••••••" className={IC} required />
+          </div>
+          <div>
+            <label className={LC}>Confirm New Password</label>
+            <input name="confirm_password" type="password" placeholder="••••••••" className={IC} required />
+          </div>
+          <button type="submit" disabled={isPasswordPending}
+            className="font-sans font-semibold bg-[var(--text)] text-[var(--bg)] px-6 py-2 rounded-full text-sm hover:opacity-80 disabled:opacity-50 transition-opacity cursor-pointer">
+            {isPasswordPending ? "Changing..." : "Change Password"}
+          </button>
+        </form>
       </div>
 
       <div>
         <h2 className="font-sans text-xs font-bold uppercase tracking-widest text-[var(--text-faint)] mb-4">Account</h2>
         <div className="flex flex-col gap-3 items-start">
-          <Form action={logout}>
+          <form action={logout}>
             <button type="submit" className="font-sans text-sm text-[var(--text-muted)] border border-[var(--border)] px-4 py-2 rounded-full hover:border-[var(--text)] hover:text-[var(--text)] transition-colors cursor-pointer">
               Logout
             </button>
-          </Form>
+          </form>
           <Link href="/delete_account" className="font-sans text-sm text-red-500 hover:underline underline-offset-4 transition-colors">Delete Account</Link>
         </div>
       </div>

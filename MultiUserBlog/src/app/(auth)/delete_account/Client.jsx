@@ -1,6 +1,5 @@
 'use client';
 import { deleteAccount } from "@/app/lib/deleteAccount";
-import Form from "next/form";
 import Link from "next/link";
 import { useActionState } from "react";
 
@@ -16,7 +15,7 @@ export default function DeleteClient() {
         {serverMessage && (
           <div className="font-sans mb-4 text-sm text-red-700 bg-red-50 border border-red-200 dark:text-red-400 dark:bg-red-950 dark:border-red-800 rounded-md px-4 py-3">{serverMessage}</div>
         )}
-        <Form action={formAction} className="space-y-4">
+        <form action={formAction} className="space-y-4">
           <div>
             <label className="block font-sans text-xs text-[var(--text-faint)] uppercase tracking-widest mb-1.5">Confirm password</label>
             <input type="password" name="password" placeholder="Enter your password" className="w-full font-sans bg-[var(--bg-raised)] border border-[var(--border)] text-[var(--text)] placeholder-[var(--text-faint)] rounded-md px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent transition-colors" />
@@ -25,7 +24,7 @@ export default function DeleteClient() {
             className="w-full font-sans font-semibold bg-red-600 hover:bg-red-500 disabled:opacity-50 text-white px-6 py-2.5 rounded-md text-sm transition-colors cursor-pointer">
             {isPending ? "Deleting..." : "Delete my account"}
           </button>
-        </Form>
+        </form>
         <Link href="/settings" className="block font-sans text-center text-sm text-[var(--text-faint)] hover:text-[var(--text)] transition-colors mt-5">Back to settings</Link>
       </div>
     </div>

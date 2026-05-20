@@ -1,7 +1,6 @@
 'use client';
 import { useActionState, useState } from "react";
 import { commentsSA } from "./commentsSA";
-import Form from "next/form";
 
 function formatDate(d) {
   if (!d) return "";
@@ -47,7 +46,7 @@ export default function Comments({ commentsSerialized, isLoggedIn, postPublicId,
       )}
 
       {isLoggedIn && isVerified ? (
-        <Form action={action} className="mb-8">
+        <form action={action} className="mb-8">
           <input type="hidden" name="post_public_id" value={postPublicId} />
           <input type="hidden" name="user_public_id" value={userPublicId} />
           <textarea name="comment" placeholder="Write a comment..." rows={3} className={`${inputCls} mb-3`} />
@@ -55,7 +54,7 @@ export default function Comments({ commentsSerialized, isLoggedIn, postPublicId,
             className="font-sans text-sm font-semibold bg-[var(--text)] text-[var(--bg)] px-5 py-2 rounded-full hover:opacity-80 disabled:opacity-50 transition-opacity cursor-pointer">
             {isPending ? "Posting..." : "Post comment"}
           </button>
-        </Form>
+        </form>
       ) : (
         <div className="mb-8 border border-[var(--border)] rounded-lg px-4 py-3 font-sans text-sm text-[var(--text-faint)]">
           {isLoggedIn ? "Verify your email to comment." : "Login and verify your email to comment."}
@@ -80,20 +79,20 @@ export default function Comments({ commentsSerialized, isLoggedIn, postPublicId,
                           className="font-sans text-xs border border-[var(--border)] text-[var(--text-muted)] px-3 py-1 rounded-full hover:border-[var(--text)] hover:text-[var(--text)] transition-colors cursor-pointer">
                           Edit
                         </button>
-                        <Form action={action} className="inline">
+                        <form action={action} className="inline">
                           <input type="hidden" name="comment_public_id" value={comment.cPId} />
                           <input type="hidden" name="post_public_id" value={postPublicId} />
                           <input type="hidden" name="user_public_id" value={userPublicId} />
                           <button type="submit" name="delete" value="true"
-                            className="font-sans text-xs border border-[var(--border)] text-red-500 px-3 py-1 rounded-full hover:border-red-400 transition-colors cursor-pointer">
+                            className="font-sans text-xs border border-[var(--border)] text-red-500 px-3 py-1.5 rounded-full hover:border-red-400 transition-colors cursor-pointer">
                             Delete
                           </button>
-                        </Form>
+                        </form>
                       </div>
                     )}
                   </>
                 ) : (
-                  <Form action={action} className="space-y-3" onSubmit={() => setIsEditing("")}>
+                  <form action={action} className="space-y-3" onSubmit={() => setIsEditing("")}>
                     <input type="hidden" name="comment_public_id" value={comment.cPId} />
                     <input type="hidden" name="post_public_id" value={postPublicId} />
                     <input type="hidden" name="user_public_id" value={userPublicId} />
@@ -112,7 +111,7 @@ export default function Comments({ commentsSerialized, isLoggedIn, postPublicId,
                         Delete
                       </button>
                     </div>
-                  </Form>
+                  </form>
                 )}
               </div>
             ))}
