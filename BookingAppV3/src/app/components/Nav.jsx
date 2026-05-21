@@ -39,9 +39,14 @@ export default async function NavBar() {
                             {user.role}
                         </span>
                     ) : (
-                        <Link href="/login" className="btn-secondary p-1">
-                            Login
-                        </Link>
+                        <>
+                            <Link href="/bookings" className="btn-ghost px-3 py-2 sm:hidden text-sm font-semibold">
+                                Bookings
+                            </Link>
+                            <Link href="/login" className="btn-secondary px-5 py-2">
+                                Login
+                            </Link>
+                        </>
                     )}
                 </div>
             </nav>

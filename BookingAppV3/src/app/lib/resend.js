@@ -1,5 +1,6 @@
 'use server';
 
+import { fromHyphenSlug } from "@/app/utils/displaySlug";
 import { Resend } from "resend";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
@@ -33,10 +34,10 @@ export async function sendBulkCancelationEmails(payload = {}) {
 
         const clause = payload[chunk].map(item => {
 
-            const name = item.patient_name?.split("-").map(word => word[0].toUpperCase() + word.slice(1)).join(" ") || "Valued Patient";
+            const name = fromHyphenSlug(item.patient_name, "Valued Patient");
 
             const docName = item.doctor_name
-                ? `Dr. ${item.doctor_name.split("-").map(word => word[0].toUpperCase() + word.slice(1)).join(" ")}`
+                ? `Dr. ${fromHyphenSlug(item.doctor_name)}`
                 : "The Doctor";
 
             return {

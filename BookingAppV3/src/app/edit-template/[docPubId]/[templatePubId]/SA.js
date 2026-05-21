@@ -6,7 +6,7 @@ import getMinutes from "@/app/utils/getMinutes"; // Adjust path if needed
 import { getUserPlus } from "@/app/lib/getUser";
 
 
-export async function updateWeeklyTemplateServerAction(formData) {
+export async function updateWeeklyTemplateServerAction(prevState, formData) {
 
   const currentUser = await getUserPlus();
   if (!currentUser || currentUser.role !== "admin" || !currentUser.admin_id) redirect("/login");

@@ -7,7 +7,7 @@ import { revalidatePath } from "next/cache";
 import { getUserPlus } from "@/app/lib/getUser";
 import { sendCancelationEmails } from "@/app/lib/sendCancelationEmail";
 
-export async function editSlotServerAction(formData) {
+export async function editSlotServerAction(prevState, formData) {
     const currentUser = await getUserPlus();
 
     if (!currentUser || currentUser.role !== "admin" || !currentUser.admin_id) {
@@ -59,7 +59,7 @@ export async function editSlotServerAction(formData) {
     if (startTimeFromUser >= endTimeFromUser)
         return { ok: false, message: "Start time must be before end time" };
 
-    if (breakStartFromUser <= startTimeFromUser || breakStartFromUser >= breakEndFromUser) return { ok: false, message: "Break start must be between start and end" };
+    if (breakStartFromUser <= startTimeFromUser || breakStartFromUser >= breakEndFromUser) return { ok: false, message: "Break start must be after clinic start and before break end." };
 
     if (breakEndFromUser >= endTimeFromUser) return { ok: false, message: "Break end must be before clinic end" };
     if (Number(formData.get("buffer")) < 0) return { ok: false, message: "Buffer cannot be negative" };
@@ -130,7 +130,7 @@ export async function editSlotServerAction(formData) {
         }
     } catch (e) {
         console.error("Batch update failed:", e);
-        return null;
+        return { ok: false, message: "Failed to update slot. Please try again." };
     }
 
     revalidatePath(`/edit-slot/${slotPubId}`);

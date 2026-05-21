@@ -1,4 +1,5 @@
 import { db } from "@/app/lib/turso";
+import { fromHyphenSlug } from "@/app/utils/displaySlug";
 import Link from "next/link";
 import { minutesToMeridiem } from "@/app/utils/minutes-to-meridiem";
 import { getDayName } from "@/app/utils/getDateData";
@@ -23,7 +24,7 @@ export default async function DoctorEditTemplates({ params }) {
     if (fetchDoctor.rows.length === 0) return <main className="page-shell"><p className="status-error">Broken link. Doctor not found.</p></main>
 
     const { name, id } = fetchDoctor.rows[0];
-    const doctorName = name[0].toUpperCase() + name.slice(1);
+    const doctorName = fromHyphenSlug(name);
 
     const fetchTemplates = await db.execute(`SELECT * FROM weekly_templates WHERE doctor_id = ? AND admin_id = ?`, [id, adminId]);
     if (fetchTemplates.rows.length === 0) {

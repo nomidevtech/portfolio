@@ -55,7 +55,11 @@ export async function editDoctorServerAction(prevState, formData) {
                 db.execute(
                     `UPDATE users SET password = ?, username = ? WHERE doctor_id = ?`,
                     [passwordHash, username, doctorId]
-                )
+                ),
+                db.execute(
+                    `DELETE FROM sessions WHERE user_id = (SELECT id FROM users WHERE doctor_id = ?)`,
+                    [doctorId]
+                ),
             ]);
         } else {
             await db.execute(

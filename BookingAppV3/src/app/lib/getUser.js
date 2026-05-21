@@ -12,7 +12,10 @@ export async function getUser() {
         const fetchSession = await db.execute("SELECT * FROM sessions WHERE session_id = ? AND expires_at > CURRENT_TIMESTAMP", [token.value]);
         if (fetchSession.rows.length === 0) return null;
 
-        const fetchUser = await db.execute("SELECT * FROM users WHERE id = ?", [fetchSession.rows[0].user_id]);
+        const fetchUser = await db.execute(
+            "SELECT id, public_id, admin_id, doctor_id, role, username, status FROM users WHERE id = ?",
+            [fetchSession.rows[0].user_id]
+        );
         if (fetchUser.rows.length === 0) return null;
 
         const user = fetchUser;
@@ -35,18 +38,27 @@ export async function getUserPlus() {
         const fetchSession = await db.execute("SELECT * FROM sessions WHERE session_id = ? AND expires_at > CURRENT_TIMESTAMP", [token.value]);
         if (fetchSession.rows.length === 0) return null;
 
-        const fetchUser = await db.execute("SELECT * FROM users WHERE id = ?", [fetchSession.rows[0].user_id]);
+        const fetchUser = await db.execute(
+            "SELECT id, public_id, admin_id, doctor_id, role, username, status FROM users WHERE id = ?",
+            [fetchSession.rows[0].user_id]
+        );
         if (fetchUser.rows.length === 0) return null;
 
         const user = fetchUser.rows[0];
 
         if (user.role === "admin") {
-            const fetchAdmin = await db.execute("SELECT * FROM admins WHERE id = ?", [user.admin_id]);
+            const fetchAdmin = await db.execute(
+                "SELECT id, public_id, admin_name, admin_email, admin_username, clinic_name, clinic_phone, clinic_address, status FROM admins WHERE id = ?",
+                [user.admin_id]
+            );
             if (fetchAdmin.rows.length === 0) return null;
             user.admin_details = fetchAdmin.rows[0];
         }
         if (user.role === "doctor") {
-            const fetchDoctor = await db.execute("SELECT * FROM doctors WHERE id = ?", [user.doctor_id]);
+            const fetchDoctor = await db.execute(
+                "SELECT id, public_id, admin_id, name, username, qualifications, department, status FROM doctors WHERE id = ?",
+                [user.doctor_id]
+            );
             if (fetchDoctor.rows.length === 0) return null;
             user.doctor_details = fetchDoctor.rows[0];
         }

@@ -6,12 +6,18 @@ import { toggleSlotStatus } from "./sa";
 export function ToggleSlotButton({ slotPubId, status, numberOfBookings = 0 }) {
     const [isPending, startTransition] = useTransition();
     const [showConfirm, setShowConfirm] = useState(false);
+    const [error, setError] = useState(null);
     const router = useRouter();
     const isActive = status === "active";
 
     const handleToggle = () => {
+        setError(null);
         startTransition(async () => {
-            await toggleSlotStatus(slotPubId);
+            const result = await toggleSlotStatus(slotPubId);
+            if (!result || !result.ok) {
+                setError("Failed to update slot status. Please try again.");
+                return;
+            }
             router.refresh();
         });
         setShowConfirm(false);
@@ -19,9 +25,12 @@ export function ToggleSlotButton({ slotPubId, status, numberOfBookings = 0 }) {
 
     if (!isActive) {
         return (
-            <button className="btn-primary" disabled={isPending} onClick={handleToggle}>
-                {isPending ? "Updating..." : "Activate"}
-            </button>
+            <>
+                <button className="btn-primary" disabled={isPending} onClick={handleToggle}>
+                    {isPending ? "Updating..." : "Activate"}
+                </button>
+                {error && <p className="mt-3 text-sm font-semibold text-rose-600">{error}</p>}
+            </>
         );
     }
 
@@ -49,6 +58,7 @@ export function ToggleSlotButton({ slotPubId, status, numberOfBookings = 0 }) {
                     Cancel
                 </button>
             </div>
+            {error && <p className="mt-3 text-sm font-semibold text-rose-600">{error}</p>}
         </div>
     );
 }

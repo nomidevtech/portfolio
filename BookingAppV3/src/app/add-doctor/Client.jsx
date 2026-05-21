@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
+import Form from "next/form";
 import { addDoctorServerAction } from "./SA";
 
 export default function ClientAddDoctor({ departments, treatments }) {
@@ -14,7 +15,7 @@ export default function ClientAddDoctor({ departments, treatments }) {
                 <p className="mt-2 text-slate-600">Create a doctor login and assign their first bookable treatment.</p>
             </div>
 
-            <form action={formAction} className="form-panel grid gap-5">
+            <Form action={formAction} className="form-panel grid gap-5">
                 <div className="grid gap-4 sm:grid-cols-2">
                     <Field label="Name"><input type="text" name="name" placeholder="Name" required /></Field>
                     <Field label="Username"><input type="text" name="username" placeholder="Username" required /></Field>
@@ -46,7 +47,7 @@ export default function ClientAddDoctor({ departments, treatments }) {
                 <button type="submit" className="btn-primary w-full sm:w-auto" disabled={isPending}>
                     {isPending ? "Submitting..." : "Add doctor"}
                 </button>
-            </form>
+            </Form>
         </section>
     );
 }

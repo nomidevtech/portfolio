@@ -1,5 +1,6 @@
 
 import { db } from "@/app/lib/turso";
+import { fromHyphenSlug, fromUnderscoreSlug } from "@/app/utils/displaySlug";
 import { getDayName, getMonthName } from "@/app/utils/getDateData";
 import ClientBookASlot from "./Client";
 import { redisIpLimit } from "@/app/lib/redis";
@@ -95,14 +96,14 @@ export default async function DoctorBookings({ params }) {
         <div className="mb-8">
             <p className="soft-pill">Patient booking</p>
             <h1 className="mt-4 text-3xl font-black text-slate-950">Available slots</h1>
-            <p className="mt-2 text-slate-600">Choose a time for Dr. {fetchDoctor.rows[0].name[0].toUpperCase() + fetchDoctor.rows[0].name.slice(1)}.</p>
+            <p className="mt-2 text-slate-600">Choose a time for Dr. {fromHyphenSlug(fetchDoctor.rows[0].name)}.</p>
         </div>
         <div className="grid gap-5">
             {allVirtualSlots.map((slot, index1) => (
                 <section key={slot.public_id} className="section-panel">
                     <h2 className="text-xl font-black text-slate-950">{getDayName(slot.day_number)} {slot.date_number > 9 ? slot.date_number : `0${slot.date_number}`} {getMonthName(slot.month_number)} {slot.year}</h2>
-                    <p className="mt-2 text-sm text-slate-600">Dr. {fetchDoctor.rows[0].name[0].toUpperCase() + fetchDoctor.rows[0].name.slice(1)} {JSON.parse(fetchDoctor.rows[0].qualifications).join(', ').toUpperCase()}</p>
-                    <p className="text-sm text-slate-600">Treatment: {fetchTreatment.rows[0].name.split("_").map(fn => fn[0].toUpperCase() + fn.slice(1)).join(" ")}</p>
+                    <p className="mt-2 text-sm text-slate-600">Dr. {fromHyphenSlug(fetchDoctor.rows[0].name)} {JSON.parse(fetchDoctor.rows[0].qualifications).join(', ').toUpperCase()}</p>
+                    <p className="text-sm text-slate-600">Treatment: {fromUnderscoreSlug(fetchTreatment.rows[0].name)}</p>
                     <p className="text-sm text-slate-600">Duration: {fetchTreatment.rows[0].duration < 10 ? `0${fetchTreatment.rows[0].duration}` : fetchTreatment.rows[0].duration} min</p>
                     <details>
                         <summary>Available slots</summary>

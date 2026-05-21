@@ -1,6 +1,8 @@
 import { redisIpLimit } from "@/app/lib/redis";
 import { db } from "@/app/lib/turso";
+import { fromHyphenSlug, fromUnderscoreSlug } from "@/app/utils/displaySlug";
 import Link from "next/link";
+import StatusPage from "@/app/components/StatusPage";
 
 export const metadata = {
     title: "Clinic Doctors",
@@ -17,10 +19,10 @@ export default async function ClinicAdminAllBookings({ params }) {
     if (fetchAminData.rows.length === 0) return <main className="page-shell"><p className="status-error">Link is broken.</p></main>;
 
     const adminId = fetchAminData.rows[0].id;
-    const clinicName = fetchAminData.rows[0].clinic_name?.split("-").map(word => word[0].toUpperCase() + word.slice(1)).join(" ");
+    const clinicName = fromHyphenSlug(fetchAminData.rows[0].clinic_name);
     const fetch = await db.execute(`SELECT doctor_id FROM slots WHERE admin_id = ? AND full_date_at_period >= DATE('now') AND status = 'active' ORDER BY full_date_at_period`, [adminId]);
 
-    if (fetch.rows.length === 0) return <main className="page-shell"><p className="status-warning">No slots available.</p></main>;
+    if (fetch.rows.length === 0) return <StatusPage type="warning" message="No appointment slots are available at this clinic right now." backHref="/bookings" backLabel="Browse clinics" />;
 
     const doctorIds = [...new Set(fetch.rows.map(doc => doc.doctor_id))];
     const placeHolders = doctorIds.map(() => "?").join(',');
@@ -28,7 +30,7 @@ export default async function ClinicAdminAllBookings({ params }) {
     const doctors = fetchDoctors.rows;
     const departments = [...new Set(fetchDoctors.rows.map(doc => doc.department))];
 
-    if (doctors.length === 0 || departments.length === 0) return <main className="page-shell"><p className="status-warning">No slots available.</p></main>;
+    if (doctors.length === 0 || departments.length === 0) return <StatusPage type="warning" message="No appointment slots are available at this clinic right now." backHref="/bookings" backLabel="Browse clinics" />;
 
     const fetchDocWithTreatment = await db.execute(`SELECT 
             d.id AS doctor_id,
@@ -66,7 +68,7 @@ export default async function ClinicAdminAllBookings({ params }) {
             <div className="grid gap-5">
                 {departments.map(dep => (
                     <section key={dep} className="section-panel">
-                        <h2 className="text-xl font-black text-slate-950">{dep[0].toUpperCase() + dep.slice(1)}</h2>
+                        <h2 className="text-xl font-black text-slate-950">{fromHyphenSlug(dep)}</h2>
                         <details className="mt-4">
                             <summary>Show available doctors</summary>
                             <div className="mt-4 grid gap-4">
@@ -74,7 +76,7 @@ export default async function ClinicAdminAllBookings({ params }) {
                                     const doctorWithTreatments = arr.find(d => d.doctor_id === doc.id);
                                     return (
                                         <div key={doc.public_id} className="data-card">
-                                            <h3 className="text-lg font-bold text-slate-950">Dr. {doc.name ? doc.name[0].toUpperCase() + doc.name.slice(1) : "Unknown"}</h3>
+                                            <h3 className="text-lg font-bold text-slate-950">Dr. {fromHyphenSlug(doc.name, "Unknown")}</h3>
                                             <p className="mt-1 text-sm text-slate-600">Qualifications: {doc.qualifications ? JSON.parse(doc.qualifications).join(', ').toUpperCase() : "N/A"}</p>
                                             <div className="mt-4 flex flex-wrap gap-2">
                                                 {doctorWithTreatments?.treatments.map(tr => (
@@ -83,7 +85,7 @@ export default async function ClinicAdminAllBookings({ params }) {
                                                         className="btn-secondary"
                                                         href={`/bookings/${clinic_admin_pubId}/${doc.name.toLowerCase()}/${doc.public_id}/${tr.public_id}`}
                                                     >
-                                                        {tr.name.split("_").map(word => word[0].toUpperCase() + word.slice(1)).join(" ")} ({tr.duration} mins)
+                                                        {fromUnderscoreSlug(tr.name)} ({tr.duration} mins)
                                                     </Link>
                                                 ))}
                                             </div>

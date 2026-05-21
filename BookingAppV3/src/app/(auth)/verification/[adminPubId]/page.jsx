@@ -19,7 +19,7 @@ export default async function AdminVerification({ params }) {
   const fetchAdmin = await db.execute(`SELECT id, status, admin_email FROM admins WHERE public_id = ?`, [adminPubId]);
   if (fetchAdmin.rows.length === 0) return <main className="page-shell-narrow"><p className="status-error">Broken link.</p></main>
 
-  if (fetchAdmin.rows[0].status === "verified") redirect("/");
+  if (fetchAdmin.rows[0].status === "verified") redirect("/login?verified=already");
 
   return (
     <main className="page-shell-narrow">

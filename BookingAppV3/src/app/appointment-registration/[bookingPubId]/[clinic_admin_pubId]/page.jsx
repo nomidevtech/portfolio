@@ -1,4 +1,5 @@
 import { db } from "@/app/lib/turso";
+import { fromHyphenSlug, fromUnderscoreSlug } from "@/app/utils/displaySlug";
 import ClientAppointmentRegisteration from "./client";
 import { minutesToMeridiem } from "@/app/utils/minutes-to-meridiem";
 import { getMonthName } from "@/app/utils/getDateData";
@@ -44,8 +45,8 @@ export default async function AppointmentRegisteration({ params }) {
             <dl className="grid gap-3 text-sm sm:grid-cols-2">
                 <Info label="Date" value={`${booking.date_number > 9 ? booking.date_number : "0" + booking.date_number} ${getMonthName(booking.month_number)} ${booking.year}`} />
                 <Info label="Timing" value={`${minutesToMeridiem(booking.treatment_start, true)} - ${minutesToMeridiem(booking.treatment_end, true)}`} />
-                <Info label="Doctor" value={fetchDoctor.rows[0].name.split("-").map(word => word[0].toUpperCase() + word.slice(1)).join(" ")} />
-                <Info label="Treatment" value={fetchTreatment.rows[0].name.split("_").map(word => word[0].toUpperCase() + word.slice(1)).join(" ")} />
+                <Info label="Doctor" value={fromHyphenSlug(fetchDoctor.rows[0].name)} />
+                <Info label="Treatment" value={fromUnderscoreSlug(fetchTreatment.rows[0].name)} />
                 <Info label="Duration" value={`${fetchTreatment.rows[0].duration} minutes`} />
             </dl>
         </section>

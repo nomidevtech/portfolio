@@ -1,5 +1,6 @@
 import { db } from "@/app/lib/turso";
 import { getUserPlus } from "@/app/lib/getUser";
+import { fromHyphenSlug, fromUnderscoreSlug } from "@/app/utils/displaySlug";
 import { redirect } from "next/navigation";
 import ClientEditDoctor from "./Client";
 
@@ -27,7 +28,7 @@ export default async function EditDoctor({ params }) {
 
     const doctorId = fetchDoctor.rows[0].id;
     const fetchDepartments = await db.execute(`SELECT department FROM doctors WHERE admin_id = ?`, [adminId]);
-    const departments = [...new Set(fetchDepartments?.rows.map(dep => dep.department[0].toUpperCase() + dep.department.slice(1).toLowerCase()))];
+    const departments = [...new Set(fetchDepartments?.rows.map(dep => fromHyphenSlug(dep.department)))];
     const fetchTreatments = await db.execute(`SELECT public_id, name, duration FROM treatments WHERE admin_id = ?`, [adminId]);
 
     const fetchDetails = await db.execute(`
@@ -44,7 +45,7 @@ export default async function EditDoctor({ params }) {
 
     const formatTreatment = (t) => ({
         public_id: t.public_id,
-        string: t.name.split("_").map(w => w[0].toUpperCase() + w.slice(1)).join(" ") + " " + (t.duration > 9 ? t.duration + " min" : `0${t.duration} min`)
+        string: fromUnderscoreSlug(t.name) + " " + (t.duration > 9 ? t.duration + " min" : `0${t.duration} min`)
     });
 
     const assignedTreatments = fetchTreatments?.rows?.filter(t => treatmentPubIds.includes(t.public_id)).map(formatTreatment);

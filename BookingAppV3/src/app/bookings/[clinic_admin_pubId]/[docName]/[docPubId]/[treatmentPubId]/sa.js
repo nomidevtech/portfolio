@@ -115,5 +115,5 @@ export async function reserveSlot(_, formData) {
         return { ok: false, message: "An unexpected error occurred. Please try again." };
     }
 
-    redirect(`/appointment-registeration/${bookingPublicId}/${adminPubId}`);
+    redirect(`/appointment-registration/${bookingPublicId}/${adminPubId}`);
 }

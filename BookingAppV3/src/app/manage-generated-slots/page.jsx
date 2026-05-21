@@ -1,5 +1,6 @@
 import { getUserPlus } from "../lib/getUser";
 import { db } from "../lib/turso";
+import { fromHyphenSlug } from "@/app/utils/displaySlug";
 import { getDayName, getMonthName } from "../utils/getDateData";
 import { minutesToMeridiem } from "../utils/minutes-to-meridiem";
 import { ToggleSlotButton, EditSlotButton } from "./Client";
@@ -46,8 +47,8 @@ export default async function GeneratedSlots() {
             <div className="grid gap-5">
                 {doctors.map(doc => (
                     <section key={doc.public_id} className="section-panel">
-                        <h2 className="text-xl font-black text-slate-950">Dr. {doc.name[0].toUpperCase() + doc.name.slice(1)}</h2>
-                        <p className="mt-1 text-sm font-semibold text-slate-500">{doc.department} Department</p>
+                        <h2 className="text-xl font-black text-slate-950">Dr. {fromHyphenSlug(doc.name)}</h2>
+                        <p className="mt-1 text-sm font-semibold text-slate-500">{fromHyphenSlug(doc.department)} Department</p>
                         <details className="mt-5">
                             <summary>Slots</summary>
                             <div className="mt-4 grid gap-4">

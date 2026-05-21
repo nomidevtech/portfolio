@@ -1,4 +1,5 @@
 import { db } from "../lib/turso";
+import { fromUnderscoreSlug } from "@/app/utils/displaySlug";
 import { getUserPlus } from "../lib/getUser";
 import { redirect } from "next/navigation";
 import ClientAddTreatment from "./Client";
@@ -17,7 +18,7 @@ export default async function AddTreatment() {
 
     const fetchTreatmentsData = await db.execute(`SELECT * FROM treatments WHERE admin_id = ?`, [adminId]);
     const treatments = fetchTreatmentsData?.rows.map(treatment => ({
-        name: treatment.name?.split("_").map(w => w[0].toUpperCase() + w.slice(1)).join(" "),
+        name: fromUnderscoreSlug(treatment.name),
         duration: treatment.duration
     }));
 

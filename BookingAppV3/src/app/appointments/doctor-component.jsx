@@ -1,4 +1,5 @@
 import { db } from "../lib/turso";
+import { capitalizeLabel, fromHyphenSlug, fromUnderscoreSlug } from "../utils/displaySlug";
 import { getMonthName } from "../utils/getDateData";
 import { minutesToMeridiem } from "../utils/minutes-to-meridiem";
 import { DoctorRevokeBooking, DoctorRevokeBookings } from "./client";
@@ -46,10 +47,10 @@ export default async function DoctorComponent({ currentUser }) {
                                     <dl className="grid gap-2 text-sm md:grid-cols-2">
                                         <Info label="Date" value={`${booking.date_number > 9 ? booking.date_number : "0" + booking.date_number} ${getMonthName(booking.month_number)} ${booking.year}`} />
                                         <Info label="Timing" value={`${minutesToMeridiem(booking.treatment_start, true)} - ${minutesToMeridiem(booking.treatment_end, true)}`} />
-                                        <Info label="Patient" value={booking.patient_name || "N/A"} />
-                                        <Info label="Treatment" value={booking.treatment_name || "N/A"} />
+                                        <Info label="Patient" value={fromHyphenSlug(booking.patient_name, "N/A")} />
+                                        <Info label="Treatment" value={fromUnderscoreSlug(booking.treatment_name, "N/A")} />
                                         <Info label="Duration" value={`${booking.treatment_duration} minutes`} />
-                                        <Info label="Status" value={booking.status} />
+                                        <Info label="Status" value={capitalizeLabel(booking.status)} />
                                     </dl>
                                     <DoctorRevokeBooking doctorPubId={currentUser.doctor_details.public_id} bookingPubId={booking.public_id} />
                                 </div>

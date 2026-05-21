@@ -5,6 +5,7 @@ import { compare, hash } from "@/app/utils/bcrypt";
 import { redirect } from "next/navigation";
 import crypto from "crypto";
 import { sendEmail } from "@/app/lib/resend";
+import { fromHyphenSlug } from "@/app/utils/displaySlug";
 import Link from "next/link";
 import { isRedirectError } from "next/dist/client/components/redirect-error";
 
@@ -61,9 +62,7 @@ export default async function VerifyEmail({ params }) {
         if (updateResult.rowsAffected === 0) redirect(`/message/${bookingPubId}/${adminPubId}`);
 
         if (booking.patient_email) {
-            const name = booking.patient_name
-                ? booking.patient_name.split("-").map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(" ")
-                : "Valued Patient";
+            const name = fromHyphenSlug(booking.patient_name, "Valued Patient");
 
             await sendEmail({
                 to: booking.patient_email,

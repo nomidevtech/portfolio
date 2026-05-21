@@ -3,6 +3,7 @@
 
 import { db } from "@/app/lib/turso";
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
+import { fromHyphenSlug, fromUnderscoreSlug } from "@/app/utils/displaySlug";
 import { getMonthName } from "@/app/utils/getDateData";
 import { minutesToMeridiem } from "@/app/utils/minutes-to-meridiem";
 
@@ -49,20 +50,9 @@ export async function generateTicketPdf(bookingPubId, adminPubId) {
         true
     )} - ${minutesToMeridiem(booking.treatment_end, true)}`;
 
-    const patientName = booking.patient_name
-        ?.split("-")
-        .map((w) => w[0].toUpperCase() + w.slice(1))
-        .join(" ");
-
-    const doctorName = booking.doctor_name
-        ?.split("-")
-        .map((w) => w[0].toUpperCase() + w.slice(1))
-        .join(" ");
-
-    const treatmentName = booking.treatment_name
-        ?.split("_")
-        .map((w) => w[0].toUpperCase() + w.slice(1))
-        .join(" ");
+    const patientName = fromHyphenSlug(booking.patient_name);
+    const doctorName = fromHyphenSlug(booking.doctor_name);
+    const treatmentName = fromUnderscoreSlug(booking.treatment_name);
 
     // ---- PDF GENERATION ----
 

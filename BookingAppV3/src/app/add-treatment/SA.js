@@ -8,13 +8,21 @@ import { getUserPlus } from "../lib/getUser";
 export async function addTreatmentServerAction(_, formData) {
 
     const currentUser = await getUserPlus();
-    if (!currentUser || currentUser.role !== "admin" || !currentUser.admin_id) redirect("/login");
+    if (!currentUser || currentUser.role !== "admin" || !currentUser.admin_id) {
+        return { ok: false, message: "Unauthorized: Admin access required" };
+    }
     const adminId = currentUser.admin_id;
     try {
         const name = formData.get("name")?.toString().trim().toLowerCase().replace(/\s+/g, "_");
         const duration = Number(formData.get("duration")) || 0;
 
         if (!name || duration <= 0) return { ok: false, message: "Invalid name or duration" };
+
+        const existing = await db.execute(
+            `SELECT id FROM treatments WHERE admin_id = ? AND name = ?`,
+            [adminId, name]
+        );
+        if (existing.rows.length > 0) return { ok: false, message: "A treatment with this name already exists." };
 
         await db.execute(`INSERT INTO treatments (admin_id, name, duration, public_id) VALUES (?, ?, ?, ?)`, [adminId, name.toLowerCase(), duration, nanoid(12)]);
 

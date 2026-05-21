@@ -1,12 +1,12 @@
 import { db } from "@/app/lib/turso";
+import { fromHyphenSlug } from "@/app/utils/displaySlug";
 import { getDayName } from "@/app/utils/getDateData";
 import { minutesToMeridiem } from "@/app/utils/minutes-to-meridiem";
-import Form from "next/form";
 import Link from "next/link";
-import { updateWeeklyTemplateServerAction } from "./SA";
 import { getUserPlus } from "@/app/lib/getUser";
 import { redirect } from "next/navigation";
 import { DeleteTemplateButton } from "@/app/components/DeleteTemplateButton";
+import EditTemplateClient from "./Client";
 
 export const metadata = {
     title: "Edit Template",
@@ -40,7 +40,7 @@ export default async function EditDoctorTemplate({ params }) {
     const dummyHrs = Array.from({ length: 12 }, (_, i) => String(i + 1).padStart(2, '0'));
     const dummyMinutes = Array.from({ length: 60 }, (_, i) => String(i).padStart(2, '0'));
     const meridiem = ["AM", "PM"];
-    const doctorName = name?.includes("-") ? name.split("-").map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(" ") : name[0].toUpperCase() + name.slice(1);
+    const doctorName = fromHyphenSlug(name);
 
     return (
         <main className="page-shell">
@@ -51,19 +51,18 @@ export default async function EditDoctorTemplate({ params }) {
             </div>
 
             <div className="grid gap-6 lg:grid-cols-[1fr_22rem]">
-                <Form action={updateWeeklyTemplateServerAction} className="form-panel grid gap-5">
-                    <input type="hidden" name="doctorPublicId" value={docPubId} />
-                    <input type="hidden" name="templatePublicId" value={templatePubId} />
-                    <TimeGroup title="Clinic start" prefix="start" hrs={dummyHrs} minutes={dummyMinutes} meridiem={meridiem} value={minutesToMeridiem(template.start_time, false)} />
-                    <TimeGroup title="Clinic end" prefix="end" hrs={dummyHrs} minutes={dummyMinutes} meridiem={meridiem} value={minutesToMeridiem(template.end_time, false)} />
-                    <TimeGroup title="Break start" prefix="breakStart" hrs={dummyHrs} minutes={dummyMinutes} meridiem={meridiem} value={minutesToMeridiem(template.break_start, false)} />
-                    <TimeGroup title="Break end" prefix="breakEnd" hrs={dummyHrs} minutes={dummyMinutes} meridiem={meridiem} value={minutesToMeridiem(template.break_end, false)} />
-                    <label className="grid gap-1.5">
-                        <span className="field-label">Buffer minutes</span>
-                        <input type="number" name="buffer" defaultValue={template.buffer_minutes} />
-                    </label>
-                    <button type="submit" className="btn-primary w-full sm:w-auto">Update template</button>
-                </Form>
+                <EditTemplateClient
+                    docPubId={docPubId}
+                    templatePubId={templatePubId}
+                    dummyHrs={dummyHrs}
+                    dummyMinutes={dummyMinutes}
+                    meridiem={meridiem}
+                    startValue={minutesToMeridiem(template.start_time, false)}
+                    endValue={minutesToMeridiem(template.end_time, false)}
+                    breakStartValue={minutesToMeridiem(template.break_start, false)}
+                    breakEndValue={minutesToMeridiem(template.break_end, false)}
+                    buffer_minutes={template.buffer_minutes}
+                />
 
                 <aside className="section-panel h-fit">
                     <h2 className="text-lg font-black text-slate-950">Template actions</h2>
@@ -74,22 +73,5 @@ export default async function EditDoctorTemplate({ params }) {
                 </aside>
             </div>
         </main>
-    );
-}
-
-function TimeGroup({ title, prefix, hrs, minutes, meridiem, value }) {
-    const hourName = `${prefix}Hr`;
-    const minuteName = `${prefix}Min`;
-    const meridiemName = `${prefix}Meridiem`;
-
-    return (
-        <fieldset className="rounded-2xl border border-emerald-100 bg-emerald-50 p-4">
-            <legend className="px-1 text-sm font-bold text-slate-700">{title}</legend>
-            <div className="mt-3 grid grid-cols-3 gap-3">
-                <select name={hourName} defaultValue={value.hrs}>{hrs.map((hr) => <option value={hr} key={hr}>{hr}</option>)}</select>
-                <select name={minuteName} defaultValue={value.mins}>{minutes.map((min) => <option value={min} key={min}>{min}</option>)}</select>
-                <select name={meridiemName} defaultValue={value.meridiem}>{meridiem.map((mer) => <option value={mer} key={mer}>{mer}</option>)}</select>
-            </div>
-        </fieldset>
     );
 }

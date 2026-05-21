@@ -2,13 +2,14 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { capitalizeLabel, fromHyphenSlug } from "@/app/utils/displaySlug";
 import { logout } from "../lib/logout";
 import Form from "next/form";
 
 export default function SideNav({ user }) {
     const [open, setOpen] = useState(false);
-    const displayName = user?.name ? user.name.split("-").map(word => word[0].toUpperCase() + word.slice(1)).join(" ") : "";
-    const role = user?.role ? user.role[0].toUpperCase() + user.role.slice(1) : "";
+    const displayName = fromHyphenSlug(user?.name);
+    const role = capitalizeLabel(user?.role);
     const navItems = [
         { href: "/dashboard", label: "Dashboard" },
         { href: "/appointments", label: user?.role === "admin" ? "Appointments" : "My Appointments" },
@@ -40,8 +41,11 @@ export default function SideNav({ user }) {
                                 <p className="text-xs font-bold uppercase text-teal-700">ClinicFlow</p>
                                 <p className="text-lg font-bold text-slate-950">Workspace</p>
                             </div>
-                            <button className="btn-ghost px-3" aria-label="Close menu" onClick={() => setOpen(false)}>
-                                Close
+                            <button className="btn-ghost p-2" aria-label="Close menu" onClick={() => setOpen(false)}>
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <line x1="18" y1="6" x2="6" y2="18" />
+                                    <line x1="6" y1="6" x2="18" y2="18" />
+                                </svg>
                             </button>
                         </div>
 
@@ -76,8 +80,12 @@ export default function SideNav({ user }) {
                     </aside>
                 </div>
             )}
-            <button className="btn-ghost px-3" aria-label="Open menu" onClick={() => setOpen(true)}>
-                Menu
+            <button className="btn-ghost p-2" aria-label="Open menu" onClick={() => setOpen(true)}>
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="4" y1="6" x2="20" y2="6" />
+                    <line x1="4" y1="12" x2="20" y2="12" />
+                    <line x1="4" y1="18" x2="20" y2="18" />
+                </svg>
             </button>
         </>
     );

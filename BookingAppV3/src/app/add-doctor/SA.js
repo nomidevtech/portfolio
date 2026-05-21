@@ -21,9 +21,9 @@ export async function addDoctorServerAction(prevState, formData) {
         const treatmentPubId = formData.get("treatmentPubId")?.toString() || "";
         const rawQuals = formData.get("qualification")?.toString() || "";
 
-        if (name.length < 2 || name.length > 20) return { ok: false, message: "Name must be between 2 and 20 characters" };
+        if (name.length < 3 || name.length > 20) return { ok: false, message: "Name must be between 3 and 20 characters" };
         if (username.length < 3 || username.length > 20) return { ok: false, message: "Username must be between 3 and 20 characters" };
-        if (password.length < 8) return { ok: false, message: "Password must be at least 8 characters" };
+        if (password.length < 8 || password.length > 64) return { ok: false, message: "Password must be between 8 and 64 characters" };
         if (!department) return { ok: false, message: "Department is required" };
         if (!treatmentPubId) return { ok: false, message: "Please select a treatment" };
 

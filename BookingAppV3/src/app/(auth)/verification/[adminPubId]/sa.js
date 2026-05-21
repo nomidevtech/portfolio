@@ -2,11 +2,15 @@
 
 import { sendEmail } from "@/app/lib/resend";
 import { db } from "@/app/lib/turso";
+import { redisIpLimit } from "@/app/lib/redis";
 import { redirect } from "next/navigation";
 import crypto from "crypto";
 import { hash } from "@/app/utils/bcrypt";
 
 export async function changeAdminEmailSA(_, formData) {
+    const redisLimit = await redisIpLimit(5, "changeAdminEmail", 60 * 15);
+    if (!redisLimit.ok) return { ok: false, message: redisLimit.message };
+
     const adminPubId = formData.get("adminPubId");
     const email = formData.get("email");
 

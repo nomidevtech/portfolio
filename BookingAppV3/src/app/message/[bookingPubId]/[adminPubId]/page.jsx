@@ -1,5 +1,6 @@
 import { PatientEmailVerification } from "@/app/components/emailVerification";
 import { db } from "@/app/lib/turso";
+import { capitalizeLabel, fromHyphenSlug } from "@/app/utils/displaySlug";
 import { getMonthName } from "@/app/utils/getDateData";
 import { minutesToMeridiem } from "@/app/utils/minutes-to-meridiem";
 import DownloadTicketButton from "./client";
@@ -41,10 +42,10 @@ export default async function Message({ params }) {
                 <dl className="grid gap-3 text-sm sm:grid-cols-2">
                     <Info label="Date" value={`${booking.date_number > 9 ? booking.date_number : "0" + booking.date_number} ${getMonthName(booking.month_number)} ${booking.year}`} />
                     <Info label="Timing" value={`${minutesToMeridiem(booking.treatment_start, true)} - ${minutesToMeridiem(booking.treatment_end, true)}`} />
-                    <Info label="Patient" value={booking.patient_name?.split("-").map(word => word[0].toUpperCase() + word.slice(1)).join(" ")} />
+                    <Info label="Patient" value={fromHyphenSlug(booking.patient_name)} />
                     <Info label="Email" value={booking.patient_email} />
                     <Info label="Phone" value={booking.patient_phone} />
-                    <Info label="Status" value={booking.status} />
+                    <Info label="Status" value={capitalizeLabel(booking.status)} />
                 </dl>
             </section>
 
@@ -63,7 +64,7 @@ export default async function Message({ params }) {
                         </div>
                     </div>
                 )}
-                {booking.status === "verified" && <ResendCancelBookingEmail bookingPubId={bookingPubId} />}
+                {booking.status === "verified" && <ResendCancelBookingEmail bookingPubId={bookingPubId} adminPubId={adminPubId} />}
             </section>
         </main>
     );

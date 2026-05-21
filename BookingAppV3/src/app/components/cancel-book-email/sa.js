@@ -5,6 +5,7 @@ import { db } from "@/app/lib/turso";
 import { hash } from "@/app/utils/bcrypt";
 import { sendEmail } from "@/app/lib/resend";
 import { redisIpLimit } from "@/app/lib/redis";
+import { fromHyphenSlug } from "@/app/utils/displaySlug";
 
 export async function patientResendCancelationEmail(_, formData) {
     try {
@@ -14,9 +15,13 @@ export async function patientResendCancelationEmail(_, formData) {
 
 
         const bookingPubId = formData?.get("bookingPubId");
-        if (!bookingPubId) return { ok: false, message: "Missing required fields." };
+        const adminPubId = formData?.get("adminPubId");
+        if (!bookingPubId || !adminPubId) return { ok: false, message: "Missing required fields." };
 
-        const fetchBooking = await db.execute(`SELECT b.*, a.public_id as admin_public_id FROM bookings b JOIN admins a ON b.admin_id = a.id WHERE b.public_id = ?`, [bookingPubId]);
+        const fetchBooking = await db.execute(
+            `SELECT b.*, a.public_id as admin_public_id FROM bookings b JOIN admins a ON b.admin_id = a.id WHERE b.public_id = ? AND a.public_id = ?`,
+            [bookingPubId, adminPubId]
+        );
         if (fetchBooking.rows.length === 0) return { ok: false, message: "Booking not found." };
 
         const booking = fetchBooking.rows[0];
@@ -30,7 +35,7 @@ export async function patientResendCancelationEmail(_, formData) {
         await db.execute(`UPDATE bookings SET cancel_token_hash = ?, cancel_token_created_at = CURRENT_TIMESTAMP WHERE id = ?`, [hashed, booking.id]);
 
         const email = fetchBooking.rows[0].patient_email ? fetchBooking.rows[0].patient_email : null;
-        const name = fetchBooking.rows[0].patient_name ? fetchBooking.rows[0].patient_name.split("-").map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(" ") : "Valued Patient";
+        const name = fromHyphenSlug(fetchBooking.rows[0].patient_name, "Valued Patient");
 
         if (email) {
             const subject = `Cancel Your Appointment`;

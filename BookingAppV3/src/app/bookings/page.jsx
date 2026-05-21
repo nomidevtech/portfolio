@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { db } from "../lib/turso";
+import { fromHyphenSlug } from "@/app/utils/displaySlug";
 import { redisIpLimit } from "../lib/redis";
+import StatusPage from "../components/StatusPage";
 
 export const metadata = {
     title: "Book Appointment",
@@ -12,7 +14,7 @@ export default async function AllClinics() {
     if (!redisLimit.ok) return <main className="page-shell"><p className="status-error">{redisLimit.message}</p></main>
 
     const fetchAllClinics = await db.execute(`SELECT public_id, clinic_name, clinic_phone, clinic_address FROM admins WHERE status = 'verified'`);
-    if (fetchAllClinics.rows.length === 0) return <main className="page-shell"><p className="status-warning">No clinics found.</p></main>
+    if (fetchAllClinics.rows.length === 0) return <StatusPage type="warning" message="No clinics are available right now. Check back soon." backHref="/" backLabel="Go home" />;
 
     return (
         <main className="page-shell">
@@ -26,11 +28,11 @@ export default async function AllClinics() {
                 {fetchAllClinics.rows.map(fn => (
                     <section key={fn.public_id} className="data-card">
                         <h2 className="text-xl font-black text-slate-950">
-                            {fn.clinic_name.split("-").map(word => word[0].toUpperCase() + word.slice(1)).join(" ")}
+                            {fromHyphenSlug(fn.clinic_name)}
                         </h2>
                         <dl className="mt-4 grid gap-2 text-sm text-slate-600">
                             <div><dt className="inline font-bold text-slate-700">Phone: </dt><dd className="inline">{fn.clinic_phone}</dd></div>
-                            <div><dt className="inline font-bold text-slate-700">Address: </dt><dd className="inline">{fn.clinic_address?.split("-").map(word => word[0]?.toUpperCase() + word.slice(1)).join(" ")}</dd></div>
+                            <div><dt className="inline font-bold text-slate-700">Address: </dt><dd className="inline">{fromHyphenSlug(fn.clinic_address)}</dd></div>
                         </dl>
                         <Link href={`/bookings/${fn.public_id}`} className="btn-primary mt-5">View appointments</Link>
                     </section>

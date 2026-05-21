@@ -11,13 +11,13 @@ import { sendEmail } from "../lib/resend";
 export async function updateAdmin(_, formData) {
     const adminPubId = formData.get("adminPubId")?.trim();
     const name = formData.get("name")?.trim().replace(/\s/g, "-").toLowerCase();
-    const username = formData.get("username")?.trim();
+    const username = formData.get("username")?.toString().trim().replace(/\s+/g, "-");
     const email = formData.get("email")?.trim();
     const clinic_name = formData.get("clinic_name")?.trim().replace(/\s/g, "-").toLowerCase();
     const clinic_phone = formData.get("clinic_phone")?.trim();
     const clinic_address = formData.get("clinic_address")?.trim().replace(/\s/g, "-").toLowerCase();
-    const current_password = formData.get("current_password");
-    const new_password = formData.get("new_password");
+    const current_password = String(formData.get("current_password") ?? "").trim();
+    const new_password = String(formData.get("new_password") ?? "").trim();
 
     if (!adminPubId || !name || !username || !email || !clinic_name || !clinic_phone || !clinic_address)
         return { ok: false, message: "Missing fields" };
@@ -34,11 +34,11 @@ export async function updateAdmin(_, formData) {
     if (!/^\+?[0-9]{7,15}$/.test(clinic_phone))
         return { ok: false, message: "Phone number must contain only digits (7–15), with an optional leading +." };
 
-    if (username.length > 15 || username.length < 3)
-        return { ok: false, message: "Username should be 3-15 characters long." };
+    if (!username || username.length > 20 || username.length < 3)
+        return { ok: false, message: "Username must be between 3 and 20 characters." };
 
-    if (new_password && new_password.length < 8)
-        return { ok: false, message: "New password must be at least 8 characters." };
+    if (new_password && (new_password.length < 8 || new_password.length > 64))
+        return { ok: false, message: "New password must be between 8 and 64 characters." };
 
     const getCurrentUser = await getUserPlus();
     if (!getCurrentUser || getCurrentUser.role !== "admin") redirect("/login");
@@ -56,14 +56,26 @@ export async function updateAdmin(_, formData) {
     const adminIdInAdminTable = getCurrentUser.admin_id;
     const userIdInUsersTable = getCurrentUser.id;
     const emailChanged = getCurrentUser.admin_details.admin_email !== email;
+    if (emailChanged) {
+        const emailTaken = await db.execute(
+            "SELECT 1 FROM admins WHERE admin_email = ? AND id != ? LIMIT 1",
+            [email, adminIdInAdminTable]
+        );
+        if (emailTaken.rows.length > 0) return { ok: false, message: "This email is already in use by another account." };
+    }
 
     const cookieStore = await cookies();
     const currentSessionToken = cookieStore.get("token")?.value;
 
     let new_passwordHash = null;
     if (current_password && new_password) {
-        const passwordMatch = await compare(current_password, getCurrentUser.admin_details.password);
-        if (!passwordMatch) return { ok: false, message: "Password mismatch" };
+        const fetchPasswordHash = await db.execute(
+            "SELECT password FROM admins WHERE id = ?",
+            [adminIdInAdminTable]
+        );
+        if (fetchPasswordHash.rows.length === 0) return { ok: false, message: "Update failed" };
+        const passwordMatch = await compare(current_password, fetchPasswordHash.rows[0].password);
+        if (!passwordMatch) return { ok: false, message: "Current password is incorrect." };
         new_passwordHash = await hash(new_password, 12);
     }
 
@@ -117,7 +129,10 @@ export async function updateAdmin(_, formData) {
 
     if (emailChanged) {
         const html = `<p>Click to activate your new email.</p><a href="${process.env.NEXT_PUBLIC_APP_URL}/activation/${email_token}/${adminPubId}">Activate Account</a>`;
-        await sendEmail({ to: email, subject: "Account Activation", html });
+        const emailRes = await sendEmail({ to: email, subject: "Account Activation", html });
+        if (emailRes.success === false) {
+            return { ok: false, message: "Account updated but activation email failed to send. Please use the resend option on the verification page." };
+        }
         redirect(`/verification/${adminPubId}`);
     }
 
@@ -132,9 +147,9 @@ export async function updateAdmin(_, formData) {
 export async function updateDoctor(_, formData) {
     const docPublicId = formData.get("docPublicId")?.trim();
     const name = formData.get("name")?.trim().replace(/\s/g, "-").toLowerCase();
-    const username = formData.get("username")?.trim();
-    const current_password = formData.get("current_password");
-    const new_password = formData.get("new_password");
+    const username = formData.get("username")?.toString().trim().replace(/\s+/g, "-");
+    const current_password = String(formData.get("current_password") ?? "").trim();
+    const new_password = String(formData.get("new_password") ?? "").trim();
     const qualificationsRaw = formData.get("qualifications")
         ?.split(",").map((q) => q.trim().toUpperCase()).filter(Boolean).slice(0, 10) || [];
     const qualificationsJson = JSON.stringify(qualificationsRaw);
@@ -147,14 +162,14 @@ export async function updateDoctor(_, formData) {
     if ((!name.match(/^[a-zA-Z-]+$/)) || name.length > 20 || name.length < 3)
         return { ok: false, message: "Name should only contain letters and spaces and should be 3-20 characters long." };
 
-    if (username.length > 15 || username.length < 3)
-        return { ok: false, message: "Username should be 3-15 characters long." };
+    if (!username || username.length > 20 || username.length < 3)
+        return { ok: false, message: "Username must be between 3 and 20 characters." };
 
     if ((current_password && !new_password) || (!current_password && new_password))
         return { ok: false, message: "Both current and new passwords are required to change your password." };
 
-    if (new_password && new_password.length < 8)
-        return { ok: false, message: "New password must be at least 8 characters." };
+    if (new_password && (new_password.length < 8 || new_password.length > 64))
+        return { ok: false, message: "New password must be between 8 and 64 characters." };
 
     if (username !== getCurrentUser.username) {
         const checkUsernameAvailability = await Promise.all([
@@ -176,8 +191,13 @@ export async function updateDoctor(_, formData) {
     try {
         let new_passwordHash = null;
         if (current_password && new_password) {
-            const passwordMatch = await compare(current_password, getCurrentUser.doctor_details.password);
-            if (!passwordMatch) return { ok: false, message: "Password mismatch" };
+            const fetchPasswordHash = await db.execute(
+                "SELECT password FROM doctors WHERE id = ?",
+                [doctorIdInTable]
+            );
+            if (fetchPasswordHash.rows.length === 0) return { ok: false, message: "Update failed" };
+            const passwordMatch = await compare(current_password, fetchPasswordHash.rows[0].password);
+            if (!passwordMatch) return { ok: false, message: "Current password is incorrect." };
             new_passwordHash = await hash(new_password, 12);
         }
 

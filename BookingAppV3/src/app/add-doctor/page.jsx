@@ -1,4 +1,5 @@
 import { db } from "../lib/turso";
+import { fromHyphenSlug, fromUnderscoreSlug } from "@/app/utils/displaySlug";
 import Link from "next/link";
 import { getUserPlus } from "../lib/getUser";
 import { redirect } from "next/navigation";
@@ -25,13 +26,11 @@ export default async function AddDoctor() {
         db.execute(`SELECT public_id, name, duration FROM treatments WHERE admin_id = ?`, [adminId])
     ]);
 
-    const departments = deptRes.rows.map(d =>
-        d.department.charAt(0).toUpperCase() + d.department.slice(1)
-    );
+    const departments = deptRes.rows.map(d => fromHyphenSlug(d.department));
 
     const treatments = treatRes.rows.map(t => ({
         treatmentPubId: t.public_id,
-        string: `${t.name.split("_").map(w => w[0].toUpperCase() + w.slice(1)).join(" ")} ${t.duration.toString().padStart(2, '0')} min`,
+        string: `${fromUnderscoreSlug(t.name)} ${t.duration.toString().padStart(2, '0')} min`,
     }));
 
     return (
@@ -57,10 +56,10 @@ async function CurrentDoctors({ adminId }) {
                 {docRes.rows.map((doctor) => (
                     <div key={doctor.public_id} className="data-card">
                         <p className="font-semibold text-slate-900">
-                            Dr. {doctor.name.split("-").map(w => w[0].toUpperCase() + w.slice(1)).join(" ")}
+                            Dr. {fromHyphenSlug(doctor.name)}
                         </p>
                         <p className="mt-1 text-sm text-slate-600">
-                            {JSON.parse(doctor.qualifications || "[]").join(", ").toUpperCase() || "No qualifications"} - {doctor.department[0].toUpperCase() + doctor.department.slice(1)}
+                            {JSON.parse(doctor.qualifications || "[]").join(", ").toUpperCase() || "No qualifications"} - {fromHyphenSlug(doctor.department)}
                         </p>
                         <Link href={`/edit-doctor/${doctor.public_id}`} className="mt-3 inline-flex font-semibold text-teal-800 hover:underline">
                             Edit doctor

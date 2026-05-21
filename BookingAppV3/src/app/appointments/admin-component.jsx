@@ -1,4 +1,5 @@
 import { db } from "../lib/turso";
+import { capitalizeLabel, fromHyphenSlug, fromUnderscoreSlug } from "../utils/displaySlug";
 import { getMonthName } from "../utils/getDateData";
 import { minutesToMeridiem } from "../utils/minutes-to-meridiem";
 import { AdminRevokeBooking, AdminRevokeBookings } from "./client";
@@ -42,14 +43,17 @@ export default async function AdminComponent({ currentUser }) {
               <div className="mt-4 grid gap-4">
                 {groupedBooking[dateIso].map(booking => (
                   <div key={booking.public_id} className="data-card">
-                    <dl className="grid gap-2 text-sm md:grid-cols-2">
+                    <span className={`soft-pill capitalize ${booking.status === 'verified' ? 'bg-emerald-100 text-teal-800' : 'bg-amber-100 text-amber-800'}`}>
+                      {booking.status}
+                    </span>
+                    <dl className="mt-3 grid gap-2 text-sm md:grid-cols-2">
                       <Info label="Date" value={`${booking.date_number > 9 ? booking.date_number : "0" + booking.date_number} ${getMonthName(booking.month_number)} ${booking.year}`} />
                       <Info label="Timing" value={`${minutesToMeridiem(booking.treatment_start, true)} - ${minutesToMeridiem(booking.treatment_end, true)}`} />
-                      <Info label="Doctor" value={booking.doctor_name ? booking.doctor_name.split("-").map(word => word[0].toUpperCase() + word.slice(1)).join(" ") : "N/A"} />
-                      <Info label="Treatment" value={booking.treatment_name ? booking.treatment_name.split("_").map(word => word[0].toUpperCase() + word.slice(1)).join(" ") : "N/A"} />
+                      <Info label="Doctor" value={fromHyphenSlug(booking.doctor_name, "N/A")} />
+                      <Info label="Treatment" value={fromUnderscoreSlug(booking.treatment_name, "N/A")} />
                       <Info label="Duration" value={`${booking.treatment_duration} minutes`} />
-                      <Info label="Status" value={booking.status[0].toUpperCase() + booking.status.slice(1)} />
-                      <Info label="Patient" value={booking?.patient_name ? booking.patient_name.split("-").map(word => word[0].toUpperCase() + word.slice(1)).join(" ") : "N/A"} />
+                      <Info label="Status" value={capitalizeLabel(booking.status)} />
+                      <Info label="Patient" value={fromHyphenSlug(booking.patient_name, "N/A")} />
                       <Info label="Phone" value={booking?.patient_phone || "N/A"} />
                       <Info label="Email" value={booking?.patient_email || "N/A"} />
                     </dl>

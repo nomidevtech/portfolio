@@ -129,6 +129,26 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      <section className="border-t border-emerald-100 bg-white">
+        <div className="mx-auto max-w-6xl px-4 py-16 text-center sm:px-6 lg:px-8">
+          <p className="soft-pill mx-auto">Ready to start?</p>
+          <h2 className="mt-4 text-3xl font-black text-slate-950 sm:text-4xl">
+            Book your first appointment today.
+          </h2>
+          <p className="mt-4 text-slate-600 max-w-xl mx-auto">
+            No account needed for patients. Find a verified clinic, pick a slot, and confirm by email.
+          </p>
+          <div className="mt-8 flex flex-wrap justify-center gap-3">
+            <Link href="/bookings" className="btn-primary px-6 py-3">
+              Browse clinics
+            </Link>
+            <Link href="/signup" className="btn-secondary px-6 py-3">
+              Register your clinic
+            </Link>
+          </div>
+        </div>
+      </section>
     </main>
   );
 }

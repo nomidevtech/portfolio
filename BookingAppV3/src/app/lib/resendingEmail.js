@@ -18,10 +18,9 @@ export async function resendingAdminEmail(_, formData) {
     if (fetchAdmin.rows.length === 0) return { ok: false, message: "Invalid admin." };
     const adminId = fetchAdmin.rows[0].id;
 
-    const new_email_token = crypto.randomBytes(32).toString("hex");
-    const hashed = await hash(new_email_token);
-
     try {
+        const new_email_token = crypto.randomBytes(32).toString("hex");
+        const hashed = await hash(new_email_token);
 
         await db.execute(`UPDATE admins SET email_token_hash = ?, email_token_created_at = CURRENT_TIMESTAMP WHERE id = ? `, [hashed, adminId]);
 
