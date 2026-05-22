@@ -19,7 +19,9 @@ export default async function AddTreatment() {
     const fetchTreatmentsData = await db.execute(`SELECT * FROM treatments WHERE admin_id = ?`, [adminId]);
     const treatments = fetchTreatmentsData?.rows.map(treatment => ({
         name: fromUnderscoreSlug(treatment.name),
-        duration: treatment.duration
+        rawName: treatment.name,
+        duration: treatment.duration,
+        publicId: treatment.public_id
     }));
 
     return <ClientAddTreatment treatments={treatments} />;

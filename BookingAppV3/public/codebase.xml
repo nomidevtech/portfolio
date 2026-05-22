@@ -140,6 +140,7 @@ lib/deleteWeeklyTemplate.js
 lib/generateTicketPdf.js
 lib/getUser.js
 lib/logout.js
+lib/mockData.js
 lib/redis.js
 lib/resend.js
 lib/resendingEmail.js
@@ -342,6 +343,7 @@ export async function loginSA(_, formData) {
 <file path="(auth)/login/page.jsx">
 import Client from "./Client";
 import { getUser } from "@/app/lib/getUser";
+import { mockDataInsersion } from "@/app/lib/mockData";
 import { redirect } from "next/navigation";
 export const metadata = {
     title: "Login",
@@ -1064,8 +1066,88 @@ export async function addDoctorServerAction(prevState, formData) {
 <file path="add-treatment/Client.jsx">
 "use client";
 import Form from "next/form";
-import { useActionState } from "react";
-import { addTreatmentServerAction } from "./SA";
+import { useActionState, useTransition, useState } from "react";
+import { addTreatmentServerAction, deleteTreatmentSA, editTreatmentSA } from "./SA";
+function TreatmentCard({ treatment }) {
+    const [showConfirm, setShowConfirm] = useState(false);
+    const [deleteError, setDeleteError] = useState("");
+    const [isPendingDelete, startDelete] = useTransition();
+    // edit state
+    const [isEditing, setIsEditing] = useState(false);
+    const [editState, editAction, isPendingEdit] = useActionState(editTreatmentSA, { ok: null, message: "" });
+    const handleDelete = () => {
+        startDelete(async () => {
+            const fd = new FormData();
+            fd.append("publicId", treatment.publicId);
+            const result = await deleteTreatmentSA(fd);
+            if (result?.ok === false) {
+                setDeleteError(result.message);
+                setShowConfirm(false);
+            }
+        });
+    };
+    if (isEditing) {
+        return (
+            <Form action={editAction} className="rounded-2xl border border-emerald-100 bg-emerald-50 p-4 grid gap-3">
+                <input type="hidden" name="publicId" value={treatment.publicId} />
+                <div className="grid gap-1.5">
+                    <span className="field-label">Treatment name</span>
+                    <input type="text" name="name" defaultValue={treatment.name} required />
+                </div>
+                <div className="grid gap-1.5">
+                    <span className="field-label">Duration (min)</span>
+                    <input type="number" name="duration" defaultValue={treatment.duration} required />
+                </div>
+                {editState.message && (
+                    <p className={editState.ok ? "status-success" : "status-error"}>{editState.message}</p>
+                )}
+                <div className="flex gap-2">
+                    <button type="submit" className="btn-primary" disabled={isPendingEdit}>
+                        {isPendingEdit ? "Saving..." : "Save"}
+                    </button>
+                    <button type="button" className="btn-secondary" onClick={() => setIsEditing(false)} disabled={isPendingEdit}>
+                        Cancel
+                    </button>
+                </div>
+            </Form>
+        );
+    }
+    if (showConfirm) {
+        return (
+            <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4">
+                <p className="text-sm font-semibold text-rose-800">
+                    Deleting <strong>{treatment.name}</strong> removes it from all doctor assignments. Existing bookings won't be deleted but will lose the treatment label.
+                </p>
+                <p className="mt-2 text-sm text-rose-800">Are you sure?</p>
+                <div className="mt-4 flex flex-wrap gap-2">
+                    <button className="btn-danger" disabled={isPendingDelete} onClick={handleDelete}>
+                        {isPendingDelete ? "Deleting..." : "Yes, delete treatment"}
+                    </button>
+                    <button className="btn-secondary" onClick={() => setShowConfirm(false)} disabled={isPendingDelete}>
+                        Cancel
+                    </button>
+                </div>
+            </div>
+        );
+    }
+    return (
+        <div className="flex items-center justify-between gap-4 rounded-2xl border border-emerald-100 bg-emerald-50 p-4">
+            <div>
+                <p className="font-semibold text-slate-900">{treatment.name}</p>
+                {deleteError && <p className="mt-1 text-xs text-rose-700">{deleteError}</p>}
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+                <span className="soft-pill">{Math.round(treatment.duration)} min</span>
+                <button className="btn-ghost text-xs px-3" onClick={() => { setDeleteError(""); setIsEditing(true); }}>
+                    Edit
+                </button>
+                <button className="btn-danger text-xs px-3" onClick={() => { setDeleteError(""); setShowConfirm(true); }}>
+                    Delete
+                </button>
+            </div>
+        </div>
+    );
+}
 export default function ClientAddTreatment({ treatments }) {
     const initialState = { ok: null, message: "" };
     const [state, formAction, isPending] = useActionState(addTreatmentServerAction, initialState);
@@ -1094,12 +1176,10 @@ export default function ClientAddTreatment({ treatments }) {
                 <section className="section-panel">
                     <h2 className="text-xl font-black text-slate-950">Current treatments</h2>
                     <div className="mt-5 grid gap-3">
-                        {treatments?.length > 0 ? treatments.map((treatment, idx) => (
-                            <div key={idx} className="flex items-center justify-between gap-4 rounded-2xl border border-emerald-100 bg-emerald-50 p-4">
-                                <p className="font-semibold text-slate-900">{treatment.name}</p>
-                                <span className="soft-pill">{Math.round(treatment.duration)} min</span>
-                            </div>
-                        )) : <p className="text-sm text-slate-600">No treatments added yet.</p>}
+                        {treatments?.length > 0
+                            ? treatments.map((t) => <TreatmentCard key={t.publicId} treatment={t} />)
+                            : <p className="text-sm text-slate-600">No treatments added yet.</p>
+                        }
                     </div>
                 </section>
             </div>
@@ -1133,7 +1213,9 @@ export default async function AddTreatment() {
     const fetchTreatmentsData = await db.execute(`SELECT * FROM treatments WHERE admin_id = ?`, [adminId]);
     const treatments = fetchTreatmentsData?.rows.map(treatment => ({
         name: fromUnderscoreSlug(treatment.name),
-        duration: treatment.duration
+        rawName: treatment.name,
+        duration: treatment.duration,
+        publicId: treatment.public_id
     }));
     return <ClientAddTreatment treatments={treatments} />;
 }
@@ -1161,6 +1243,66 @@ export async function addTreatmentServerAction(_, formData) {
         );
         if (existing.rows.length > 0) return { ok: false, message: "A treatment with this name already exists." };
         await db.execute(`INSERT INTO treatments (admin_id, name, duration, public_id) VALUES (?, ?, ?, ?)`, [adminId, name.toLowerCase(), duration, nanoid(12)]);
+    } catch (error) {
+        console.error(error);
+        return { ok: false, message: "Something went wrong" };
+    }
+    redirect("/add-treatment");
+}
+export async function deleteTreatmentSA(formData) {
+    const currentUser = await getUserPlus();
+    if (!currentUser || currentUser.role !== "admin" || !currentUser.admin_id)
+        return { ok: false, message: "Unauthorized" };
+    const adminId = currentUser.admin_id;
+    const publicId = formData.get("publicId")?.toString();
+    if (!publicId) return { ok: false, message: "Missing treatment ID" };
+    try {
+        const t = await db.execute(
+            `SELECT id FROM treatments WHERE public_id = ? AND admin_id = ?`,
+            [publicId, adminId]
+        );
+        if (t.rows.length === 0) return { ok: false, message: "Treatment not found" };
+        const treatmentId = t.rows[0].id;
+        const today = new Date().toISOString().split("T")[0];
+        const future = await db.execute(
+            `SELECT COUNT(*) as count FROM bookings
+             WHERE treatment_id = ? AND booking_date_iso >= ? AND status IN ('pending','verified','unverified')`,
+            [treatmentId, today]
+        );
+        const count = future.rows[0].count;
+        if (count > 0)
+            return { ok: false, message: `Cannot delete: ${count} upcoming booking${count > 1 ? "s" : ""} use this treatment. Cancel them first.` };
+        await db.execute(
+            `DELETE FROM treatments WHERE public_id = ? AND admin_id = ?`,
+            [publicId, adminId]
+        );
+    } catch (error) {
+        console.error(error);
+        return { ok: false, message: "Something went wrong" };
+    }
+    redirect("/add-treatment");
+}
+export async function editTreatmentSA(_, formData) {
+    const currentUser = await getUserPlus();
+    if (!currentUser || currentUser.role !== "admin" || !currentUser.admin_id)
+        return { ok: false, message: "Unauthorized" };
+    const adminId = currentUser.admin_id;
+    const publicId = formData.get("publicId")?.toString();
+    const name = formData.get("name")?.toString().trim().toLowerCase().replace(/\s+/g, "_");
+    const duration = Number(formData.get("duration")) || 0;
+    if (!publicId || !name || duration <= 0)
+        return { ok: false, message: "Invalid name or duration" };
+    try {
+        const collision = await db.execute(
+            `SELECT id FROM treatments WHERE admin_id = ? AND name = ? AND public_id != ?`,
+            [adminId, name, publicId]
+        );
+        if (collision.rows.length > 0)
+            return { ok: false, message: "A treatment with this name already exists." };
+        await db.execute(
+            `UPDATE treatments SET name = ?, duration = ? WHERE public_id = ? AND admin_id = ?`,
+            [name, duration, publicId, adminId]
+        );
     } catch (error) {
         console.error(error);
         return { ok: false, message: "Something went wrong" };
@@ -3207,77 +3349,162 @@ export const metadata = {
 export default async function DoctorCreateTemplate({ params }) {
     const currentUser = await getUserPlus();
     if (!currentUser) return redirect("/login");
-    if (!currentUser || currentUser.role !== "admin" || !currentUser.admin_id || currentUser.status !== "verified") redirect(`/verification/${currentUser?.admin_details?.public_id}`);
+    if (
+        !currentUser ||
+        currentUser.role !== "admin" ||
+        !currentUser.admin_id ||
+        currentUser.status !== "verified"
+    ) {
+        redirect(`/verification/${currentUser?.admin_details?.public_id}`);
+    }
     const adminId = currentUser.admin_id;
     const { docPubId } = await params;
-    const fetchDoctor = await db.execute(`SELECT * FROM doctors WHERE public_id = ? AND admin_id = ?`, [docPubId, adminId]);
-    if (fetchDoctor.rows.length === 0) return <main className="page-shell"><p className="status-error">Broken link. Doctor not found.</p></main>
+    const fetchDoctor = await db.execute(
+        `SELECT * FROM doctors WHERE public_id = ? AND admin_id = ?`,
+        [docPubId, adminId]
+    );
+    if (fetchDoctor.rows.length === 0) {
+        return (
+            <main className="page-shell">
+                <p className="status-error">Broken link. Doctor not found.</p>
+            </main>
+        );
+    }
     const { name, id } = fetchDoctor.rows[0];
     const doctorName = fromHyphenSlug(name);
-    const fetchExisTemplates = await db.execute(`SELECT * FROM weekly_templates WHERE doctor_id = ? AND admin_id = ?`, [id, adminId]);
+    const fetchExisTemplates = await db.execute(
+        `SELECT * FROM weekly_templates WHERE doctor_id = ? AND admin_id = ?`,
+        [id, adminId]
+    );
     let currentTemplates = fetchExisTemplates.rows.length > 0 ? fetchExisTemplates.rows : [];
     currentTemplates = currentTemplates?.sort((a, b) => a.day_number - b.day_number);
     const existDays = fetchExisTemplates.rows.map(fn => getDayName(fn.day_number));
     const allDays = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
     const nonTemplateDays = allDays.filter(day => !existDays.includes(day));
     const days = nonTemplateDays.length === 0 ? allDays : nonTemplateDays;
-    const dummyHrs = Array.from({ length: 12 }, (_, i) => String(i + 1).padStart(2, '0'));
-    const dummyMinutes = Array.from({ length: 60 }, (_, i) => String(i).padStart(2, '0'));
+    const dummyHrs = Array.from({ length: 12 }, (_, i) => String(i + 1).padStart(2, "0"));
+    const dummyMinutes = Array.from({ length: 60 }, (_, i) => String(i).padStart(2, "0"));
     const meridiem = ["AM", "PM"];
     return (
         <main className="page-shell">
             <div className="mb-8">
                 <p className="soft-pill">Schedule templates</p>
-                <h1 className="mt-4 text-3xl font-black text-slate-950">Create template for Dr. {doctorName}</h1>
+                <h1 className="mt-4 text-3xl font-black text-slate-950">
+                    Create template for Dr. {doctorName}
+                </h1>
                 <p className="mt-2 text-slate-600">
                     Department: {fromHyphenSlug(fetchDoctor.rows[0].department)}
                 </p>
             </div>
-            <div className="grid gap-6 lg:grid-cols-[0.95fr_1.05fr]">
+            <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(24rem,0.95fr)]">
                 <section className="section-panel">
                     <h2 className="text-xl font-black text-slate-950">Current templates</h2>
                     <div className="mt-5 grid gap-3">
-                        {currentTemplates.length > 0 ? currentTemplates.map(temp => (
-                            <div key={temp.public_id} className="data-card">
-                                <div className="flex flex-wrap items-start justify-between gap-3">
-                                    <div>
-                                        <p className="text-lg font-bold text-slate-950">{getDayName(temp.day_number)}</p>
-                                        <p className="mt-1 text-sm text-slate-600">Clinic: {minutesToMeridiem(temp.start_time, true)} - {minutesToMeridiem(temp.end_time, true)}</p>
-                                        <p className="text-sm text-slate-600">Break: {minutesToMeridiem(temp.break_start, true)} - {minutesToMeridiem(temp.break_end, true)}</p>
-                                        <p className="text-sm text-slate-600">Buffer: {temp.buffer_minutes} minutes</p>
+                        {currentTemplates.length > 0 ? (
+                            currentTemplates.map(temp => (
+                                <div key={temp.public_id} className="data-card">
+                                    <div className="flex flex-wrap items-start justify-between gap-3">
+                                        <div>
+                                            <p className="text-lg font-bold text-slate-950">
+                                                {getDayName(temp.day_number)}
+                                            </p>
+                                            <p className="mt-1 text-sm text-slate-600">
+                                                Clinic: {minutesToMeridiem(temp.start_time, true)} - {minutesToMeridiem(temp.end_time, true)}
+                                            </p>
+                                            <p className="text-sm text-slate-600">
+                                                Break: {minutesToMeridiem(temp.break_start, true)} - {minutesToMeridiem(temp.break_end, true)}
+                                            </p>
+                                            <p className="text-sm text-slate-600">
+                                                Buffer: {temp.buffer_minutes} minutes
+                                            </p>
+                                        </div>
+                                        <Link
+                                            href={`/edit-template/${docPubId}/${temp.public_id}`}
+                                            className="btn-secondary"
+                                        >
+                                            Edit
+                                        </Link>
                                     </div>
-                                    <Link href={`/edit-template/${docPubId}/${temp.public_id}`} className="btn-secondary">Edit</Link>
+                                    <div className="mt-4">
+                                        <DeleteTemplateButton
+                                            templatePubId={temp.public_id}
+                                            docPubId={docPubId}
+                                            dayName={getDayName(temp.day_number)}
+                                        />
+                                    </div>
                                 </div>
-                                <div className="mt-4">
-                                    <DeleteTemplateButton templatePubId={temp.public_id} docPubId={docPubId} dayName={getDayName(temp.day_number)} />
-                                </div>
-                            </div>
-                        )) : <p className="text-sm text-slate-600">No weekly templates yet.</p>}
+                            ))
+                        ) : (
+                            <p className="text-sm text-slate-600">No weekly templates yet.</p>
+                        )}
                     </div>
                 </section>
                 <Form action={createTemplateServerAction} className="form-panel grid gap-5">
                     <h2 className="text-xl font-black text-slate-950">New weekly template</h2>
                     <input type="hidden" name="doctorPublicId" value={docPubId} />
-                    <Field label="Day">
-                        <select name="day">
-                            {days.map((day) => <option value={day} key={day}>{day}</option>)}
-                        </select>
-                    </Field>
-                    <Field label="Buffer in minutes">
-                        <input type="number" name="buffer" defaultValue={10} />
-                    </Field>
-                    <TimeGroup title="Clinic start" prefix="start" hrs={dummyHrs} minutes={dummyMinutes} meridiem={meridiem} defaults={["09", "00", "AM"]} />
-                    <TimeGroup title="Clinic end" prefix="end" hrs={dummyHrs} minutes={dummyMinutes} meridiem={meridiem} defaults={["05", "00", "PM"]} />
-                    <TimeGroup title="Break start" prefix="breakStart" hrs={dummyHrs} minutes={dummyMinutes} meridiem={meridiem} defaults={["12", "00", "PM"]} />
-                    <TimeGroup title="Break end" prefix="breakEnd" hrs={dummyHrs} minutes={dummyMinutes} meridiem={meridiem} defaults={["01", "00", "PM"]} />
-                    <button type="submit" className="btn-primary w-full sm:w-auto">Create template</button>
+                    <div className="grid gap-4 sm:grid-cols-2">
+                        <Field label="Day">
+                            <select name="day">
+                                {days.map(day => (
+                                    <option value={day} key={day}>
+                                        {day}
+                                    </option>
+                                ))}
+                            </select>
+                        </Field>
+                        <Field label="Buffer in minutes">
+                            <input type="number" name="buffer" defaultValue={10} />
+                        </Field>
+                    </div>
+                    <div className="grid gap-4">
+                        <TimeGroup
+                            title="Clinic start"
+                            prefix="start"
+                            hrs={dummyHrs}
+                            minutes={dummyMinutes}
+                            meridiem={meridiem}
+                            defaults={["09", "00", "AM"]}
+                        />
+                        <TimeGroup
+                            title="Clinic end"
+                            prefix="end"
+                            hrs={dummyHrs}
+                            minutes={dummyMinutes}
+                            meridiem={meridiem}
+                            defaults={["05", "00", "PM"]}
+                        />
+                        <TimeGroup
+                            title="Break start"
+                            prefix="breakStart"
+                            hrs={dummyHrs}
+                            minutes={dummyMinutes}
+                            meridiem={meridiem}
+                            defaults={["12", "00", "PM"]}
+                        />
+                        <TimeGroup
+                            title="Break end"
+                            prefix="breakEnd"
+                            hrs={dummyHrs}
+                            minutes={dummyMinutes}
+                            meridiem={meridiem}
+                            defaults={["01", "00", "PM"]}
+                        />
+                    </div>
+                    <button type="submit" className="btn-primary w-full sm:w-auto">
+                        Create template
+                    </button>
                 </Form>
             </div>
         </main>
     );
 }
 function Field({ label, children }) {
-    return <label className="grid gap-1.5"><span className="field-label">{label}</span>{children}</label>;
+    return (
+        <label className="grid gap-1.5">
+            <span className="field-label">{label}</span>
+            {children}
+        </label>
+    );
 }
 function TimeGroup({ title, prefix, hrs, minutes, meridiem, defaults }) {
     const hourName = `${prefix}Hr`;
@@ -3285,11 +3512,38 @@ function TimeGroup({ title, prefix, hrs, minutes, meridiem, defaults }) {
     const meridiemName = `${prefix}Meridiem`;
     return (
         <fieldset className="rounded-2xl border border-emerald-100 bg-emerald-50 p-4">
-            <legend className="px-1 text-sm font-bold text-slate-700">{title}</legend>
-            <div className="mt-3 grid grid-cols-3 gap-3">
-                <select name={hourName} defaultValue={defaults[0]}>{hrs.map((hr) => <option value={hr} key={hr}>{hr}</option>)}</select>
-                <select name={minuteName} defaultValue={defaults[1]}>{minutes.map((min) => <option value={min} key={min}>{min}</option>)}</select>
-                <select name={meridiemName} defaultValue={defaults[2]}>{meridiem.map((mer) => <option value={mer} key={mer}>{mer}</option>)}</select>
+            <p className="text-sm font-black text-slate-800">{title}</p>
+            <div className="mt-3 grid gap-3 sm:grid-cols-3">
+                <label className="grid gap-1.5">
+                    <span className="field-label">Hour</span>
+                    <select name={hourName} defaultValue={defaults[0]}>
+                        {hrs.map(hr => (
+                            <option value={hr} key={hr}>
+                                {hr}
+                            </option>
+                        ))}
+                    </select>
+                </label>
+                <label className="grid gap-1.5">
+                    <span className="field-label">Minute</span>
+                    <select name={minuteName} defaultValue={defaults[1]}>
+                        {minutes.map(min => (
+                            <option value={min} key={min}>
+                                {min}
+                            </option>
+                        ))}
+                    </select>
+                </label>
+                <label className="grid gap-1.5">
+                    <span className="field-label">AM / PM</span>
+                    <select name={meridiemName} defaultValue={defaults[2]}>
+                        {meridiem.map(mer => (
+                            <option value={mer} key={mer}>
+                                {mer}
+                            </option>
+                        ))}
+                    </select>
+                </label>
             </div>
         </fieldset>
     );
@@ -3544,7 +3798,12 @@ export async function getDashboardStats() {
 import { useActionState, useState } from "react";
 import Form from "next/form";
 import { fromHyphenSlug } from "@/app/utils/displaySlug";
-import { addDoctorTreatment, deleteDoctor, editDoctorServerAction, removeDoctorTreatment } from "./sa";
+import {
+    addDoctorTreatment,
+    deleteDoctor,
+    editDoctorServerAction,
+    removeDoctorTreatment
+} from "./sa";
 export default function ClientEditDoctor({
     docPubId,
     doctorData,
@@ -3567,61 +3826,91 @@ export default function ClientEditDoctor({
                 <h1 className="mt-4 text-3xl font-black text-slate-950">Edit Dr. {doctorName}</h1>
                 <p className="mt-2 text-slate-600">Update profile details and treatment assignments.</p>
             </div>
-            <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
-                <section className="form-panel grid gap-5">
-                    {editState?.message && <p className={editState.ok ? "status-success" : "status-error"}>{editState.message}</p>}
-                    <Form action={editAction} className="grid gap-4">
-                        <input type="hidden" name="doctor_pubId" value={docPubId} />
-                        <div className="grid gap-4 sm:grid-cols-2">
-                            <Field label="Name"><input type="text" name="name" placeholder="Name" defaultValue={doctorName} /></Field>
-                            <Field label="Username"><input type="text" name="username" placeholder="username" defaultValue={doctorData.doctor_username} /></Field>
-                            <Field label="New password"><input type="password" name="new_password" placeholder="New Password" /></Field>
-                            <Field label="Department">
-                                <input list="departments" name="department" placeholder="Department" defaultValue={departmentDisplay} />
-                            </Field>
-                        </div>
-                        <datalist id="departments">
-                            {departments?.map((dep, idx) => <option key={idx} value={dep} />)}
-                        </datalist>
-                        <Field label="Qualifications">
-                            <input type="text" name="qualification" placeholder="Qualifications" defaultValue={qualifications.join(", ")} />
+            <datalist id="departments">
+                {departments?.map((dep, idx) => <option key={idx} value={dep} />)}
+            </datalist>
+            <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1.1fr)_minmax(22rem,0.9fr)]">
+                <Form
+                    action={editAction}
+                    className="form-panel edit-doctor-form grid w-full gap-3.5"
+                >
+                    <input type="hidden" name="doctor_pubId" value={docPubId} />
+                    <div className="grid gap-3 sm:grid-cols-2">
+                        <Field label="Name">
+                            <input type="text" name="name" placeholder="Name" defaultValue={doctorName} />
                         </Field>
-                        <button type="submit" className="btn-primary w-full sm:w-auto">Save doctor</button>
-                    </Form>
-                </section>
-                <aside className="grid gap-6">
+                        <Field label="Username">
+                            <input type="text" name="username" placeholder="Username" defaultValue={doctorData.doctor_username} />
+                        </Field>
+                        <Field label="New password">
+                            <input type="password" name="new_password" placeholder="New password" />
+                        </Field>
+                        <Field label="Department">
+                            <input list="departments" name="department" placeholder="Department" defaultValue={departmentDisplay} />
+                        </Field>
+                    </div>
+                    <Field label="Qualifications">
+                        <input type="text" name="qualification" placeholder="Qualifications" defaultValue={qualifications.join(", ")} />
+                    </Field>
+                    {editState?.message && (
+                        <p className={editState.ok ? "status-success" : "status-error"}>
+                            {editState.message}
+                        </p>
+                    )}
+                    <button type="submit" className="btn-primary w-fit">Save doctor</button>
+                </Form>
+                <aside className="grid gap-5">
                     <section className="section-panel">
                         <h2 className="text-xl font-black text-slate-950">Current profile</h2>
-                        <dl className="mt-4 grid gap-3 text-sm">
+                        <dl className="mt-4 divide-y divide-emerald-100 text-sm">
                             <Info label="Name" value={doctorName} />
                             <Info label="Department" value={departmentDisplay} />
                             <Info label="Qualifications" value={qualifications.join(", ").toUpperCase() || "None"} />
-                            <Info label="Treatments" value={assignedTreatments?.length > 0 ? assignedTreatments.map(t => t.string).join(", ") : "None"} />
+                            <Info
+                                label="Treatments"
+                                value={assignedTreatments?.length > 0 ? assignedTreatments.map(t => t.string).join(", ") : "None"}
+                            />
                         </dl>
                     </section>
                     <section className="section-panel">
-                        <h2 className="text-lg font-black text-slate-950">Treatment assignments</h2>
+                        <h2 className="text-xl font-black text-slate-950">Treatment assignments</h2>
                         <Form action={addTreatmentAction} className="mt-4 grid gap-3">
                             <input type="hidden" name="doctor_pubId" value={docPubId} />
                             <select name="treatment">
                                 <option>Select additional treatment</option>
-                                {availableTreatments?.map((fn, idx) => <option key={idx} value={fn.public_id}>{fn.string}</option>)}
+                                {availableTreatments?.map((fn, idx) => (
+                                    <option key={idx} value={fn.public_id}>{fn.string}</option>
+                                ))}
                             </select>
-                            {addState?.message && <p className={addState.ok ? "status-success" : "status-error"}>{addState.message}</p>}
+                            {addState?.message && (
+                                <p className={addState.ok ? "status-success" : "status-error"}>
+                                    {addState.message}
+                                </p>
+                            )}
                             <button type="submit" className="btn-secondary">Add treatment</button>
                         </Form>
                         <Form action={removeTreatmentAction} className="mt-5 grid gap-3 border-t border-emerald-100 pt-5">
                             <input type="hidden" name="doctor_pubId" value={docPubId} />
                             <select name="remove_treatment">
                                 <option>Select treatment to remove</option>
-                                {assignedTreatments?.map((fn, idx) => <option key={idx} value={fn.public_id}>{fn.string}</option>)}
+                                {assignedTreatments?.map((fn, idx) => (
+                                    <option key={idx} value={fn.public_id}>{fn.string}</option>
+                                ))}
                             </select>
-                            {removeState?.message && <p className={removeState.ok ? "status-success" : "status-error"}>{removeState.message}</p>}
+                            {removeState?.message && (
+                                <p className={removeState.ok ? "status-success" : "status-error"}>
+                                    {removeState.message}
+                                </p>
+                            )}
                             <button type="submit" className="btn-secondary">Remove treatment</button>
                         </Form>
                     </section>
                     <div className="rounded-2xl border border-rose-200 bg-rose-50 p-5">
-                        {deleteState?.message && <p className={deleteState.ok ? "status-success" : "status-error"}>{deleteState.message}</p>}
+                        {deleteState?.message && (
+                            <p className={deleteState.ok ? "status-success" : "status-error"}>
+                                {deleteState.message}
+                            </p>
+                        )}
                         {!showConfirm ? (
                             <button type="button" className="btn-danger w-full" onClick={() => setShowConfirm(true)}>
                                 Delete doctor
@@ -3651,7 +3940,7 @@ export default function ClientEditDoctor({
 }
 function Field({ label, children }) {
     return (
-        <label className="grid gap-1.5">
+        <label className="grid gap-1">
             <span className="field-label">{label}</span>
             {children}
         </label>
@@ -3659,8 +3948,8 @@ function Field({ label, children }) {
 }
 function Info({ label, value }) {
     return (
-        <div className="rounded-2xl bg-emerald-50 p-4">
-            <dt className="font-bold text-slate-500">{label}</dt>
+        <div className="py-3 first:pt-0 last:pb-0">
+            <dt className="field-label">{label}</dt>
             <dd className="mt-1 font-semibold text-slate-950">{value}</dd>
         </div>
     );
@@ -4161,10 +4450,40 @@ export default function EditTemplateClient({
         <Form action={formAction} className="form-panel grid gap-5">
             <input type="hidden" name="doctorPublicId" value={docPubId} />
             <input type="hidden" name="templatePublicId" value={templatePubId} />
-            <TimeGroup title="Clinic start" prefix="start" hrs={dummyHrs} minutes={dummyMinutes} meridiem={meridiem} value={startValue} />
-            <TimeGroup title="Clinic end" prefix="end" hrs={dummyHrs} minutes={dummyMinutes} meridiem={meridiem} value={endValue} />
-            <TimeGroup title="Break start" prefix="breakStart" hrs={dummyHrs} minutes={dummyMinutes} meridiem={meridiem} value={breakStartValue} />
-            <TimeGroup title="Break end" prefix="breakEnd" hrs={dummyHrs} minutes={dummyMinutes} meridiem={meridiem} value={breakEndValue} />
+            <div className="grid gap-4">
+                <TimeGroup
+                    title="Clinic start"
+                    prefix="start"
+                    hrs={dummyHrs}
+                    minutes={dummyMinutes}
+                    meridiem={meridiem}
+                    value={startValue}
+                />
+                <TimeGroup
+                    title="Clinic end"
+                    prefix="end"
+                    hrs={dummyHrs}
+                    minutes={dummyMinutes}
+                    meridiem={meridiem}
+                    value={endValue}
+                />
+                <TimeGroup
+                    title="Break start"
+                    prefix="breakStart"
+                    hrs={dummyHrs}
+                    minutes={dummyMinutes}
+                    meridiem={meridiem}
+                    value={breakStartValue}
+                />
+                <TimeGroup
+                    title="Break end"
+                    prefix="breakEnd"
+                    hrs={dummyHrs}
+                    minutes={dummyMinutes}
+                    meridiem={meridiem}
+                    value={breakEndValue}
+                />
+            </div>
             <label className="grid gap-1.5">
                 <span className="field-label">Buffer minutes</span>
                 <input type="number" name="buffer" defaultValue={buffer_minutes} />
@@ -4182,11 +4501,38 @@ function TimeGroup({ title, prefix, hrs, minutes, meridiem, value }) {
     const meridiemName = `${prefix}Meridiem`;
     return (
         <fieldset className="rounded-2xl border border-emerald-100 bg-emerald-50 p-4">
-            <legend className="px-1 text-sm font-bold text-slate-700">{title}</legend>
-            <div className="mt-3 grid grid-cols-3 gap-3">
-                <select name={hourName} defaultValue={value.hrs}>{hrs.map((hr) => <option value={hr} key={hr}>{hr}</option>)}</select>
-                <select name={minuteName} defaultValue={value.mins}>{minutes.map((min) => <option value={min} key={min}>{min}</option>)}</select>
-                <select name={meridiemName} defaultValue={value.meridiem}>{meridiem.map((mer) => <option value={mer} key={mer}>{mer}</option>)}</select>
+            <p className="text-sm font-black text-slate-800">{title}</p>
+            <div className="mt-3 grid gap-3 sm:grid-cols-3">
+                <label className="grid gap-1.5">
+                    <span className="field-label">Hour</span>
+                    <select name={hourName} defaultValue={value.hrs}>
+                        {hrs.map(hr => (
+                            <option value={hr} key={hr}>
+                                {hr}
+                            </option>
+                        ))}
+                    </select>
+                </label>
+                <label className="grid gap-1.5">
+                    <span className="field-label">Minute</span>
+                    <select name={minuteName} defaultValue={value.mins}>
+                        {minutes.map(min => (
+                            <option value={min} key={min}>
+                                {min}
+                            </option>
+                        ))}
+                    </select>
+                </label>
+                <label className="grid gap-1.5">
+                    <span className="field-label">AM / PM</span>
+                    <select name={meridiemName} defaultValue={value.meridiem}>
+                        {meridiem.map(mer => (
+                            <option value={mer} key={mer}>
+                                {mer}
+                            </option>
+                        ))}
+                    </select>
+                </label>
             </div>
         </fieldset>
     );
@@ -4849,6 +5195,504 @@ export async function logout() {
         return null;
     }
     redirect("/login");
+}
+</file>
+
+<file path="lib/mockData.js">
+"use server";
+import { db } from "@/app/lib/turso";
+import { hash } from "@/app/utils/bcrypt";
+import { rollingWindow } from "@/app/lib/rollingWindow";
+import { nanoid } from "nanoid";
+const DEMO_EMAIL_DOMAIN = "clinicflow.demo";
+const DEMO_PASSWORD = "DemoPass123!";
+const toHyphenSlug = (value) =>
+    String(value || "")
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, "");
+const toUnderscoreSlug = (value) =>
+    String(value || "")
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "_")
+        .replace(/^_+|_+$/g, "");
+const todayUtc = () => {
+    const now = new Date();
+    return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+};
+const addDaysUtc = (date, days) => {
+    const next = new Date(date);
+    next.setUTCDate(next.getUTCDate() + days);
+    return next;
+};
+const isoDate = (date) => {
+    const yyyy = date.getUTCFullYear();
+    const mm = String(date.getUTCMonth() + 1).padStart(2, "0");
+    const dd = String(date.getUTCDate()).padStart(2, "0");
+    return `${yyyy}-${mm}-${dd}`;
+};
+const dateParts = (date) => ({
+    day_number: date.getUTCDay(),
+    date_number: date.getUTCDate(),
+    month_number: date.getUTCMonth(),
+    year: date.getUTCFullYear(),
+    booking_date_iso: isoDate(date),
+});
+const nextDateForDayNumber = (targetDayNumber, minimumOffsetDays = 2) => {
+    const base = addDaysUtc(todayUtc(), minimumOffsetDays);
+    const offset = (targetDayNumber - base.getUTCDay() + 7) % 7;
+    return addDaysUtc(base, offset);
+};
+const sqlPlaceholders = (count) => Array.from({ length: count }, () => "?").join(", ");
+const demoBranches = [
+    {
+        key: "central",
+        public_id: "demo_branch_central",
+        admin_name: "Demo Central Admin",
+        admin_email: `central@${DEMO_EMAIL_DOMAIN}`,
+        admin_username: "demo-central-admin",
+        clinic_name: "healing-hands-central-branch",
+        clinic_phone: "+923001110001",
+        clinic_address: "blue-area-islamabad",
+        treatments: [
+            { key: "general_consultation", name: "General Consultation", duration: 30 },
+            { key: "follow_up_visit", name: "Follow Up Visit", duration: 20 },
+            { key: "dental_scaling", name: "Dental Scaling", duration: 45 },
+            { key: "skin_consultation", name: "Skin Consultation", duration: 30 },
+            { key: "cardiac_screening", name: "Cardiac Screening", duration: 60 },
+            { key: "physiotherapy_session", name: "Physiotherapy Session", duration: 40 },
+        ],
+        doctors: [
+            {
+                key: "ayesha_khan",
+                name: "Ayesha Khan",
+                username: "demo-dr-ayesha",
+                department: "General Medicine",
+                qualifications: ["mbbs", "fcps"],
+                treatments: ["general_consultation", "follow_up_visit", "cardiac_screening"],
+                templates: [
+                    { day_number: 1, start_time: 540, end_time: 1020, break_start: 780, break_end: 825, buffer_minutes: 10 },
+                    { day_number: 3, start_time: 540, end_time: 1020, break_start: 780, break_end: 825, buffer_minutes: 10 },
+                    { day_number: 5, start_time: 600, end_time: 900, break_start: 720, break_end: 750, buffer_minutes: 5 },
+                ],
+            },
+            {
+                key: "bilal_saeed",
+                name: "Bilal Saeed",
+                username: "demo-dr-bilal",
+                department: "Dentistry",
+                qualifications: ["bds", "mcps"],
+                treatments: ["dental_scaling", "general_consultation", "follow_up_visit"],
+                templates: [
+                    { day_number: 2, start_time: 600, end_time: 1080, break_start: 840, break_end: 900, buffer_minutes: 15 },
+                    { day_number: 4, start_time: 600, end_time: 1080, break_start: 840, break_end: 900, buffer_minutes: 15 },
+                    { day_number: 6, start_time: 540, end_time: 780, break_start: 660, break_end: 675, buffer_minutes: 10 },
+                ],
+            },
+            {
+                key: "sana_malik",
+                name: "Sana Malik",
+                username: "demo-dr-sana",
+                department: "Dermatology",
+                qualifications: ["mbbs", "ddsc"],
+                treatments: ["skin_consultation", "follow_up_visit", "general_consultation"],
+                templates: [
+                    { day_number: 1, start_time: 900, end_time: 1260, break_start: 1050, break_end: 1080, buffer_minutes: 10 },
+                    { day_number: 2, start_time: 900, end_time: 1260, break_start: 1050, break_end: 1080, buffer_minutes: 10 },
+                    { day_number: 4, start_time: 900, end_time: 1260, break_start: 1050, break_end: 1080, buffer_minutes: 10 },
+                ],
+            },
+        ],
+    },
+    {
+        key: "north",
+        public_id: "demo_branch_north",
+        admin_name: "Demo North Admin",
+        admin_email: `north@${DEMO_EMAIL_DOMAIN}`,
+        admin_username: "demo-north-admin",
+        clinic_name: "healing-hands-north-branch",
+        clinic_phone: "+923001110002",
+        clinic_address: "f-10-markaz-islamabad",
+        treatments: [
+            { key: "child_consultation", name: "Child Consultation", duration: 30 },
+            { key: "vaccination", name: "Vaccination", duration: 15 },
+            { key: "orthopedic_assessment", name: "Orthopedic Assessment", duration: 45 },
+            { key: "xray_review", name: "Xray Review", duration: 20 },
+            { key: "nutrition_counselling", name: "Nutrition Counselling", duration: 40 },
+        ],
+        doctors: [
+            {
+                key: "omar_farooq",
+                name: "Omar Farooq",
+                username: "demo-dr-omar",
+                department: "Pediatrics",
+                qualifications: ["mbbs", "dch"],
+                treatments: ["child_consultation", "vaccination", "nutrition_counselling"],
+                templates: [
+                    { day_number: 0, start_time: 600, end_time: 960, break_start: 780, break_end: 810, buffer_minutes: 5 },
+                    { day_number: 2, start_time: 600, end_time: 960, break_start: 780, break_end: 810, buffer_minutes: 5 },
+                    { day_number: 4, start_time: 600, end_time: 960, break_start: 780, break_end: 810, buffer_minutes: 5 },
+                ],
+            },
+            {
+                key: "nadia_shah",
+                name: "Nadia Shah",
+                username: "demo-dr-nadia",
+                department: "Orthopedics",
+                qualifications: ["mbbs", "ms"],
+                treatments: ["orthopedic_assessment", "xray_review", "follow_up_visit"],
+                templates: [
+                    { day_number: 1, start_time: 660, end_time: 1110, break_start: 840, break_end: 900, buffer_minutes: 15 },
+                    { day_number: 3, start_time: 660, end_time: 1110, break_start: 840, break_end: 900, buffer_minutes: 15 },
+                    { day_number: 5, start_time: 660, end_time: 930, break_start: 780, break_end: 810, buffer_minutes: 10 },
+                ],
+            },
+        ],
+    },
+    {
+        key: "south",
+        public_id: "demo_branch_south",
+        admin_name: "Demo South Admin",
+        admin_email: `south@${DEMO_EMAIL_DOMAIN}`,
+        admin_username: "demo-south-admin",
+        clinic_name: "healing-hands-south-branch",
+        clinic_phone: "+923001110003",
+        clinic_address: "bahria-town-rawalpindi",
+        treatments: [
+            { key: "ent_consultation", name: "ENT Consultation", duration: 30 },
+            { key: "hearing_test", name: "Hearing Test", duration: 45 },
+            { key: "eye_checkup", name: "Eye Checkup", duration: 30 },
+            { key: "vision_screening", name: "Vision Screening", duration: 20 },
+            { key: "physiotherapy_session", name: "Physiotherapy Session", duration: 40 },
+        ],
+        doctors: [
+            {
+                key: "hassan_ali",
+                name: "Hassan Ali",
+                username: "demo-dr-hassan",
+                department: "ENT",
+                qualifications: ["mbbs", "fcps"],
+                treatments: ["ent_consultation", "hearing_test", "follow_up_visit"],
+                templates: [
+                    { day_number: 1, start_time: 570, end_time: 990, break_start: 780, break_end: 825, buffer_minutes: 10 },
+                    { day_number: 2, start_time: 570, end_time: 990, break_start: 780, break_end: 825, buffer_minutes: 10 },
+                    { day_number: 6, start_time: 600, end_time: 900, break_start: 720, break_end: 750, buffer_minutes: 5 },
+                ],
+            },
+            {
+                key: "laiba_noor",
+                name: "Laiba Noor",
+                username: "demo-dr-laiba",
+                department: "Ophthalmology",
+                qualifications: ["mbbs", "doms"],
+                treatments: ["eye_checkup", "vision_screening", "follow_up_visit"],
+                templates: [
+                    { day_number: 3, start_time: 600, end_time: 1080, break_start: 840, break_end: 900, buffer_minutes: 10 },
+                    { day_number: 4, start_time: 600, end_time: 1080, break_start: 840, break_end: 900, buffer_minutes: 10 },
+                    { day_number: 5, start_time: 600, end_time: 900, break_start: 735, break_end: 765, buffer_minutes: 10 },
+                ],
+            },
+        ],
+    },
+];
+const demoPatients = [
+    { name: "hamza-rauf", email: `hamza.rauf@${DEMO_EMAIL_DOMAIN}`, phone: "+923331111101" },
+    { name: "maryam-zafar", email: `maryam.zafar@${DEMO_EMAIL_DOMAIN}`, phone: "+923331111102" },
+    { name: "ali-rehman", email: `ali.rehman@${DEMO_EMAIL_DOMAIN}`, phone: "+923331111103" },
+    { name: "fatima-noor", email: `fatima.noor@${DEMO_EMAIL_DOMAIN}`, phone: "+923331111104" },
+    { name: "usman-tariq", email: `usman.tariq@${DEMO_EMAIL_DOMAIN}`, phone: "+923331111105" },
+    { name: "zoya-ahmed", email: `zoya.ahmed@${DEMO_EMAIL_DOMAIN}`, phone: "+923331111106" },
+    { name: "saad-khalid", email: `saad.khalid@${DEMO_EMAIL_DOMAIN}`, phone: "+923331111107" },
+    { name: "hina-aslam", email: `hina.aslam@${DEMO_EMAIL_DOMAIN}`, phone: "+923331111108" },
+    { name: "danish-iqbal", email: `danish.iqbal@${DEMO_EMAIL_DOMAIN}`, phone: "+923331111109" },
+    { name: "maha-saleem", email: `maha.saleem@${DEMO_EMAIL_DOMAIN}`, phone: "+923331111110" },
+];
+const sharedTreatments = [
+    { key: "follow_up_visit", name: "Follow Up Visit", duration: 20 },
+];
+async function deleteExistingDemoData() {
+    const existing = await db.execute(
+        `SELECT id FROM admins WHERE admin_email LIKE ?`,
+        [`%@${DEMO_EMAIL_DOMAIN}`]
+    );
+    const adminIds = existing.rows.map((row) => row.id);
+    if (adminIds.length === 0) return { deletedBranches: 0 };
+    const placeholders = sqlPlaceholders(adminIds.length);
+    await db.batch(
+        [
+            {
+                sql: `DELETE FROM bookings WHERE admin_id IN (${placeholders})`,
+                args: adminIds,
+            },
+            {
+                sql: `DELETE FROM admins WHERE id IN (${placeholders})`,
+                args: adminIds,
+            },
+        ],
+        "write"
+    );
+    return { deletedBranches: adminIds.length };
+}
+async function seedAdmin({ branch, passwordHash }) {
+    const result = await db.execute(
+        `INSERT INTO admins (
+      public_id,
+      admin_name,
+      admin_email,
+      admin_username,
+      clinic_name,
+      clinic_phone,
+      clinic_address,
+      password,
+      status,
+      email_token_hash,
+      email_token_created_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'verified', NULL, NULL)
+    RETURNING id, public_id`,
+        [
+            branch.public_id,
+            toHyphenSlug(branch.admin_name),
+            branch.admin_email,
+            branch.admin_username,
+            branch.clinic_name,
+            branch.clinic_phone,
+            branch.clinic_address,
+            passwordHash,
+        ]
+    );
+    const admin = result.rows[0];
+    await db.execute(
+        `INSERT INTO users (public_id, admin_id, role, username, password, status)
+     VALUES (?, ?, 'admin', ?, ?, 'verified')`,
+        [nanoid(12), admin.id, branch.admin_username, passwordHash]
+    );
+    return admin;
+}
+async function seedTreatments({ adminId, branch }) {
+    const treatmentMap = new Map();
+    const mergedTreatments = [...sharedTreatments, ...branch.treatments];
+    for (const treatment of mergedTreatments) {
+        const existingByKey = treatmentMap.get(treatment.key);
+        if (existingByKey) continue;
+        const result = await db.execute(
+            `INSERT INTO treatments (public_id, admin_id, name, duration)
+       VALUES (?, ?, ?, ?)
+       RETURNING id, public_id, name, duration`,
+            [nanoid(12), adminId, toUnderscoreSlug(treatment.name), treatment.duration]
+        );
+        treatmentMap.set(treatment.key, result.rows[0]);
+    }
+    return treatmentMap;
+}
+async function seedDoctors({ adminId, branch, passwordHash, treatmentMap }) {
+    const doctorMap = new Map();
+    for (const doctor of branch.doctors) {
+        const doctorResult = await db.execute(
+            `INSERT INTO doctors (
+        public_id,
+        admin_id,
+        name,
+        qualifications,
+        department,
+        username,
+        password,
+        status
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, 'verified')
+      RETURNING id, public_id, name`,
+            [
+                nanoid(12),
+                adminId,
+                toHyphenSlug(doctor.name),
+                JSON.stringify(doctor.qualifications),
+                toHyphenSlug(doctor.department),
+                doctor.username,
+                passwordHash,
+            ]
+        );
+        const doctorRow = doctorResult.rows[0];
+        doctorMap.set(doctor.key, doctorRow);
+        await db.execute(
+            `INSERT INTO users (public_id, doctor_id, role, username, password, status)
+       VALUES (?, ?, 'doctor', ?, ?, 'verified')`,
+            [nanoid(12), doctorRow.id, doctor.username, passwordHash]
+        );
+        for (const treatmentKey of doctor.treatments) {
+            const treatment = treatmentMap.get(treatmentKey);
+            if (!treatment) continue;
+            await db.execute(
+                `INSERT INTO doctor_treatments (public_id, admin_id, doctor_id, treatment_id)
+         VALUES (?, ?, ?, ?)
+         ON CONFLICT(admin_id, doctor_id, treatment_id) DO NOTHING`,
+                [nanoid(12), adminId, doctorRow.id, treatment.id]
+            );
+        }
+        for (const template of doctor.templates) {
+            await db.execute(
+                `INSERT INTO weekly_templates (
+          public_id,
+          admin_id,
+          doctor_id,
+          day_number,
+          start_time,
+          end_time,
+          break_start,
+          break_end,
+          buffer_minutes
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT(admin_id, doctor_id, day_number) DO NOTHING`,
+                [
+                    nanoid(12),
+                    adminId,
+                    doctorRow.id,
+                    template.day_number,
+                    template.start_time,
+                    template.end_time,
+                    template.break_start,
+                    template.break_end,
+                    template.buffer_minutes,
+                ]
+            );
+        }
+    }
+    return doctorMap;
+}
+async function seedBookings({ adminId, branch, doctorMap, treatmentMap }) {
+    let bookingCount = 0;
+    let patientIndex = 0;
+    const bookingStatuses = ["verified", "verified", "pending", "unverified", "cancelled", "revoked"];
+    for (const doctor of branch.doctors) {
+        const doctorRow = doctorMap.get(doctor.key);
+        if (!doctorRow) continue;
+        const usableTreatmentKey = doctor.treatments[0];
+        const treatment = treatmentMap.get(usableTreatmentKey);
+        if (!treatment) continue;
+        const firstTemplate = doctor.templates[0];
+        const secondTemplate = doctor.templates[1] || doctor.templates[0];
+        const bookingDates = [
+            nextDateForDayNumber(firstTemplate.day_number, 2),
+            nextDateForDayNumber(secondTemplate.day_number, 5),
+        ];
+        const proposedBookings = [
+            { date: bookingDates[0], start: firstTemplate.start_time + 30, status: bookingStatuses[bookingCount % bookingStatuses.length] },
+            { date: bookingDates[1], start: secondTemplate.break_end + 30, status: bookingStatuses[(bookingCount + 1) % bookingStatuses.length] },
+        ];
+        for (const proposed of proposedBookings) {
+            const patient = demoPatients[patientIndex % demoPatients.length];
+            patientIndex += 1;
+            const treatment_start = proposed.start;
+            const treatment_end = proposed.start + treatment.duration;
+            const parts = dateParts(proposed.date);
+            await db.execute(
+                `INSERT INTO bookings (
+          public_id,
+          admin_id,
+          doctor_id,
+          treatment_id,
+          doctor_name,
+          patient_name,
+          patient_email,
+          patient_phone,
+          treatment_start,
+          treatment_end,
+          day_number,
+          date_number,
+          month_number,
+          year,
+          booking_date_iso,
+          status,
+          email_token_hash,
+          email_token_created_at,
+          cancel_token_hash,
+          cancel_token_created_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, NULL, NULL, NULL)
+        ON CONFLICT DO NOTHING`,
+                [
+                    nanoid(12),
+                    adminId,
+                    doctorRow.id,
+                    treatment.id,
+                    doctorRow.name,
+                    patient.name,
+                    patient.email,
+                    patient.phone,
+                    treatment_start,
+                    treatment_end,
+                    parts.day_number,
+                    parts.date_number,
+                    parts.month_number,
+                    parts.year,
+                    parts.booking_date_iso,
+                    proposed.status,
+                ]
+            );
+            bookingCount += 1;
+        }
+    }
+    return bookingCount;
+}
+export async function mockDataInsersion({ resetExisting = false } = {}) {
+    if (process.env.NODE_ENV === "production") {
+        return {
+            ok: false,
+            message: "Refusing to seed demo data in production.",
+        };
+    }
+    const existing = await db.execute(
+        `SELECT id FROM admins WHERE admin_email LIKE ? LIMIT 1`,
+        [`%@${DEMO_EMAIL_DOMAIN}`]
+    );
+    if (existing.rows.length > 0 && !resetExisting) {
+        return {
+            ok: true,
+            skipped: true,
+            message: "Demo data already exists. Pass { resetExisting: true } to recreate it.",
+            credentials: {
+                password: DEMO_PASSWORD,
+                adminUsernames: demoBranches.map((branch) => branch.admin_username),
+                doctorUsernames: demoBranches.flatMap((branch) => branch.doctors.map((doctor) => doctor.username)),
+            },
+        };
+    }
+    const deleted = resetExisting ? await deleteExistingDemoData() : { deletedBranches: 0 };
+    const passwordHash = await hash(DEMO_PASSWORD);
+    const summary = {
+        branches: 0,
+        doctors: 0,
+        treatments: 0,
+        templates: 0,
+        bookings: 0,
+        slotsGenerated: true,
+    };
+    for (const branch of demoBranches) {
+        const admin = await seedAdmin({ branch, passwordHash });
+        const treatmentMap = await seedTreatments({ adminId: admin.id, branch });
+        const doctorMap = await seedDoctors({ adminId: admin.id, branch, passwordHash, treatmentMap });
+        await rollingWindow(admin.id, 31);
+        const bookingCount = await seedBookings({
+            adminId: admin.id,
+            branch,
+            doctorMap,
+            treatmentMap,
+        });
+        summary.branches += 1;
+        summary.doctors += branch.doctors.length;
+        summary.treatments += treatmentMap.size;
+        summary.templates += branch.doctors.reduce((total, doctor) => total + doctor.templates.length, 0);
+        summary.bookings += bookingCount;
+    }
+    return {
+        ok: true,
+        message: "Clinic demo data seeded successfully.",
+        deleted,
+        summary,
+        credentials: {
+            password: DEMO_PASSWORD,
+            adminUsernames: demoBranches.map((branch) => branch.admin_username),
+            doctorUsernames: demoBranches.flatMap((branch) => branch.doctors.map((doctor) => doctor.username)),
+        },
+    };
 }
 </file>
 
@@ -5893,12 +6737,38 @@ export default function Home() {
 <file path="settings/Client.jsx">
 "use client";
 import Form from "next/form";
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { fromHyphenSlug } from "@/app/utils/displaySlug";
 import { updateAdmin, updateDoctor } from "./sa";
+function PasswordFields({ enabled }) {
+    return (
+        <div className="mt-4 grid gap-4 sm:grid-cols-2">
+            <Field label="Current password">
+                <input
+                    type="password"
+                    name="current_password"
+                    placeholder="Current Password"
+                    autoComplete="off"
+                    disabled={!enabled}
+                />
+            </Field>
+            <Field label="New password">
+                <input
+                    type="password"
+                    name="new_password"
+                    placeholder="New Password"
+                    autoComplete="new-password"
+                    disabled={!enabled}
+                />
+            </Field>
+        </div>
+    );
+}
 export default function ClientSettings(props) {
     const [adminState, adminFormAction, adminPending] = useActionState(updateAdmin, { ok: null, message: "" });
     const [doctorState, doctorFormAction, doctorPending] = useActionState(updateDoctor, { ok: null, message: "" });
+    const [adminPasswordOpen, setAdminPasswordOpen] = useState(false);
+    const [doctorPasswordOpen, setDoctorPasswordOpen] = useState(false);
     const name = fromHyphenSlug(props.admin_name);
     const clinicName = fromHyphenSlug(props.clinic_name);
     const clinicAddress = fromHyphenSlug(props.clinic_address);
@@ -5915,18 +6785,15 @@ export default function ClientSettings(props) {
                     <input type="hidden" name="adminPubId" value={props.adminPubId} />
                     <div className="grid gap-4 sm:grid-cols-2">
                         <Field label="Name"><input type="text" name="name" placeholder="Name" defaultValue={name} /></Field>
-                        <Field label="Username"><input type="text" name="username" placeholder="username" defaultValue={props.admin_username} /></Field>
+                        <Field label="Username"><input type="text" name="username" placeholder="username" defaultValue={props.admin_username} minLength={3} maxLength={20} /></Field>
                         <Field label="Email"><input type="email" name="email" placeholder="example@ex.com" defaultValue={props.admin_email} /></Field>
                         <Field label="Clinic name"><input type="text" name="clinic_name" placeholder="Clinic Name" defaultValue={clinicName} /></Field>
                         <Field label="Clinic phone"><input type="tel" name="clinic_phone" placeholder="+1 000 000 0000" defaultValue={props.clinic_phone} /></Field>
                         <Field label="Clinic address"><input type="text" name="clinic_address" placeholder="Street #00" defaultValue={clinicAddress} /></Field>
                     </div>
-                    <details>
+                    <details onToggle={(e) => setAdminPasswordOpen(e.currentTarget.open)}>
                         <summary>Change password</summary>
-                        <div className="mt-4 grid gap-4 sm:grid-cols-2">
-                            <Field label="Current password"><input type="password" name="current_password" placeholder="Current Password" /></Field>
-                            <Field label="New password"><input type="password" name="new_password" placeholder="New Password" /></Field>
-                        </div>
+                        <PasswordFields enabled={adminPasswordOpen} />
                     </details>
                     {adminState.message && <p className={adminState.ok ? "status-success" : "status-error"}>{adminState.message}</p>}
                     <button type="submit" className="btn-primary w-full sm:w-auto" disabled={adminPending}>
@@ -5951,15 +6818,12 @@ export default function ClientSettings(props) {
                     <input type="hidden" name="docPublicId" value={props.docPublicId} />
                     <div className="grid gap-4 sm:grid-cols-2">
                         <Field label="Name"><input type="text" name="name" placeholder="Name" defaultValue={doctorName} /></Field>
-                        <Field label="Username"><input type="text" name="username" placeholder="Username" defaultValue={props.username} /></Field>
+                        <Field label="Username"><input type="text" name="username" placeholder="Username" defaultValue={props.username} minLength={3} maxLength={20} /></Field>
                     </div>
                     <Field label="Qualifications"><input type="text" name="qualifications" placeholder="Qualifications (e.g. MBBS, MD)" defaultValue={qualifications} /></Field>
-                    <details>
+                    <details onToggle={(e) => setDoctorPasswordOpen(e.currentTarget.open)}>
                         <summary>Change password</summary>
-                        <div className="mt-4 grid gap-4 sm:grid-cols-2">
-                            <Field label="Current password"><input type="password" name="current_password" placeholder="Current Password" /></Field>
-                            <Field label="New password"><input type="password" name="new_password" placeholder="New Password" /></Field>
-                        </div>
+                        <PasswordFields enabled={doctorPasswordOpen} />
                     </details>
                     {doctorState.message && <p className={doctorState.ok ? "status-success" : "status-error"}>{doctorState.message}</p>}
                     <button type="submit" className="btn-primary w-full sm:w-auto" disabled={doctorPending}>
@@ -6025,13 +6889,13 @@ import { sendEmail } from "../lib/resend";
 export async function updateAdmin(_, formData) {
     const adminPubId = formData.get("adminPubId")?.trim();
     const name = formData.get("name")?.trim().replace(/\s/g, "-").toLowerCase();
-    const username = formData.get("username")?.trim();
+    const username = formData.get("username")?.toString().trim().replace(/\s+/g, "-");
     const email = formData.get("email")?.trim();
     const clinic_name = formData.get("clinic_name")?.trim().replace(/\s/g, "-").toLowerCase();
     const clinic_phone = formData.get("clinic_phone")?.trim();
     const clinic_address = formData.get("clinic_address")?.trim().replace(/\s/g, "-").toLowerCase();
-    const current_password = formData.get("current_password");
-    const new_password = formData.get("new_password");
+    const current_password = String(formData.get("current_password") ?? "").trim();
+    const new_password = String(formData.get("new_password") ?? "").trim();
     if (!adminPubId || !name || !username || !email || !clinic_name || !clinic_phone || !clinic_address)
         return { ok: false, message: "Missing fields" };
     if ((current_password && !new_password) || (!current_password && new_password))
@@ -6042,8 +6906,8 @@ export async function updateAdmin(_, formData) {
         return { ok: false, message: "Invalid email address." };
     if (!/^\+?[0-9]{7,15}$/.test(clinic_phone))
         return { ok: false, message: "Phone number must contain only digits (7–15), with an optional leading +." };
-    if (username.length > 15 || username.length < 3)
-        return { ok: false, message: "Username should be 3-15 characters long." };
+    if (!username || username.length > 20 || username.length < 3)
+        return { ok: false, message: "Username must be between 3 and 20 characters." };
     if (new_password && (new_password.length < 8 || new_password.length > 64))
         return { ok: false, message: "New password must be between 8 and 64 characters." };
     const getCurrentUser = await getUserPlus();
@@ -6139,9 +7003,9 @@ export async function updateAdmin(_, formData) {
 export async function updateDoctor(_, formData) {
     const docPublicId = formData.get("docPublicId")?.trim();
     const name = formData.get("name")?.trim().replace(/\s/g, "-").toLowerCase();
-    const username = formData.get("username")?.trim();
-    const current_password = formData.get("current_password");
-    const new_password = formData.get("new_password");
+    const username = formData.get("username")?.toString().trim().replace(/\s+/g, "-");
+    const current_password = String(formData.get("current_password") ?? "").trim();
+    const new_password = String(formData.get("new_password") ?? "").trim();
     const qualificationsRaw = formData.get("qualifications")
         ?.split(",").map((q) => q.trim().toUpperCase()).filter(Boolean).slice(0, 10) || [];
     const qualificationsJson = JSON.stringify(qualificationsRaw);
@@ -6150,8 +7014,8 @@ export async function updateDoctor(_, formData) {
     if (!getCurrentUser || getCurrentUser.role !== "doctor") redirect("/login");
     if ((!name.match(/^[a-zA-Z-]+$/)) || name.length > 20 || name.length < 3)
         return { ok: false, message: "Name should only contain letters and spaces and should be 3-20 characters long." };
-    if (username.length > 15 || username.length < 3)
-        return { ok: false, message: "Username should be 3-15 characters long." };
+    if (!username || username.length > 20 || username.length < 3)
+        return { ok: false, message: "Username must be between 3 and 20 characters." };
     if ((current_password && !new_password) || (!current_password && new_password))
         return { ok: false, message: "Both current and new passwords are required to change your password." };
     if (new_password && (new_password.length < 8 || new_password.length > 64))
