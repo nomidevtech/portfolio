@@ -1,5 +1,5 @@
 import { headers } from "next/headers";
-import { redis } from "../lib/redis";
+import { redis } from "@/app/lib/redis";
 
 export async function redisIpLimit(incomingLimit, _for) {
     try {

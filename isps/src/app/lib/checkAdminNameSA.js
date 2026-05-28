@@ -9,10 +9,10 @@ import {
 
 export async function checkAdminNameServerAction(_, usernameRaw) {
 
-    const ipLimit = await redisIpLimit(20, "admin_username_check");
-    if (!ipLimit.ok) return ipLimit;
-
     try {
+        const ipLimit = await redisIpLimit(20, "admin_username_check");
+        if (!ipLimit.ok) return ipLimit;
+
         const username = normalizeUsername(usernameRaw);
 
         const usernameError = validateUsername(username);
@@ -22,7 +22,9 @@ export async function checkAdminNameServerAction(_, usernameRaw) {
 
         const result = await db.execute(`SELECT COUNT(*) as count FROM admins WHERE username = ?`, [username]);
 
-        if (result.rows[0].count !== 0) {
+        const count = Number(result.rows[0]?.count ?? 0);
+
+        if (count !== 0) {
             return { ok: false, username, message: "Username already in use" };
         }
 
@@ -30,6 +32,7 @@ export async function checkAdminNameServerAction(_, usernameRaw) {
 
     } catch (error) {
         console.error(error);
-        return { ok: false, message: "Error checking username" };
+        const username = normalizeUsername(usernameRaw);
+        return { ok: false, username, message: "Error checking username" };
     }
 }
