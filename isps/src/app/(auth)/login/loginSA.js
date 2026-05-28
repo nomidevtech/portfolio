@@ -11,10 +11,12 @@ import { verifyPassword } from "@/app/utils/hash";
 
 
 
+import { normalizeUsername } from "@/app/utils/validation";
+
 export async function loginSA(_, formData) {  // ← prevState added for useActionState
     try {
-        const username = formData.get("username")?.trim();
-        const password = formData.get("password");
+        const username = normalizeUsername(formData.get("username"));
+        const password = formData.get("password")?.toString();
 
         if (!username) {
             return { ok: false, message: "Username or email required" };

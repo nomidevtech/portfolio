@@ -11,18 +11,22 @@ export const getUser = cache(async function getUser() {
 
 
         const cookieStore = await cookies();
-        const token = cookieStore.get('isp-token');
+        const token = cookieStore.get("isp-token");
 
+        if (!token?.value) return null;
 
-        if (!token) return null;
+        const now = Date.now();
 
         const sessionRes = await db.execute(
-            'SELECT admin_id FROM sessions WHERE session_id = ?',
-            [token.value]
+          `SELECT admin_id FROM sessions
+           WHERE session_id = ?
+           AND CAST(expires_at AS INTEGER) > ?`,
+          [token.value, now]
         );
 
-
-        if (sessionRes.rows.length === 0) return null;
+        if (sessionRes.rows.length === 0) {
+          return null;
+        }
 
         const userId = sessionRes.rows[0].admin_id;
 

@@ -5,6 +5,7 @@ import { updateRecords } from "@/app/lib/update-records";
 import { initBilling_transactionsTable } from "@/app/models/table-inits";
 import { nanoid } from "nanoid";
 import { getUser } from "../lib/getUser";
+import { redisIpLimit } from "@/app/utils/redidIpLimit";
 
 export async function searchUser(_, searchTerm) {
     const currentUser = await getUser();
@@ -12,7 +13,16 @@ export async function searchUser(_, searchTerm) {
 
     const adminId = currentUser.id;
 
-    if (!searchTerm) return { ok: false, searchComplete: false, arr: [], message: "Search term is required" };
+    const term = searchTerm?.toString().trim();
+
+    if (!term || term.length < 2) {
+        return {
+            ok: false,
+            searchComplete: false,
+            arr: [],
+            message: "Enter at least 2 characters",
+        };
+    }
     try {
 
         const fetch = await db.execute(`
@@ -20,7 +30,7 @@ export async function searchUser(_, searchTerm) {
         FROM users
         WHERE admin_id = ? AND username LIKE ?
         LIMIT 5
-        `, [adminId, `%${searchTerm}%`]);
+        `, [adminId, `%${term}%`]);
 
         if (fetch.rows.length === 0) return { ok: false, searchComplete: true, arr: [], message: "No user found" };
 
@@ -122,14 +132,30 @@ export async function submit(_, formData) {
 
     const adminId = currentUser.id;
 
+    const ipLimit = await redisIpLimit(20, "fee_submit");
+    if (!ipLimit.ok) return ipLimit;
+
     try {
         const record_public_id = formData.get("record_public_id");
         const username = formData.get("username");
         const paymentRaw = formData.get("payment");
-        const payment = paymentRaw ? Number(paymentRaw) : 0;
+        const payment = Number(paymentRaw);
 
-        if (!record_public_id || !username) return { ok: false, message: "Search term is broken" };
-        if (payment <= 0) return { ok: false, message: "Payment cannot be zero or negative" };
+        if (!record_public_id || !username) {
+            return {
+                ok: false,
+                submitComplete: false,
+                message: "Search term is broken",
+            };
+        }
+
+        if (!Number.isFinite(payment) || payment <= 0) {
+            return {
+                ok: false,
+                submitComplete: false,
+                message: "Payment must be a valid positive number",
+            };
+        }
 
         const d = new Date();
         const month = d.getMonth() + 1;
@@ -140,12 +166,34 @@ export async function submit(_, formData) {
             WHERE public_id = ? AND admin_id = ?
         `, [record_public_id, adminId]);
 
-        if (fetchUserId.rows.length === 0) return { ok: false, message: "Billing record not found" };
+        if (fetchUserId.rows.length === 0) {
+            return {
+                ok: false,
+                submitComplete: false,
+                message: "Billing record not found",
+            };
+        }
 
         const amount_due = fetchUserId.rows[0].amount_due;
-        const remaining_fee = fetchUserId.rows[0].remaining_fee;
+        const remaining_fee = Number(fetchUserId.rows[0].remaining_fee);
         const record_month = fetchUserId.rows[0].billing_month;
         const record_year = fetchUserId.rows[0].billing_year;
+
+        if (!Number.isFinite(remaining_fee) || remaining_fee < 0) {
+            return {
+                ok: false,
+                submitComplete: false,
+                message: "Invalid billing record",
+            };
+        }
+
+        if (payment > remaining_fee) {
+            return {
+                ok: false,
+                submitComplete: false,
+                message: "Payment cannot exceed remaining fee",
+            };
+        }
 
         const remainingFee = remaining_fee - payment;
         const feeStatus = remainingFee <= 0 ? "paid" : (remainingFee === amount_due ? "unpaid" : "partial");
@@ -159,13 +207,18 @@ export async function submit(_, formData) {
             WHERE public_id = ? AND admin_id = ?
         `, [feeStatus, amount_paid, remainingFee, invoiceId, record_public_id, adminId]);
 
-        return { ok: true, message: "Payment submitted", invoiceId, submitComplete: true };
+        if (update.rowsAffected === 0) {
+            return {
+                ok: false,
+                submitComplete: false,
+                message: "Payment could not be submitted",
+            };
+        }
 
+        return { ok: true, message: "Payment submitted", invoiceId, submitComplete: true };
 
     } catch (error) {
         console.log(error);
-        return { ok: false, message: "Database error." };
+        return { ok: false, submitComplete: false, message: "Database error." };
     }
-
-
 }

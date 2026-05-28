@@ -5,26 +5,30 @@ import { redirect } from "next/navigation";
 import { redisIpLimit } from "@/app/utils/redidIpLimit";
 import { hashPassword } from "@/app/utils/hash";
 
+import {
+  normalizeUsername,
+  validateUsername,
+  validateAdminPassword,
+} from "@/app/utils/validation";
+
 export async function signuptServerAction(_, formData) {
 
-    const username = formData.get('username')?.trim().replace(/\s+/g, '').toLowerCase();
-    const password = formData.get('password')?.trim();
-    const confirmPassword = formData.get('confirmPassword')?.trim();
+    const username = normalizeUsername(formData.get("username"));
+    const password = formData.get("password")?.toString();
+    const confirmPassword = formData.get("confirmPassword")?.toString();
 
-    if (!username || !password || !confirmPassword) {
-        return { ok: false, message: 'All fields are required' };
+    const usernameError = validateUsername(username);
+    if (usernameError) {
+      return { ok: false, message: usernameError };
     }
 
-    if (username.length < 3) {
-        return { ok: false, message: 'Username must be at least 3 characters long' };
-    }
-
-    if (password.length < 6) {
-        return { ok: false, message: 'Password must be at least 6 characters long' };
+    const passwordError = validateAdminPassword(password);
+    if (passwordError) {
+      return { ok: false, message: passwordError };
     }
 
     if (password !== confirmPassword) {
-        return { ok: false, message: 'Passwords do not match' };
+      return { ok: false, message: "Passwords do not match" };
     }
 
     const ipLimit = await redisIpLimit(5, 'signup_check');

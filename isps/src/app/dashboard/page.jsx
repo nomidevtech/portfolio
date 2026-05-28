@@ -91,7 +91,8 @@ export default async function Dashboard() {
         };
 
         const monthsArr = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-        const yearsArr = fetchYears.rows.map(row => row.billing_year);
+        const yearsArrRaw = fetchYears.rows.map(row => row.billing_year);
+        const yearsArr = yearsArrRaw.length ? yearsArrRaw : [year];
 
 
         return (

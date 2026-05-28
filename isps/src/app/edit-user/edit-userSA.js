@@ -1,13 +1,26 @@
 "use server";
 
-
 import { getUser } from "../lib/getUser";
 import { db } from "../lib/turso";
+import {
+  normalizeUsername,
+  validateUsername,
+  validateOptionalPassword,
+} from "@/app/utils/validation";
+import { redisIpLimit } from "@/app/utils/redidIpLimit";
 
 export async function searchUser(_, searchTerm) {
-    if (!searchTerm) return { ok: false, searchComplete: false, arr: [], message: "Search term is required" };
-    try {
+    const term = searchTerm?.toString().trim();
 
+    if (!term || term.length < 2) {
+        return {
+            ok: false,
+            searchComplete: false,
+            arr: [],
+            message: "Enter at least 2 characters",
+        };
+    }
+    try {
         const currentUser = await getUser();
         if (!currentUser?.id) return { ok: false, searchComplete: false, arr: [], message: "You must be logged in" };
 
@@ -18,7 +31,7 @@ export async function searchUser(_, searchTerm) {
         FROM users
         WHERE admin_id = ? AND username LIKE ?
         LIMIT 5
-        `, [adminId, `%${searchTerm}%`]);
+        `, [adminId, `%${term}%`]);
 
         if (fetch.rows.length === 0) return { ok: false, searchComplete: true, arr: [], message: "No user found" };
 
@@ -33,18 +46,10 @@ export async function searchUser(_, searchTerm) {
         console.error(error);
         return { ok: false, searchComplete: false, arr: [], message: "Database error." };
     }
-
 }
-
-
-
-
-
-
 
 export async function fetchUserData(_, formData) {
     try {
-
         const currentUser = await getUser();
         if (!currentUser?.id) return { ok: false, searchComplete: false, arr: [], message: "You must be logged in" };
 
@@ -60,23 +65,33 @@ export async function fetchUserData(_, formData) {
         if (fetchUser.rows.length === 0) return { ok: false, message: "User details conflict" };
 
         const user = fetchUser.rows[0];
-        const plan_id = user.plan_id;
+        const planId = user.plan_id;
 
+        let planPublicId = "";
+        let speed = 2;
+        let fee = 500;
 
-        const fetchPlan = await db.execute(`SELECT * FROM plans WHERE id = ? AND admin_id = ?`, [plan_id, adminId]);
+        if (planId) {
+            const fetchPlan = await db.execute(
+                `SELECT * FROM plans WHERE id = ? AND admin_id = ?`,
+                [planId, adminId]
+            );
 
-        if (fetchPlan.rows.length === 0) return { ok: false, message: "Current user might not have a valid plan.Try again" };
-
-
+            if (fetchPlan.rows.length > 0) {
+                planPublicId = fetchPlan.rows[0].public_id;
+                speed = fetchPlan.rows[0].speed;
+                fee = fetchPlan.rows[0].rate;
+            }
+        }
 
         const userProperties = {
             public_id: user.public_id,
             username: user.username,
             password: user.password,
             contact: user.contact,
-            plan_public_id: fetchPlan.rows[0].public_id,
-            speed: fetchPlan.rows[0].speed,
-            fee: fetchPlan.rows[0].rate
+            plan_public_id: planPublicId,
+            speed,
+            fee,
         };
 
         return { ok: true, searchComplete: true, user: userProperties, message: "Search completed" };
@@ -86,73 +101,97 @@ export async function fetchUserData(_, formData) {
     }
 }
 
-
-
-
 export async function updateUser(_, formData) {
     try {
-
         const currentUser = await getUser();
         if (!currentUser?.id) return { ok: false, searchComplete: false, arr: [], message: "You must be logged in" };
 
         const adminId = currentUser.id;
 
+        const ipLimit = await redisIpLimit(15, "edit_user");
+        if (!ipLimit.ok) return ipLimit;
+
         const userPublicId = formData.get("user_public_id")?.toString().trim();
-        const username = formData.get("username")?.toString().trim();
-        const newUsername = formData.get("new_username")?.toString().trim() || username;
-        const password = formData.get("password")?.toString().trim() || null;
         const contactRaw = formData.get("contact")?.toString().trim();
 
-        if (!userPublicId || !username) return { ok: false, message: "Search term is broken" };
+        if (!userPublicId) return { ok: false, message: "Search term is broken" };
 
         let contact = 0;
         if (contactRaw) {
             contact = Number(contactRaw);
-            if (isNaN(contact) || contact <= 0) {
-                return { ok: false, message: "Contact must be a valid number" };
+            if (!Number.isFinite(contact) || contact <= 0) {
+                return { ok: false, searchComplete: false, message: "Contact must be a valid number" };
             }
         }
-        const oldPlanId = formData.get("old_plan_public_id")?.toString().trim();
-        const newPlanId = formData.get("new_plan_public_id")?.toString().trim() || oldPlanId;
-
-        const fetchUserId = await db.execute(`SELECT id FROM users WHERE public_id = ? AND admin_id = ? AND username = ?`, [userPublicId, adminId, username]);
+        const fetchUserId = await db.execute(`SELECT id, username, plan_id FROM users WHERE public_id = ? AND admin_id = ?`, [userPublicId, adminId]);
 
         if (fetchUserId.rows.length === 0) return { ok: false, searchComplete: false, message: "User details conflict" };
 
         const userId = fetchUserId.rows[0].id;
+        const currentUsername = fetchUserId.rows[0].username;
+        const currentPlanId = fetchUserId.rows[0].plan_id;
 
-        const fetchPlan = await db.execute(`SELECT * FROM plans WHERE public_id = ? AND admin_id = ?`, [newPlanId, adminId]);
+        const newUsername = normalizeUsername(formData.get("new_username")) || currentUsername;
 
-        if (fetchPlan.rows.length === 0) return { ok: false, searchComplete: false, message: "Select a valid plan" };
+        const passwordRaw = formData.get("password");
+        const password = passwordRaw === null ? null : passwordRaw.toString();
 
-        const planId = fetchPlan.rows[0].id;
+        const usernameError = validateUsername(newUsername);
+        if (usernameError) {
+            return { ok: false, searchComplete: false, message: usernameError };
+        }
 
+        const passwordError = validateOptionalPassword(password, "Password");
+        if (passwordError) {
+            return { ok: false, searchComplete: false, message: passwordError };
+        }
 
-        await db.execute(`UPDATE users SET username = ?, password = ?, contact = ?, plan_id = ? WHERE id = ? AND admin_id = ?`, [newUsername, password, contact, planId, userId, adminId]);
+        const finalPassword = password || null;
+
+        const newPlanPublicId = formData.get("new_plan_public_id")?.toString().trim();
+
+        let planIdToSave = currentPlanId ?? null;
+
+        if (newPlanPublicId) {
+            const fetchPlan = await db.execute(
+                `SELECT id FROM plans WHERE public_id = ? AND admin_id = ?`,
+                [newPlanPublicId, adminId]
+            );
+
+            if (fetchPlan.rows.length === 0) {
+                return { ok: false, searchComplete: false, message: "Select a valid plan" };
+            }
+
+            planIdToSave = fetchPlan.rows[0].id;
+        }
+
+        await db.execute(`UPDATE users SET username = ?, password = ?, contact = ?, plan_id = ? WHERE id = ? AND admin_id = ?`, [newUsername, finalPassword, contact, planIdToSave, userId, adminId]);
 
         return { ok: true, searchComplete: true, message: "User updated successfully" };
     } catch (error) {
         console.error(error);
+        if (error.message && error.message.includes("UNIQUE")) {
+            return {
+                ok: false,
+                searchComplete: false,
+                message: "Username already exists",
+            };
+        }
         return { ok: false, searchComplete: false, message: "Database error." };
     }
 }
 
-
-
-
-
-
-
 export async function removeUser(_, formData) {
     try {
-
         const currentUser = await getUser();
         if (!currentUser?.id) return { ok: false, message: "You must be logged in" };
 
         const adminId = currentUser.id;
 
-        const userPublicId = formData.get("user_public_id")?.toString().trim();
+        const ipLimit = await redisIpLimit(10, "remove_user");
+        if (!ipLimit.ok) return ipLimit;
 
+        const userPublicId = formData.get("user_public_id")?.toString().trim();
 
         if (!userPublicId) return { ok: false, message: "Search term is broken" };
 

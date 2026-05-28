@@ -4,35 +4,65 @@ import { db } from "@/app/lib/turso";
 import { getUser } from "../lib/getUser";
 import { hashPassword, verifyPassword } from "@/app/utils/hash";
 
+import {
+  normalizeUsername,
+  validateUsername,
+  validateAdminPassword,
+  validateOptionalAdminPassword,
+  validateEmail,
+} from "@/app/utils/validation";
+import { redisIpLimit } from "@/app/utils/redidIpLimit";
+
 export async function settingsServerAction(_, formData) {
     try {
         const currentUser = await getUser();
         if (!currentUser?.id) return { ok: false, message: "You must be logged in" };
 
-        const userPublicId = formData.get("public_id")?.toString().trim();
-        const username = formData.get("username")?.toString().trim() || null;
-        const email = formData.get("email")?.toString().trim() || null;
-        const password = formData.get("password")?.toString().trim() || null;
-        const newPassword = formData.get("new_password")?.toString().trim() || null;
+        const ipLimit = await redisIpLimit(10, "settings_update");
+        if (!ipLimit.ok) return ipLimit;
 
-        if (!username || !password) return { ok: false, message: "username and password are required" };
+        const userPublicId = formData.get("public_id")?.toString().trim();
+        const username = normalizeUsername(formData.get("username"));
+        const email = formData.get("email")?.toString().trim() || null;
+        const password = formData.get("password")?.toString();
+        const newPassword = formData.get("new_password")?.toString() || null;
+
+        const usernameError = validateUsername(username);
+        if (usernameError) {
+            return { ok: false, message: usernameError };
+        }
+
+        const emailError = validateEmail(email);
+        if (emailError) {
+            return { ok: false, message: emailError };
+        }
+
+        const passwordError = validateAdminPassword(password, "Current password");
+        if (passwordError) {
+            return { ok: false, message: passwordError };
+        }
+
+        const newPasswordError = validateOptionalAdminPassword(newPassword, "New password");
+        if (newPasswordError) {
+            return { ok: false, message: newPasswordError };
+        }
 
         if (currentUser.public_id !== userPublicId) return { ok: false, message: "User details conflict" };
 
         const fetchPass = await db.execute(`SELECT password FROM admins WHERE id = ?`, [currentUser.id]);
+        if (fetchPass.rows.length === 0) {
+            return { ok: false, message: "Account not found" };
+        }
         const currentPassword = fetchPass.rows[0].password;
 
         if (!verifyPassword(password, currentPassword)) return { ok: false, message: "Incorrect password" };
 
+        await db.execute(`UPDATE admins SET username = ?, email = ? WHERE id = ?`, [username, email, currentUser.id]);
+
         if (newPassword) {
-            if (newPassword.length < 6) {
-                return { ok: false, message: "New password must be at least 6 characters long" };
-            }
             const hashedPassword = hashPassword(newPassword);
             await db.execute(`UPDATE admins SET password = ? WHERE id = ?`, [hashedPassword, currentUser.id]);
         }
-
-        await db.execute(`UPDATE admins SET username = ?, email = ? WHERE id = ?`, [username, email, currentUser.id]);
 
         return { ok: true, message: "Settings updated successfully" };
 

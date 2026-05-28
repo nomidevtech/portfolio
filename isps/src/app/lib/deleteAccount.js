@@ -6,6 +6,8 @@ import { db } from "@/app/lib/turso";
 import { cookies } from "next/headers";
 import { redisIpLimit } from "../utils/redidIpLimit";
 
+import { verifyPassword } from "../utils/hash";
+
 export async function deleteAccount(_, formData) {
     try {
 
@@ -14,16 +16,18 @@ export async function deleteAccount(_, formData) {
 
 
 
-        const password = formData?.get('password');
+        const password = formData?.get('password')?.toString();
         if (!password) return { ok: false, message: "Password is required." };
 
         const currentUser = await getUser();
         if (!currentUser?.id) return { ok: false, message: "You must be logged in to delete your account." };
 
         const fetchPass = await db.execute(`SELECT password FROM admins WHERE id = ?`, [currentUser.id]);
+        if (fetchPass.rows.length === 0) {
+            return { ok: false, message: "Account not found" };
+        }
         const currentPassword = fetchPass.rows[0].password;
 
-        const { verifyPassword } = require("../utils/hash");
         if (!verifyPassword(password, currentPassword)) return { ok: false, message: "Incorrect password." };
 
 

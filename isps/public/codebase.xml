@@ -1,0 +1,3311 @@
+This file is a merged representation of the entire codebase, combined into a single document by Repomix.
+The content has been processed where comments have been removed, empty lines have been removed.
+
+<file_summary>
+This section contains a summary of this file.
+
+<purpose>
+This file contains a packed representation of the entire repository's contents.
+It is designed to be easily consumable by AI systems for analysis, code review,
+or other automated processes.
+</purpose>
+
+<file_format>
+The content is organized as follows:
+1. This summary section
+2. Repository information
+3. Directory structure
+4. Repository files (if enabled)
+5. Multiple file entries, each consisting of:
+  - File path as an attribute
+  - Full contents of the file
+</file_format>
+
+<usage_guidelines>
+- This file should be treated as read-only. Any changes should be made to the
+  original repository files, not this packed version.
+- When processing this file, use the file path to distinguish
+  between different files in the repository.
+- Be aware that this file may contain sensitive information. Handle it with
+  the same level of security as you would the original repository.
+</usage_guidelines>
+
+<notes>
+- Some files may have been excluded based on .gitignore rules and Repomix's configuration
+- Binary files are not included in this packed representation. Please refer to the Repository Structure section for a complete list of file paths, including binary files
+- Files matching patterns in .gitignore are excluded
+- Files matching default ignore patterns are excluded
+- Code comments have been removed from supported file types
+- Empty lines have been removed from all files
+- Files are sorted by Git change count (files with more changes are at the bottom)
+</notes>
+
+</file_summary>
+
+<directory_structure>
+(auth)/delete_account/Client.jsx
+(auth)/delete_account/page.jsx
+(auth)/login/Client.jsx
+(auth)/login/loginSA.js
+(auth)/login/page.jsx
+(auth)/signup/page.jsx
+(auth)/signup/signupSA.js
+(auth)/signup/SUCC.jsx
+add-user/AddUserClient.jsx
+add-user/addUserSA.js
+add-user/loading.jsx
+add-user/page.jsx
+components/nav-bar/Client.jsx
+components/nav-bar/index.jsx
+components/side-navigation.jsx
+dashboard/ClientDashboard.jsx
+dashboard/fetchSA.js
+dashboard/loading.jsx
+dashboard/page.jsx
+edit-user/ClientEditUser.jsx
+edit-user/edit-userSA.js
+edit-user/loading.jsx
+edit-user/MiddleClient.jsx
+edit-user/page.jsx
+favicon.ico
+fee-submit/Child.jsx
+fee-submit/feeSubmitSA.js
+fee-submit/loading.jsx
+fee-submit/MiddleClient.jsx
+fee-submit/page.jsx
+globals.css
+layout.js
+lib/checkAdminNameSA.js
+lib/checkUsernameSA.js
+lib/deleteAccount.js
+lib/getUser.js
+lib/logout.js
+lib/redis.js
+lib/turso.js
+lib/update-records.js
+models/table-inits.js
+page.js
+plans/ClientPlans.jsx
+plans/loading.jsx
+plans/page.jsx
+plans/plansSA.js
+settings/ClientSettings.jsx
+settings/loading.jsx
+settings/page.jsx
+settings/settingsSA.js
+utils/hash.js
+utils/redidIpLimit.js
+utils/validation.js
+</directory_structure>
+
+<files>
+This section contains the contents of the repository's files.
+
+<file path="(auth)/delete_account/Client.jsx">
+'use client';
+import { deleteAccount } from "@/app/lib/deleteAccount";
+import Form from "next/form";
+import { useActionState, useEffect, useState } from "react";
+export default function DeleteClient() {
+    const initialState = { ok: null, message: "" };
+    const [state, formAction, isPending] = useActionState(deleteAccount, initialState);
+    const [serverMessage, setServerMessage] = useState('');
+    useEffect(() => {
+        if (state.ok === false) setServerMessage(state.message);
+    }, [state]);
+    return (
+        <div className="max-w-lg mx-auto px-4 py-8">
+            <div className="mb-6">
+                <h1 className="text-xl font-bold text-gray-900">Delete Account</h1>
+                <p className="text-sm text-gray-500 mt-1">This action cannot be undone</p>
+            </div>
+            <div className="bg-red-50 border border-red-200 rounded-2xl p-5 mb-6">
+                <div className="flex gap-3">
+                    <span className="text-red-500 mt-0.5 shrink-0">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-5 h-5">
+                            <circle cx="12" cy="12" r="10" />
+                            <line x1="12" y1="8" x2="12" y2="12" />
+                            <line x1="12" y1="16" x2="12.01" y2="16" />
+                        </svg>
+                    </span>
+                    <p className="text-sm text-red-700">
+                        This action is irreversible. You will have to create a new account to continue using our services.
+                    </p>
+                </div>
+            </div>
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+                <Form action={formAction} className="flex flex-col gap-4">
+                    <div className="flex flex-col gap-1.5">
+                        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                            Confirm Password
+                        </label>
+                        <input
+                            type="password"
+                            name="password"
+                            placeholder="Enter your password to confirm"
+                            className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900 placeholder-gray-400 bg-white focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all"
+                        />
+                    </div>
+                    {serverMessage && (
+                        <p className="text-sm px-4 py-3 rounded-xl border text-red-600 bg-red-50 border-red-200">
+                            {serverMessage}
+                        </p>
+                    )}
+                    <button
+                        type="submit"
+                        disabled={isPending}
+                        className="w-full bg-red-500 text-white rounded-xl py-3 text-sm font-semibold hover:bg-red-600 active:bg-red-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                    >
+                        {isPending ? "Deleting…" : "Delete Account"}
+                    </button>
+                </Form>
+            </div>
+        </div>
+    );
+}
+</file>
+
+<file path="(auth)/delete_account/page.jsx">
+import { getUser } from "@/app/lib/getUser";
+import DeleteClient from "./Client";
+import { redirect } from "next/navigation";
+export const metadata = {
+    title: "Delete Account - NetAdmin",
+    description: "Permanently remove your NetAdmin account.",
+};
+export default async function DeleteAccount() {
+    const currentUser = await getUser();
+    if (!currentUser?.id) redirect("/login");
+    return (
+        <DeleteClient />
+    );
+}
+</file>
+
+<file path="(auth)/login/Client.jsx">
+"use client";
+import Form from "next/form";
+import { loginSA } from "./loginSA";
+import { useActionState } from "react";
+export default function Client() {
+    const initialState = { ok: null, message: "" };
+    const [state, formAction, isPending] = useActionState(loginSA, initialState);
+    return (
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4 py-12">
+            <div className="w-full max-w-sm">
+                <div className="text-center mb-8">
+                    <h1 className="text-2xl font-bold text-gray-900">Welcome back</h1>
+                    <p className="text-sm text-gray-500 mt-1">Sign in to your NetAdmin account</p>
+                </div>
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+                    <Form action={formAction} className="flex flex-col gap-4">
+                        <div className="flex flex-col gap-1.5">
+                            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                                Username
+                            </label>
+                            <input
+                                name="username"
+                                type="text"
+                                placeholder="your_username"
+                                required
+                                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900 placeholder-gray-400 bg-white focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent transition-all"
+                            />
+                        </div>
+                        <div className="flex flex-col gap-1.5">
+                            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                                Password
+                            </label>
+                            <input
+                                name="password"
+                                type="password"
+                                placeholder="••••••••"
+                                required
+                                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900 placeholder-gray-400 bg-white focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent transition-all"
+                            />
+                        </div>
+                        {state.message && (
+                            <p className={`text-sm px-4 py-3 rounded-xl border ${
+                                state.ok
+                                    ? "text-green-700 bg-green-50 border-green-200"
+                                    : "text-red-600 bg-red-50 border-red-200"
+                            }`}>
+                                {state.ok ? "Login successful! Redirecting…" : state.message}
+                            </p>
+                        )}
+                        <button
+                            type="submit"
+                            disabled={isPending}
+                            className="w-full bg-gray-900 text-white rounded-xl py-3 text-sm font-semibold hover:bg-gray-700 active:bg-gray-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors mt-1"
+                        >
+                            {isPending ? "Signing in…" : "Sign in"}
+                        </button>
+                    </Form>
+                </div>
+                <p className="text-sm text-gray-500 text-center mt-6">
+                    Don't have an account?{" "}
+                    <a href="/signup" className="font-semibold text-gray-900 hover:underline">
+                        Sign up
+                    </a>
+                </p>
+            </div>
+        </div>
+    );
+}
+</file>
+
+<file path="(auth)/login/loginSA.js">
+"use server";
+import crypto from "crypto";
+import { db } from "@/app/lib/turso";
+import { cookies, headers } from "next/headers";
+import { redis } from "@/app/lib/redis";
+import { redirect } from "next/navigation";
+import { initSessionsTable } from "@/app/models/table-inits";
+import { verifyPassword } from "@/app/utils/hash";
+import { normalizeUsername } from "@/app/utils/validation";
+export async function loginSA(_, formData) {
+    try {
+        const username = normalizeUsername(formData.get("username"));
+        const password = formData.get("password")?.toString();
+        if (!username) {
+            return { ok: false, message: "Username or email required" };
+        }
+        if (!password) {
+            return { ok: false, message: "Password required" };
+        }
+        const headerStore = await headers();
+        const rawIp = headerStore.get("x-forwarded-for");
+        const ip = rawIp?.split(",")[0].trim() || '127.0.0.1';
+        const maxAttempts = 5;
+        const blockTime = 60 * 15;
+        const key = `login:attempt:${ip}`;
+        const currentAttempts = parseInt(await redis.get(key)) || 0;
+        if (currentAttempts >= maxAttempts) return { ok: false, message: `Too many attempts. Try again in 15 minutes` };
+        const result = await db.execute(
+            `SELECT id, password
+             FROM admins
+             WHERE username = ?
+             LIMIT 1`,
+            [username]
+        );
+        if (result.rows.length === 0) {
+            const attempts = await redis.incr(key);
+            if (attempts === 1) {
+                await redis.expire(key, blockTime);
+            }
+            return {
+                ok: false,
+                message: `Invalid username or password. ${maxAttempts - attempts} attempts left`
+            };
+        }
+        const user = result.rows[0];
+        const userId = user.id;
+        const loginPassword = user.password;
+        const isPasswordValid = verifyPassword(password, loginPassword);
+        if (!isPasswordValid) {
+            const attempts = await redis.incr(key);
+            if (attempts === 1) {
+                await redis.expire(key, blockTime);
+            }
+            return {
+                ok: false,
+                message: `Invalid username or password. ${maxAttempts - attempts} attempts left`
+            };
+        }
+        await redis.del(key);
+        const sessionToken =
+            crypto.randomBytes(32).toString("hex");
+        const expiresAt = Date.now() + 1000 * 60 * 60 * 24 * 14;
+        await initSessionsTable();
+        await db.execute(
+            `INSERT INTO sessions (session_id, admin_id, expires_at)
+             VALUES (?, ?, ?)`,
+            [sessionToken, userId, expiresAt]
+        );
+        const cookieStore = await cookies();
+        cookieStore.set("isp-token", sessionToken, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === "production",
+            sameSite: "lax",
+            path: "/",
+            maxAge: 60 * 60 * 24 * 14
+        });
+    } catch (error) {
+        console.error(error);
+        return {
+            ok: false,
+            message: "Internal server error"
+        };
+    }
+    redirect("/");
+}
+</file>
+
+<file path="(auth)/login/page.jsx">
+import Client from "./Client";
+import { getUser } from "@/app/lib/getUser";
+import { redirect } from "next/navigation";
+export const metadata = {
+    title: "Login - NetAdmin",
+    description: "Access your ISP administrator dashboard.",
+};
+export default async function Login() {
+    const currentUser = await getUser();
+    if (currentUser?.id) return redirect("/settings");
+    return <Client />
+}
+</file>
+
+<file path="(auth)/signup/page.jsx">
+import { getUser } from "@/app/lib/getUser";
+import SignUpClientComponent from "./SUCC";
+import { redirect } from "next/navigation";
+import { initAdminsTable, initBilling_transactionsTable, initPlansTable, initSessionsTable, initUsersTable } from "@/app/models/table-inits";
+export const metadata = {
+    title: "Sign Up - NetAdmin",
+    description: "Create a new ISP administrator dashboard account.",
+};
+export default async function SignUp() {
+    await initAdminsTable();
+    await initSessionsTable();
+    await initPlansTable();
+    await initUsersTable();
+    await initBilling_transactionsTable();
+    const currentUser = await getUser();
+    if (currentUser?.id) return redirect("/settings");
+    return (
+        <SignUpClientComponent />
+    );
+}
+</file>
+
+<file path="(auth)/signup/signupSA.js">
+"use server";
+import { nanoid } from "nanoid";
+import { db } from "@/app/lib/turso";
+import { redirect } from "next/navigation";
+import { redisIpLimit } from "@/app/utils/redidIpLimit";
+import { hashPassword } from "@/app/utils/hash";
+import {
+  normalizeUsername,
+  validateUsername,
+  validateAdminPassword,
+} from "@/app/utils/validation";
+export async function signuptServerAction(_, formData) {
+    const username = normalizeUsername(formData.get("username"));
+    const password = formData.get("password")?.toString();
+    const confirmPassword = formData.get("confirmPassword")?.toString();
+    const usernameError = validateUsername(username);
+    if (usernameError) {
+      return { ok: false, message: usernameError };
+    }
+    const passwordError = validateAdminPassword(password);
+    if (passwordError) {
+      return { ok: false, message: passwordError };
+    }
+    if (password !== confirmPassword) {
+      return { ok: false, message: "Passwords do not match" };
+    }
+    const ipLimit = await redisIpLimit(5, 'signup_check');
+    if (!ipLimit.ok) return ipLimit;
+    try {
+        const user_pid = nanoid(12);
+        const hashedPassword = hashPassword(password);
+        const result = await db.execute(`
+            INSERT INTO admins (public_id, username, password)
+            VALUES (?, ?, ?)
+        `, [user_pid, username, hashedPassword]);
+        if (result.rowsAffected === 0) {
+            return { ok: false, message: 'Something went wrong' };
+        }
+    } catch (error) {
+        console.error(error);
+        if (error.message && error.message.includes("UNIQUE")) {
+            return { ok: false, message: 'Username already in use' };
+        }
+        return { ok: false, message: 'something went wrong while signing up' };
+    }
+    redirect('/login');
+}
+</file>
+
+<file path="(auth)/signup/SUCC.jsx">
+'use client'
+import { startTransition, useActionState } from "react"
+import Form from "next/form"
+import { signuptServerAction } from "./signupSA"
+import { checkAdminNameServerAction } from "@/app/lib/checkAdminNameSA";
+export default function SignUpClientComponent() {
+    const initialState = { ok: null, message: "" };
+    const [submitState, submitAction, submitPending] = useActionState(signuptServerAction, initialState);
+    const [usernameState, usernameAction, usernamePending] = useActionState(checkAdminNameServerAction, null);
+    return (
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4 py-12">
+            <div className="w-full max-w-sm">
+                <div className="text-center mb-8">
+                    <h1 className="text-2xl font-bold text-gray-900">Create account</h1>
+                    <p className="text-sm text-gray-500 mt-1">Set up your admin account</p>
+                </div>
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+                    <Form action={submitAction} className="flex flex-col gap-4">
+                        <div className="flex flex-col gap-1.5">
+                            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                                Username
+                            </label>
+                            <input
+                                name="username"
+                                type="text"
+                                placeholder="john_doe"
+                                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900 placeholder-gray-400 bg-white focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent transition-all"
+                                onBlur={(e) => startTransition(() => usernameAction(e.target.value))}
+                            />
+                            {usernamePending && (
+                                <p className="text-xs text-gray-400">Checking availability…</p>
+                            )}
+                            {usernameState?.message && (
+                                <p className={`text-sm px-3 py-2 rounded-xl border ${
+                                    usernameState.ok
+                                        ? "text-green-700 bg-green-50 border-green-200"
+                                        : "text-red-600 bg-red-50 border-red-200"
+                                }`}>
+                                    {usernameState.message}
+                                </p>
+                            )}
+                        </div>
+                        <div className="flex flex-col gap-1.5">
+                            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                                Password
+                            </label>
+                            <input
+                                name="password"
+                                type="password"
+                                placeholder="••••••••"
+                                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900 placeholder-gray-400 bg-white focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent transition-all"
+                            />
+                        </div>
+                        <div className="flex flex-col gap-1.5">
+                            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                                Confirm Password
+                            </label>
+                            <input
+                                name="confirmPassword"
+                                type="password"
+                                placeholder="••••••••"
+                                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900 placeholder-gray-400 bg-white focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent transition-all"
+                            />
+                        </div>
+                        {submitState?.message && (
+                            <p className="text-sm px-4 py-3 rounded-xl border text-red-600 bg-red-50 border-red-200">
+                                {submitState.message}
+                            </p>
+                        )}
+                        <button
+                            type="submit"
+                            disabled={submitPending}
+                            className="w-full bg-gray-900 text-white rounded-xl py-3 text-sm font-semibold hover:bg-gray-700 active:bg-gray-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors mt-1"
+                        >
+                            {submitPending ? "Creating account…" : "Create account"}
+                        </button>
+                    </Form>
+                </div>
+                <p className="text-sm text-gray-500 text-center mt-6">
+                    Already have an account?{" "}
+                    <a href="/login" className="font-semibold text-gray-900 hover:underline">
+                        Sign in
+                    </a>
+                </p>
+            </div>
+        </div>
+    )
+}
+</file>
+
+<file path="add-user/AddUserClient.jsx">
+'use client';
+import Form from "next/form";
+import { startTransition, useActionState, useEffect, useRef } from "react";
+import { addUserServerAction } from "./addUserSA";
+import { checkUsernameServerAction } from "../lib/checkUsernameSA";
+export default function AddUserClient({ plans = [] }) {
+    const initialState = { ok: null, username: null, message: "" };
+    const [state, action, isPending] = useActionState(addUserServerAction, initialState);
+    const [stateUsername, actionUsername] = useActionState(checkUsernameServerAction, initialState);
+    const formRef = useRef(null);
+    useEffect(() => {
+        if (state.ok === true && formRef.current) {
+            formRef.current.reset();
+        }
+    }, [state]);
+    return (
+        <div className="max-w-lg mx-auto px-4 py-6">
+            <div className="mb-6">
+                <h1 className="text-xl font-bold text-gray-900">Add User</h1>
+                <p className="text-sm text-gray-500 mt-0.5">Register a new ISP subscriber</p>
+            </div>
+            {state.message && (
+                <p className={`text-sm px-4 py-3 rounded-xl border mb-4 ${
+                    state.ok
+                        ? "text-green-700 bg-green-50 border-green-200"
+                        : "text-red-600 bg-red-50 border-red-200"
+                }`}>
+                    {state.message}
+                </p>
+            )}
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+                <Form ref={formRef} action={action} className="flex flex-col gap-4">
+                    <div className="flex flex-col gap-1.5">
+                        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                            Username <span className="text-red-400">*</span>
+                        </label>
+                        <input
+                            name="username"
+                            type="text"
+                            placeholder="e.g. john_doe"
+                            className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900 placeholder-gray-400 bg-white focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent transition-all"
+                            onBlur={(e) => {
+                                const val = e.target.value.trim();
+                                if (val) startTransition(() => actionUsername(val));
+                            }}
+                        />
+                        {stateUsername.message && (
+                            <p className={`text-xs px-3 py-2 rounded-lg border ${
+                                stateUsername.ok
+                                    ? "text-green-700 bg-green-50 border-green-200"
+                                    : "text-red-600 bg-red-50 border-red-200"
+                            }`}>
+                                {stateUsername.message}
+                            </p>
+                        )}
+                    </div>
+                    <div className="flex flex-col gap-1.5">
+                        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                            Password <span className="text-gray-400 font-normal normal-case">(optional)</span>
+                        </label>
+                        <input
+                            type="password"
+                            name="password"
+                            placeholder="Leave blank to auto-generate"
+                            className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900 placeholder-gray-400 bg-white focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent transition-all"
+                        />
+                    </div>
+                    <div className="flex flex-col gap-1.5">
+                        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                            Contact <span className="text-gray-400 font-normal normal-case">(optional)</span>
+                        </label>
+                        <input
+                            type="number"
+                            name="contact"
+                            placeholder="Phone number"
+                            className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900 placeholder-gray-400 bg-white focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent transition-all"
+                        />
+                    </div>
+                    <div className="flex flex-col gap-1.5">
+                        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                            Plan <span className="text-red-400">*</span>
+                        </label>
+                        <select
+                            name="plan_public_id"
+                            defaultValue=""
+                            className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent transition-all"
+                        >
+                            <option value="" disabled>Select a plan</option>
+                            {plans.map((plan) => (
+                                <option key={plan.public_id} value={plan.public_id}>
+                                    {plan.speed} Mbps — Rs {plan.fee}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+                    <button
+                        type="submit"
+                        disabled={isPending}
+                        className="w-full bg-gray-900 text-white rounded-xl py-3 text-sm font-semibold hover:bg-gray-700 active:bg-gray-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors mt-1"
+                    >
+                        {isPending ? "Adding…" : "Add User"}
+                    </button>
+                </Form>
+            </div>
+        </div>
+    );
+}
+</file>
+
+<file path="add-user/addUserSA.js">
+"use server";
+import crypto from "crypto";
+import { db } from "@/app/lib/turso";
+import { nanoid } from "nanoid";
+import { getUser } from "../lib/getUser";
+import {
+  normalizeUsername,
+  validateUsername,
+  validateOptionalPassword,
+} from "@/app/utils/validation";
+import { redisIpLimit } from "@/app/utils/redidIpLimit";
+export async function addUserServerAction(_, formData) {
+    const currentUser = await getUser();
+    if (!currentUser?.id) return { ok: false, message: "You must be logged in" };
+    const ipLimit = await redisIpLimit(10, "add_user");
+    if (!ipLimit.ok) return ipLimit;
+    try {
+        const username = normalizeUsername(formData.get("username"));
+        const planPublicId = formData.get("plan_public_id")?.toString().trim();
+        let password = formData.get("password")?.toString() || null;
+        const contactRaw = formData.get("contact")?.toString().trim();
+        if (!planPublicId) {
+            return { ok: false, message: "Plan is required" };
+        }
+        const usernameError = validateUsername(username);
+        if (usernameError) {
+            return { ok: false, message: usernameError };
+        }
+        const passwordError = validateOptionalPassword(password, "Password");
+        if (passwordError) {
+            return { ok: false, message: passwordError };
+        }
+        let contact = 0;
+        if (contactRaw) {
+            contact = Number(contactRaw);
+            if (!Number.isFinite(contact) || contact <= 0) {
+                return { ok: false, message: "Contact must be a valid number" };
+            }
+        }
+        if (!password) {
+            password = crypto.randomBytes(6).toString("hex");
+        }
+        const adminId = currentUser.id;
+        const fetchPlanDetails = await db.execute(`SELECT id FROM plans WHERE admin_id = ? AND public_id = ?`, [adminId, planPublicId]);
+        if (fetchPlanDetails.rows.length === 0) {
+            return { ok: false, message: "Select a valid plan" };
+        }
+        const planId = fetchPlanDetails.rows[0].id;
+        const result = await db.execute(
+            `INSERT INTO users (public_id, admin_id, username, password, contact, plan_id)
+                VALUES (?, ?, ?, ?, ?, ?)`,
+            [nanoid(12), adminId, username, password, contact, planId]
+        );
+        if (result.rowsAffected === 0) return { ok: false, message: "Error adding user" };
+        return { ok: true, message: "User added successfully" };
+    } catch (error) {
+        console.error(error);
+        if (error.message && error.message.includes("UNIQUE")) {
+            return { ok: false, message: "Username already exists" };
+        }
+        return { ok: false, message: "Error adding user" };
+    }
+}
+</file>
+
+<file path="add-user/loading.jsx">
+export default function AddUserLoading() {
+    return (
+        <div className="max-w-lg mx-auto px-4 py-6 animate-pulse">
+            {}
+            <div className="mb-6">
+                <div className="h-6 w-28 bg-gray-200 rounded-lg mb-2" />
+                <div className="h-4 w-52 bg-gray-100 rounded-lg" />
+            </div>
+            {}
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+                <div className="flex flex-col gap-5">
+                    {}
+                    <div>
+                        <div className="h-3 w-20 bg-gray-200 rounded mb-2" />
+                        <div className="h-12 bg-gray-100 rounded-xl" />
+                    </div>
+                    {}
+                    <div>
+                        <div className="h-3 w-12 bg-gray-200 rounded mb-2" />
+                        <div className="h-12 bg-gray-100 rounded-xl" />
+                    </div>
+                    {}
+                    <div>
+                        <div className="h-3 w-24 bg-gray-200 rounded mb-2" />
+                        <div className="h-12 bg-gray-100 rounded-xl" />
+                    </div>
+                    {}
+                    <div>
+                        <div className="h-3 w-20 bg-gray-200 rounded mb-2" />
+                        <div className="h-12 bg-gray-100 rounded-xl" />
+                    </div>
+                    {}
+                    <div className="h-12 bg-gray-200 rounded-xl mt-1" />
+                </div>
+            </div>
+        </div>
+    );
+}
+</file>
+
+<file path="add-user/page.jsx">
+import { db } from "@/app/lib/turso";
+import AddUserClient from "./AddUserClient";
+import { getUser } from "../lib/getUser";
+import { redirect } from "next/navigation";
+export const metadata = {
+    title: "Register Subscriber - NetAdmin",
+    description: "Add a new internet client to your network registry.",
+};
+export default async function AddUser() {
+    const currentUser = await getUser();
+    if (!currentUser?.id) redirect("/login");
+    const fetchCurrentPlans = await db.execute(`SELECT public_id, speed, rate AS fee FROM plans WHERE admin_id = ?`, [currentUser.id]);
+    const currentPlans = fetchCurrentPlans.rows.map(row => ({
+        public_id: row.public_id,
+        speed: Number(row.speed),
+        fee: Number(row.fee)
+    })) || [];
+    return (
+        <AddUserClient plans={currentPlans} />
+    );
+}
+</file>
+
+<file path="components/nav-bar/Client.jsx">
+import { logout } from "@/app/lib/logout";
+import Form from "next/form";
+import Link from "next/link";
+export default function NavBarClient({ isLoggedIn, username }) {
+    return (
+        <header className="fixed top-0 left-0 right-0 z-40 h-14 bg-white border-b border-gray-100 flex items-center justify-between px-4">
+            <Link href="/dashboard" className="text-base font-bold text-gray-900 tracking-tight">
+                NetAdmin
+            </Link>
+            <div className="flex items-center gap-3">
+                {isLoggedIn && username && (
+                    <span className="hidden sm:inline text-xs font-medium text-gray-500 bg-gray-100 rounded-full px-3 py-1">
+                        @{username}
+                    </span>
+                )}
+                {isLoggedIn ? (
+                    <Form action={logout}>
+                        <button
+                            type="submit"
+                            className="text-xs font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200 active:bg-gray-300 rounded-lg px-3 py-2 transition-colors"
+                        >
+                            Logout
+                        </button>
+                    </Form>
+                ) : (
+                    <Link
+                        href="/login"
+                        className="text-xs font-semibold text-white bg-gray-900 hover:bg-gray-700 rounded-lg px-3 py-2 transition-colors"
+                    >
+                        Login
+                    </Link>
+                )}
+            </div>
+        </header>
+    );
+}
+</file>
+
+<file path="components/nav-bar/index.jsx">
+import NavBarClient from "./Client";
+import { getUser } from "@/app/lib/getUser";
+export default async function NavBar() {
+    const currentUser = await getUser();
+    const isLoggedIn = currentUser?.id ? true : false;
+    const username = currentUser?.username ? currentUser.username : null;
+    return (
+        <>
+            <NavBarClient isLoggedIn={isLoggedIn} username={username} />
+        </>
+    );
+}
+</file>
+
+<file path="components/side-navigation.jsx">
+"use client";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+const navLinks = [
+    {
+        label: "Dashboard",
+        href: "/dashboard",
+        icon: (
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-5 h-5">
+                <rect x="3" y="3" width="7" height="7" rx="1" />
+                <rect x="14" y="3" width="7" height="7" rx="1" />
+                <rect x="3" y="14" width="7" height="7" rx="1" />
+                <rect x="14" y="14" width="7" height="7" rx="1" />
+            </svg>
+        ),
+    },
+    {
+        label: "Fees",
+        href: "/fee-submit",
+        icon: (
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-5 h-5">
+                <circle cx="12" cy="12" r="9" />
+                <path d="M14.5 9a2.5 2.5 0 0 0-5 0v1h5V9z" />
+                <path d="M9.5 10v4a2.5 2.5 0 0 0 5 0v-4" />
+                <line x1="12" y1="6" x2="12" y2="3" />
+                <line x1="12" y1="18" x2="12" y2="21" />
+            </svg>
+        ),
+    },
+    {
+        label: "Add",
+        href: "/add-user",
+        icon: (
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-5 h-5">
+                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                <circle cx="9" cy="7" r="4" />
+                <line x1="19" y1="8" x2="19" y2="14" />
+                <line x1="16" y1="11" x2="22" y2="11" />
+            </svg>
+        ),
+    },
+    {
+        label: "Edit",
+        href: "/edit-user",
+        icon: (
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-5 h-5">
+                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+            </svg>
+        ),
+    },
+    {
+        label: "Plans",
+        href: "/plans",
+        icon: (
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-5 h-5">
+                <path d="M9 11l3 3L22 4" />
+                <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
+            </svg>
+        ),
+    },
+    {
+        label: "Settings",
+        href: "/settings",
+        icon: (
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-5 h-5">
+                <circle cx="12" cy="12" r="3" />
+                <path d="M12 2v3M12 19v3M4.22 4.22l2.12 2.12M17.66 17.66l2.12 2.12M2 12h3M19 12h3M4.22 19.78l2.12-2.12M17.66 6.34l2.12-2.12" />
+            </svg>
+        ),
+    },
+];
+export default function Sidebar() {
+    const pathname = usePathname();
+    return (
+        <>
+            {}
+            <aside className="hidden md:flex flex-col w-52 shrink-0 bg-white border-r border-gray-100 min-h-[calc(100vh-56px)] sticky top-14">
+                <nav className="flex flex-col gap-0.5 p-3 pt-4">
+                    {navLinks.map((link) => {
+                        const isActive = pathname === link.href;
+                        return (
+                            <Link
+                                key={link.href}
+                                href={link.href}
+                                className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors ${
+                                    isActive
+                                        ? "bg-gray-900 text-white"
+                                        : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+                                }`}
+                            >
+                                {link.icon}
+                                {link.label}
+                            </Link>
+                        );
+                    })}
+                </nav>
+            </aside>
+            {}
+            <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-gray-100 flex items-stretch h-16">
+                {navLinks.map((link) => {
+                    const isActive = pathname === link.href;
+                    return (
+                        <Link
+                            key={link.href}
+                            href={link.href}
+                            className={`flex flex-col items-center justify-center flex-1 gap-0.5 text-[10px] font-semibold transition-colors ${
+                                isActive ? "text-gray-900" : "text-gray-400"
+                            }`}
+                        >
+                            <span className={`p-1 rounded-lg ${isActive ? "bg-gray-900 text-white" : ""}`}>
+                                {link.icon}
+                            </span>
+                            {link.label}
+                        </Link>
+                    );
+                })}
+            </nav>
+        </>
+    );
+}
+</file>
+
+<file path="dashboard/ClientDashboard.jsx">
+'use client'
+import { useActionState, useState } from "react";
+import { fetchStatsServerAction } from "./fetchSA";
+import Form from "next/form";
+function StatCard({ label, value, accent }) {
+    return (
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">{label}</p>
+            <p className={`text-2xl font-bold ${accent || "text-gray-900"}`}>{value ?? "—"}</p>
+        </div>
+    );
+}
+const STATUS_STYLES = {
+    green: { badge: "bg-green-50 text-green-700 border-green-200", row: "bg-green-50/60 border-green-100" },
+    yellow: { badge: "bg-yellow-50 text-yellow-700 border-yellow-200", row: "bg-yellow-50/60 border-yellow-100" },
+    red: { badge: "bg-red-50 text-red-700 border-red-200", row: "bg-red-50/60 border-red-100" },
+};
+function StatusBadge({ label, count, color, users = [] }) {
+    const [open, setOpen] = useState(false);
+    const styles = STATUS_STYLES[color];
+    const hasUsers = users.length > 0;
+    return (
+        <div className={`rounded-xl border overflow-hidden ${styles.badge}`}>
+            <button
+                type="button"
+                onClick={() => hasUsers && setOpen(prev => !prev)}
+                className={`w-full flex items-center justify-between px-4 py-3 transition-opacity ${hasUsers ? "cursor-pointer" : "cursor-default"}`}
+            >
+                <span className="text-sm font-medium capitalize">{label}</span>
+                <div className="flex items-center gap-2">
+                    <span className="text-sm font-bold">{count ?? 0}</span>
+                    {hasUsers && (
+                        <svg
+                            className={`w-4 h-4 transition-transform duration-200 ${open ? "rotate-180" : ""}`}
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                            strokeWidth={2.5}
+                        >
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                        </svg>
+                    )}
+                </div>
+            </button>
+            {open && hasUsers && (
+                <div className={`border-t ${styles.badge} divide-y divide-current/10`}>
+                    <div className={`grid grid-cols-5 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wide opacity-60`}>
+                        <span className="col-span-2">Username</span>
+                        <span className="text-right">Due</span>
+                        <span className="text-right">Paid</span>
+                        <span className="text-right">Rem</span>
+                    </div>
+                    {users.map((user, i) => (
+                        <div key={i} className={`grid grid-cols-5 px-3 py-2 text-[11px] ${styles.row}`}>
+                            <span className="col-span-2 font-medium truncate pr-1">{user.username}</span>
+                            <span className="text-right opacity-80 tabular-nums">{user.amount_due}</span>
+                            <span className="text-right font-semibold tabular-nums">{user.amount_paid}</span>
+                            <span className="text-right font-semibold tabular-nums">{user.remaining_fee}</span>
+                        </div>
+                    ))}
+                </div>
+            )}
+        </div>
+    );
+}
+export default function ClientDashboard({ initialData, yearsArr = [], monthsArr = [], usersByFeeStatus = {} }) {
+    const [state, action, isPending] = useActionState(fetchStatsServerAction, initialData);
+    const { stats, message } = state;
+    const isInitialLoad = state === initialData;
+    const users = state.usersByFeeStatus ?? (isInitialLoad ? usersByFeeStatus : {});
+    const currentMonthIndex = new Date().getMonth();
+    const defaultMonth = monthsArr[currentMonthIndex] ?? "";
+    const currentYear = new Date().getFullYear();
+    const defaultYear = yearsArr.includes(currentYear) ? currentYear : (yearsArr[0] ?? currentYear);
+    return (
+        <div className="max-w-lg mx-auto px-4 py-6">
+            <div className="mb-6">
+                <h1 className="text-xl font-bold text-gray-900">Dashboard</h1>
+                <p className="text-sm text-gray-500 mt-0.5">Monthly billing overview</p>
+            </div>
+            {}
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 mb-6">
+                <Form action={action} className="flex gap-2.5">
+                    <select
+                        name="month"
+                        defaultValue={defaultMonth}
+                        required
+                        className="flex-1 border border-gray-200 rounded-xl px-3 py-2.5 text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent transition-all"
+                    >
+                        <option value="" disabled>Month</option>
+                        {monthsArr.map((month) => (
+                            <option key={month} value={month}>{month}</option>
+                        ))}
+                    </select>
+                    <select
+                        name="year"
+                        defaultValue={defaultYear}
+                        required
+                        className="w-24 border border-gray-200 rounded-xl px-3 py-2.5 text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent transition-all"
+                    >
+                        <option value="" disabled>Year</option>
+                        {yearsArr.map((year) => (
+                            <option key={year} value={year}>{year}</option>
+                        ))}
+                    </select>
+                    <button
+                        type="submit"
+                        disabled={isPending}
+                        className="bg-gray-900 text-white rounded-xl px-4 py-2.5 text-sm font-semibold hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors whitespace-nowrap"
+                    >
+                        {isPending ? "…" : "Fetch"}
+                    </button>
+                </Form>
+            </div>
+            {message && (
+                <p className={`text-sm px-4 py-3 rounded-xl border mb-6 ${state.ok
+                    ? "text-green-700 bg-green-50 border-green-200"
+                    : "text-red-600 bg-red-50 border-red-200"
+                    }`}>
+                    {message}
+                </p>
+            )}
+            {stats && (
+                <>
+                    <div className="grid grid-cols-2 gap-3 mb-4">
+                        <StatCard label="Total Users" value={stats.numberOfUsers} />
+                        <StatCard label="Total Revenue" value={`Rs ${stats.totalRevenue}`} />
+                        <StatCard label="Collected" value={`Rs ${stats.recovery}`} accent="text-green-600" />
+                        <StatCard label="Pending" value={`Rs ${stats.pending}`} accent="text-red-500" />
+                    </div>
+                    <div className="flex flex-col gap-2.5">
+                        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide px-1">Payment Status</p>
+                        <StatusBadge label="Paid" count={stats.paid} color="green" users={users.paid ?? []} />
+                        <StatusBadge label="Partial" count={stats.partial} color="yellow" users={users.partial ?? []} />
+                        <StatusBadge label="Unpaid" count={stats.unpaid} color="red" users={users.unpaid ?? []} />
+                    </div>
+                </>
+            )}
+        </div>
+    );
+}
+</file>
+
+<file path="dashboard/fetchSA.js">
+"use server";
+import { getUser } from "../lib/getUser";
+import { db } from "../lib/turso";
+export async function fetchStatsServerAction(_, formData) {
+    const currentUser = await getUser();
+    if (!currentUser?.id) return { ok: false, searchComplete: false, stats: {}, message: "You must be logged in" };
+    const defaultStats = {
+        numberOfUsers: 0,
+        totalRevenue: 0,
+        recovery: 0,
+        pending: 0,
+        unpaid: 0,
+        partial: 0,
+        paid: 0,
+    };
+    try {
+        const monthRaw = formData.get("month")?.toLowerCase().trim();
+        const yearRaw = formData.get("year");
+        if (!monthRaw || !yearRaw) {
+            return { ok: false, searchComplete: false, stats: defaultStats, message: "Month and year are required" };
+        }
+        const monthsObj = [
+            ["jan", 1], ["feb", 2], ["mar", 3], ["apr", 4],
+            ["may", 5], ["jun", 6], ["jul", 7], ["aug", 8],
+            ["sep", 9], ["oct", 10], ["nov", 11], ["dec", 12]
+        ];
+        const month = monthsObj.find(m => monthRaw?.startsWith(m[0]))?.[1] || null;
+        const year = Number(yearRaw) || null;
+        const adminId = currentUser.id;
+        const fetchStats = await db.execute(
+            `SELECT COUNT(*) AS total_users, SUM(amount_due) AS total_revenue, SUM(amount_paid) AS recovery, SUM(remaining_fee) AS pending
+             FROM billing_transactions WHERE admin_id = ? AND (billing_month = ? AND billing_year = ? AND user_id IS NOT NULL)`,
+            [adminId, month, year]
+        );
+        const fetchUsers = await db.execute(
+            `SELECT username_snapshot AS username, amount_due, amount_paid, remaining_fee, fee_status FROM billing_transactions WHERE admin_id = ? AND user_id IS NOT NULL AND billing_month = ? AND billing_year = ?`,
+            [adminId, month, year]
+        );
+        const paidUsers = [];
+        const partialUsers = [];
+        const unpaidUsers = [];
+        if (fetchUsers.rows.length > 0) {
+            fetchUsers.rows.forEach(row => {
+                if (row.fee_status === "paid") paidUsers.push({ username: row.username, amount_due: row.amount_due, amount_paid: row.amount_paid, remaining_fee: row.remaining_fee });
+                if (row.fee_status === "partial") partialUsers.push({ username: row.username, amount_due: row.amount_due, amount_paid: row.amount_paid, remaining_fee: row.remaining_fee });
+                if (row.fee_status === "unpaid") unpaidUsers.push({ username: row.username, amount_due: row.amount_due, amount_paid: row.amount_paid, remaining_fee: row.remaining_fee });
+            });
+        }
+        const usersByFeeStatus = {
+            paid: paidUsers,
+            partial: partialUsers,
+            unpaid: unpaidUsers
+        };
+        if (!fetchStats.rows.length || fetchStats.rows[0].total_users === 0) {
+            return { ok: false, searchComplete: true, stats: defaultStats, message: "No records found for this period" };
+        }
+        const fetchStatus = await db.execute(
+            `SELECT fee_status, COUNT(*) AS count FROM billing_transactions
+             WHERE admin_id = ? AND user_id IS NOT NULL AND (billing_month = ? AND billing_year = ?) GROUP BY fee_status`,
+            [adminId, month, year]
+        );
+        const stats = {
+            numberOfUsers: fetchStats.rows[0].total_users || 0,
+            totalRevenue: fetchStats.rows[0].total_revenue || 0,
+            recovery: fetchStats.rows[0].recovery || 0,
+            pending: fetchStats.rows[0].pending || 0,
+            unpaid: 0,
+            partial: 0,
+            paid: 0
+        };
+        fetchStatus.rows.forEach(row => {
+            if (row.fee_status === "unpaid") stats.unpaid = row.count || 0;
+            if (row.fee_status === "partial") stats.partial = row.count || 0;
+            if (row.fee_status === "paid") stats.paid = row.count || 0;
+        });
+        return { ok: true, searchComplete: true, stats, usersByFeeStatus, message: "" };
+    } catch (error) {
+        console.error("Action Error:", error);
+        return { ok: false, searchComplete: false, stats: defaultStats, message: "Database error." };
+    }
+}
+</file>
+
+<file path="dashboard/loading.jsx">
+export default function DashboardLoading() {
+    return (
+        <div className="max-w-lg mx-auto px-4 py-6 animate-pulse">
+            {}
+            <div className="mb-6">
+                <div className="h-6 w-32 bg-gray-200 rounded-lg mb-2" />
+                <div className="h-4 w-48 bg-gray-100 rounded-lg" />
+            </div>
+            {}
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 mb-6">
+                <div className="grid grid-cols-2 gap-3 mb-3">
+                    <div>
+                        <div className="h-3 w-12 bg-gray-200 rounded mb-2" />
+                        <div className="h-12 bg-gray-100 rounded-xl" />
+                    </div>
+                    <div>
+                        <div className="h-3 w-10 bg-gray-200 rounded mb-2" />
+                        <div className="h-12 bg-gray-100 rounded-xl" />
+                    </div>
+                </div>
+                <div className="h-12 bg-gray-200 rounded-xl" />
+            </div>
+            {}
+            <div className="grid grid-cols-2 gap-3 mb-4">
+                {[...Array(4)].map((_, i) => (
+                    <div key={i} className={`bg-white rounded-2xl border border-gray-100 shadow-sm p-4 ${i === 0 ? "border-l-4 border-l-gray-200" : ""}`}>
+                        <div className="h-3 w-20 bg-gray-200 rounded mb-3" />
+                        <div className="h-7 w-16 bg-gray-200 rounded-lg" />
+                    </div>
+                ))}
+            </div>
+            {}
+            <div className="flex flex-col gap-2">
+                <div className="h-3 w-24 bg-gray-200 rounded mb-1" />
+                {[...Array(3)].map((_, i) => (
+                    <div key={i} className="h-12 bg-gray-100 rounded-xl" />
+                ))}
+            </div>
+        </div>
+    );
+}
+</file>
+
+<file path="dashboard/page.jsx">
+import { redirect } from "next/navigation";
+import { getUser } from "../lib/getUser";
+import { db } from "../lib/turso";
+import { updateRecords } from "../lib/update-records";
+import ClientDashboard from "./ClientDashboard";
+export const metadata = {
+    title: "Dashboard - NetAdmin",
+    description: "Overview of your monthly billing stats and user payment status.",
+};
+export default async function Dashboard() {
+    const currentUser = await getUser();
+    if (!currentUser?.id) redirect("/login");
+    const adminId = currentUser.id;
+    const d = new Date();
+    const month = d.getMonth() + 1;
+    const year = d.getFullYear();
+    try {
+        await updateRecords();
+        const fetchStats = await db.execute(
+            `SELECT COUNT(*) AS total_users, SUM(amount_due) AS total_revenue, SUM(amount_paid) AS recovery, SUM(remaining_fee) AS pending
+         FROM billing_transactions WHERE admin_id = ? AND (billing_month = ? AND billing_year = ? AND user_id IS NOT NULL)`,
+            [adminId, month, year]
+        );
+        const fetchStatus = await db.execute(
+            `SELECT fee_status, COUNT(*) AS count FROM billing_transactions
+            WHERE admin_id = ? AND user_id IS NOT NULL AND billing_month = ? AND billing_year = ?
+            GROUP BY fee_status`,
+            [adminId, month, year]
+        );
+        const fetchUsers = await db.execute(
+            `SELECT username_snapshot AS username, amount_due, amount_paid, remaining_fee, fee_status FROM billing_transactions WHERE admin_id = ? AND user_id IS NOT NULL AND billing_month = ? AND billing_year = ?`,
+            [adminId, month, year]
+        );
+        const paidUsers = [];
+        const partialUsers = [];
+        const unpaidUsers = [];
+        if (fetchUsers.rows.length > 0) {
+            fetchUsers.rows.forEach(row => {
+                if (row.fee_status === "paid") paidUsers.push({ username: row.username, amount_due: row.amount_due, amount_paid: row.amount_paid, remaining_fee: row.remaining_fee });
+                if (row.fee_status === "partial") partialUsers.push({ username: row.username, amount_due: row.amount_due, amount_paid: row.amount_paid, remaining_fee: row.remaining_fee });
+                if (row.fee_status === "unpaid") unpaidUsers.push({ username: row.username, amount_due: row.amount_due, amount_paid: row.amount_paid, remaining_fee: row.remaining_fee });
+            });
+        }
+        const usersByFeeStatus = {
+            paid: paidUsers,
+            partial: partialUsers,
+            unpaid: unpaidUsers
+        };
+        const fetchYears = await db.execute(
+            `SELECT DISTINCT billing_year FROM billing_transactions
+         WHERE admin_id = ? `,
+            [adminId]
+        );
+        const stats = {
+            numberOfUsers: fetchStats.rows[0]?.total_users || 0,
+            totalRevenue: fetchStats.rows[0]?.total_revenue || 0,
+            recovery: fetchStats.rows[0]?.recovery || 0,
+            pending: fetchStats.rows[0]?.pending || 0,
+            unpaid: 0,
+            partial: 0,
+            paid: 0
+        };
+        fetchStatus.rows.forEach(row => {
+            if (row.fee_status === "unpaid") stats.unpaid = row.count || 0;
+            if (row.fee_status === "partial") stats.partial = row.count || 0;
+            if (row.fee_status === "paid") stats.paid = row.count || 0;
+        });
+        const initialData = {
+            ok: true,
+            searchComplete: true,
+            stats,
+            message: ""
+        };
+        const monthsArr = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+        const yearsArrRaw = fetchYears.rows.map(row => row.billing_year);
+        const yearsArr = yearsArrRaw.length ? yearsArrRaw : [year];
+        return (
+            <ClientDashboard
+                initialData={initialData}
+                yearsArr={yearsArr}
+                monthsArr={monthsArr}
+                usersByFeeStatus={usersByFeeStatus}
+            />
+        );
+    } catch (error) {
+        console.error(error);
+        return <p>Failed to load dashboard. Please refresh.</p>;
+    }
+}
+</file>
+
+<file path="edit-user/ClientEditUser.jsx">
+'use client';
+import Form from "next/form";
+import { startTransition, useActionState, useEffect, useRef, useState } from "react";
+import { fetchUserData, removeUser, searchUser, updateUser } from "./edit-userSA";
+import { checkUsernameServerAction } from "../lib/checkUsernameSA";
+export default function ClientEditUser({ onReset, plans = [] }) {
+    const [stateSearch, actionSearch, isPendingSearch] = useActionState(searchUser, { ok: null, searchComplete: false, arr: [], message: "" });
+    const [stateDetails, actionDetails, isPendingDetails] = useActionState(fetchUserData, { ok: null, searchComplete: false, user: {}, message: "" });
+    const [stateUsername, actionUsername] = useActionState(checkUsernameServerAction, { ok: null, message: "" });
+    const [stateUpdate, actionUpdate, isPendingUpdate] = useActionState(updateUser, { ok: null, message: "" });
+    const [stateDelete, actionDelete, isPendingDelete] = useActionState(removeUser, { ok: null, message: "" });
+    const timerRef = useRef(null);
+    const [view, setView] = useState("search");
+    useEffect(() => {
+        if (stateSearch.ok && stateSearch.arr.length > 0) setView("search");
+        if (stateDetails.ok && stateDetails.user) setView("details");
+        if (stateUpdate.ok && stateUpdate.searchComplete) setView("submited");
+        if (stateDelete.ok) setView("deleted");
+    }, [stateDetails, stateSearch, stateUpdate, stateDelete]);
+    const handleOnChange = (e) => {
+        const value = e.target.value;
+        if (timerRef.current) clearTimeout(timerRef.current);
+        timerRef.current = setTimeout(() => {
+            startTransition(() => { actionSearch(value); });
+        }, 600);
+    };
+    return (
+        <div className="max-w-lg mx-auto px-4 py-6">
+            <div className="mb-6">
+                <h1 className="text-xl font-bold text-gray-900">Edit User</h1>
+                <p className="text-sm text-gray-500 mt-0.5">Search and update user details</p>
+            </div>
+            {}
+            {view === "search" && (
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+                    <div className="flex flex-col gap-1.5 mb-4">
+                        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                            Username
+                        </label>
+                        <div className="relative">
+                            <Form action={actionSearch} onChange={handleOnChange}>
+                                <input
+                                    type="text"
+                                    name="username"
+                                    placeholder="Search username…"
+                                    onChange={handleOnChange}
+                                    className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900 placeholder-gray-400 bg-white focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent transition-all"
+                                />
+                            </Form>
+                            {isPendingSearch && (
+                                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400">
+                                    Searching…
+                                </span>
+                            )}
+                        </div>
+                    </div>
+                    {!stateSearch.ok && stateSearch.searchComplete && stateSearch.arr.length === 0 && (
+                        <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-xl px-4 py-3">
+                            {stateSearch.message}
+                        </p>
+                    )}
+                    {stateSearch.ok && stateSearch.arr.length > 0 && (
+                        <div className="flex flex-col gap-2">
+                            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">Results</p>
+                            {stateSearch.arr.map(user => (
+                                <Form key={user.public_id} action={actionDetails}>
+                                    <input type="hidden" name="user_public_id" value={user.public_id} />
+                                    <input type="hidden" name="username" value={user.username} />
+                                    <button
+                                        type="submit"
+                                        disabled={isPendingDetails}
+                                        className="w-full text-left flex items-center justify-between border border-gray-200 rounded-xl px-4 py-3 text-sm font-medium text-gray-900 hover:bg-gray-50 active:bg-gray-100 disabled:opacity-40 transition-colors"
+                                    >
+                                        <span>{user.username}</span>
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4 text-gray-400">
+                                            <polyline points="9 18 15 12 9 6" />
+                                        </svg>
+                                    </button>
+                                </Form>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            )}
+            {}
+            {view === "details" && stateDetails.ok && stateDetails.user && (
+                <div className="flex flex-col gap-4">
+                    <Form action={actionUpdate} className="flex flex-col gap-4">
+                        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+                            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-4">Edit Details</p>
+                            <div className="flex flex-col gap-4">
+                                <div className="flex flex-col gap-1.5">
+                                    <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Username</label>
+                                    <input
+                                        type="text"
+                                        name="new_username"
+                                        defaultValue={stateDetails.user.username}
+                                        className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent transition-all"
+                                        onBlur={(e) => {
+                                            const val = e.target.value.trim();
+                                            if (val) startTransition(() => actionUsername(val));
+                                        }}
+                                    />
+                                    {stateUsername.message && stateUsername.username !== stateDetails.user.username && (
+                                        <p className={`text-xs px-3 py-2 rounded-lg border ${
+                                            stateUsername.ok
+                                                ? "text-green-700 bg-green-50 border-green-200"
+                                                : "text-red-600 bg-red-50 border-red-200"
+                                        }`}>
+                                            {stateUsername.message}
+                                        </p>
+                                    )}
+                                </div>
+                                <div className="flex flex-col gap-1.5">
+                                    <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Plan</label>
+                                    <div className="px-4 py-3 bg-gray-50 rounded-xl border border-gray-200 text-sm text-gray-600">
+                                        Current: {stateDetails.user.speed}Mbps — Rs {stateDetails.user.fee}
+                                    </div>
+                                    <input type="hidden" name="old_plan_public_id" value={stateDetails.user.plan_public_id} />
+                                    <select
+                                        name="new_plan_public_id"
+                                        defaultValue=""
+                                        className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent transition-all"
+                                    >
+                                        <option value="" disabled>Change plan…</option>
+                                        {plans.map((plan) => (
+                                            <option key={plan.public_id} value={plan.public_id}>
+                                                {plan.speed} Mbps — Rs {plan.rate}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div className="flex flex-col gap-1.5">
+                                    <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Contact</label>
+                                    <input
+                                        type="number"
+                                        name="contact"
+                                        defaultValue={stateDetails.user.contact}
+                                        placeholder="Contact number"
+                                        className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent transition-all"
+                                    />
+                                </div>
+                                <div className="flex flex-col gap-1.5">
+                                    <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Password</label>
+                                    <input
+                                        type="text"
+                                        name="password"
+                                        defaultValue={stateDetails.user.password}
+                                        placeholder="Password"
+                                        className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent transition-all"
+                                    />
+                                </div>
+                            </div>
+                            <input type="hidden" name="user_public_id" value={stateDetails.user.public_id} />
+                            <input type="hidden" name="username" value={stateDetails.user.username} />
+                        </div>
+                        <div className="flex gap-3">
+                            <button
+                                type="button"
+                                onClick={onReset}
+                                className="flex-1 border border-gray-200 text-gray-700 rounded-xl py-3 text-sm font-semibold hover:bg-gray-50 active:bg-gray-100 transition-colors"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="submit"
+                                disabled={isPendingUpdate}
+                                className="flex-1 bg-gray-900 text-white rounded-xl py-3 text-sm font-semibold hover:bg-gray-700 active:bg-gray-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                            >
+                                {isPendingUpdate ? "Saving…" : "Save Changes"}
+                            </button>
+                        </div>
+                    </Form>
+                    <Form action={actionDelete}>
+                        <input type="hidden" name="user_public_id" value={stateDetails.user.public_id} />
+                        <button
+                            type="submit"
+                            disabled={isPendingDelete}
+                            className="w-full bg-red-50 text-red-600 border border-red-200 rounded-xl py-3 text-sm font-semibold hover:bg-red-100 active:bg-red-200 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                        >
+                            {isPendingDelete ? "Deleting…" : "Delete User"}
+                        </button>
+                    </Form>
+                </div>
+            )}
+            {}
+            {!stateUpdate.ok && !stateUpdate.searchComplete && stateUpdate.message && (
+                <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-xl px-4 py-3 mt-4">
+                    {stateUpdate.message}
+                </p>
+            )}
+            {}
+            {view === "submited" && stateUpdate.ok && (
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 text-center">
+                    <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-6 h-6 text-green-600">
+                            <polyline points="20 6 9 17 4 12" />
+                        </svg>
+                    </div>
+                    <p className="text-base font-bold text-gray-900 mb-1">User Updated</p>
+                    <p className="text-sm text-gray-500 mb-6">{stateUpdate.message}</p>
+                    <button
+                        onClick={onReset}
+                        className="w-full bg-gray-900 text-white rounded-xl py-3 text-sm font-semibold hover:bg-gray-700 transition-colors"
+                    >
+                        New Search
+                    </button>
+                </div>
+            )}
+            {}
+            {!stateDelete.ok && stateDelete.message && (
+                <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-xl px-4 py-3 mt-4">
+                    {stateDelete.message}
+                </p>
+            )}
+            {view === "deleted" && stateDelete.ok && (
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 text-center">
+                    <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-6 h-6 text-gray-500">
+                            <polyline points="3 6 5 6 21 6" />
+                            <path d="M19 6l-1 14H6L5 6" />
+                            <path d="M10 11v6M14 11v6" />
+                            <path d="M9 6V4h6v2" />
+                        </svg>
+                    </div>
+                    <p className="text-base font-bold text-gray-900 mb-1">User Deleted</p>
+                    <p className="text-sm text-gray-500 mb-6">{stateDelete.message}</p>
+                    <button
+                        onClick={onReset}
+                        className="w-full bg-gray-900 text-white rounded-xl py-3 text-sm font-semibold hover:bg-gray-700 transition-colors"
+                    >
+                        New Search
+                    </button>
+                </div>
+            )}
+        </div>
+    );
+}
+</file>
+
+<file path="edit-user/edit-userSA.js">
+"use server";
+import { getUser } from "../lib/getUser";
+import { db } from "../lib/turso";
+import {
+  normalizeUsername,
+  validateUsername,
+  validateOptionalPassword,
+} from "@/app/utils/validation";
+import { redisIpLimit } from "@/app/utils/redidIpLimit";
+export async function searchUser(_, searchTerm) {
+    const term = searchTerm?.toString().trim();
+    if (!term || term.length < 2) {
+        return {
+            ok: false,
+            searchComplete: false,
+            arr: [],
+            message: "Enter at least 2 characters",
+        };
+    }
+    try {
+        const currentUser = await getUser();
+        if (!currentUser?.id) return { ok: false, searchComplete: false, arr: [], message: "You must be logged in" };
+        const adminId = currentUser.id;
+        const fetch = await db.execute(`
+        SELECT public_id, username
+        FROM users
+        WHERE admin_id = ? AND username LIKE ?
+        LIMIT 5
+        `, [adminId, `%${term}%`]);
+        if (fetch.rows.length === 0) return { ok: false, searchComplete: true, arr: [], message: "No user found" };
+        const arr = fetch.rows.map(user => ({
+            public_id: user.public_id,
+            username: user.username
+        }));
+        return { ok: true, searchComplete: true, arr, message: "Search completed" };
+    } catch (error) {
+        console.error(error);
+        return { ok: false, searchComplete: false, arr: [], message: "Database error." };
+    }
+}
+export async function fetchUserData(_, formData) {
+    try {
+        const currentUser = await getUser();
+        if (!currentUser?.id) return { ok: false, searchComplete: false, arr: [], message: "You must be logged in" };
+        const adminId = currentUser.id;
+        const userPublicId = formData.get("user_public_id")?.toString().trim();
+        const username = formData.get("username")?.toString().trim();
+        if (!userPublicId || !username) return { ok: false, message: "Search term is broken" };
+        const fetchUser = await db.execute(`SELECT * FROM users WHERE admin_id = ? AND public_id = ? AND username = ?`, [adminId, userPublicId, username]);
+        if (fetchUser.rows.length === 0) return { ok: false, message: "User details conflict" };
+        const user = fetchUser.rows[0];
+        const planId = user.plan_id;
+        let planPublicId = "";
+        let speed = 2;
+        let fee = 500;
+        if (planId) {
+            const fetchPlan = await db.execute(
+                `SELECT * FROM plans WHERE id = ? AND admin_id = ?`,
+                [planId, adminId]
+            );
+            if (fetchPlan.rows.length > 0) {
+                planPublicId = fetchPlan.rows[0].public_id;
+                speed = fetchPlan.rows[0].speed;
+                fee = fetchPlan.rows[0].rate;
+            }
+        }
+        const userProperties = {
+            public_id: user.public_id,
+            username: user.username,
+            password: user.password,
+            contact: user.contact,
+            plan_public_id: planPublicId,
+            speed,
+            fee,
+        };
+        return { ok: true, searchComplete: true, user: userProperties, message: "Search completed" };
+    } catch (error) {
+        console.error(error);
+        return { ok: false, searchComplete: false, user: {}, message: "Database error." };
+    }
+}
+export async function updateUser(_, formData) {
+    try {
+        const currentUser = await getUser();
+        if (!currentUser?.id) return { ok: false, searchComplete: false, arr: [], message: "You must be logged in" };
+        const adminId = currentUser.id;
+        const ipLimit = await redisIpLimit(15, "edit_user");
+        if (!ipLimit.ok) return ipLimit;
+        const userPublicId = formData.get("user_public_id")?.toString().trim();
+        const contactRaw = formData.get("contact")?.toString().trim();
+        if (!userPublicId) return { ok: false, message: "Search term is broken" };
+        let contact = 0;
+        if (contactRaw) {
+            contact = Number(contactRaw);
+            if (!Number.isFinite(contact) || contact <= 0) {
+                return { ok: false, searchComplete: false, message: "Contact must be a valid number" };
+            }
+        }
+        const fetchUserId = await db.execute(`SELECT id, username, plan_id FROM users WHERE public_id = ? AND admin_id = ?`, [userPublicId, adminId]);
+        if (fetchUserId.rows.length === 0) return { ok: false, searchComplete: false, message: "User details conflict" };
+        const userId = fetchUserId.rows[0].id;
+        const currentUsername = fetchUserId.rows[0].username;
+        const currentPlanId = fetchUserId.rows[0].plan_id;
+        const newUsername = normalizeUsername(formData.get("new_username")) || currentUsername;
+        const passwordRaw = formData.get("password");
+        const password = passwordRaw === null ? null : passwordRaw.toString();
+        const usernameError = validateUsername(newUsername);
+        if (usernameError) {
+            return { ok: false, searchComplete: false, message: usernameError };
+        }
+        const passwordError = validateOptionalPassword(password, "Password");
+        if (passwordError) {
+            return { ok: false, searchComplete: false, message: passwordError };
+        }
+        const finalPassword = password || null;
+        const newPlanPublicId = formData.get("new_plan_public_id")?.toString().trim();
+        let planIdToSave = currentPlanId ?? null;
+        if (newPlanPublicId) {
+            const fetchPlan = await db.execute(
+                `SELECT id FROM plans WHERE public_id = ? AND admin_id = ?`,
+                [newPlanPublicId, adminId]
+            );
+            if (fetchPlan.rows.length === 0) {
+                return { ok: false, searchComplete: false, message: "Select a valid plan" };
+            }
+            planIdToSave = fetchPlan.rows[0].id;
+        }
+        await db.execute(`UPDATE users SET username = ?, password = ?, contact = ?, plan_id = ? WHERE id = ? AND admin_id = ?`, [newUsername, finalPassword, contact, planIdToSave, userId, adminId]);
+        return { ok: true, searchComplete: true, message: "User updated successfully" };
+    } catch (error) {
+        console.error(error);
+        if (error.message && error.message.includes("UNIQUE")) {
+            return {
+                ok: false,
+                searchComplete: false,
+                message: "Username already exists",
+            };
+        }
+        return { ok: false, searchComplete: false, message: "Database error." };
+    }
+}
+export async function removeUser(_, formData) {
+    try {
+        const currentUser = await getUser();
+        if (!currentUser?.id) return { ok: false, message: "You must be logged in" };
+        const adminId = currentUser.id;
+        const ipLimit = await redisIpLimit(10, "remove_user");
+        if (!ipLimit.ok) return ipLimit;
+        const userPublicId = formData.get("user_public_id")?.toString().trim();
+        if (!userPublicId) return { ok: false, message: "Search term is broken" };
+        const fetchUserId = await db.execute(`SELECT id FROM users WHERE public_id = ? AND admin_id = ?`, [userPublicId, adminId]);
+        if (fetchUserId.rows.length === 0) return { ok: false, message: "User details conflict" };
+        const userId = fetchUserId.rows[0].id;
+        await db.execute(`DELETE FROM users WHERE id = ? AND admin_id = ?`, [userId, adminId]);
+        return { ok: true, message: "User removed successfully" };
+    } catch (error) {
+        console.error(error);
+        return { ok: false, message: "Database error." };
+    }
+}
+</file>
+
+<file path="edit-user/loading.jsx">
+export default function EditUserLoading() {
+    return (
+        <div className="max-w-lg mx-auto px-4 py-6 animate-pulse">
+            {}
+            <div className="mb-6">
+                <div className="h-6 w-24 bg-gray-200 rounded-lg mb-2" />
+                <div className="h-4 w-56 bg-gray-100 rounded-lg" />
+            </div>
+            {}
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+                <div className="h-3 w-28 bg-gray-200 rounded mb-2" />
+                <div className="h-12 bg-gray-100 rounded-xl" />
+            </div>
+        </div>
+    );
+}
+</file>
+
+<file path="edit-user/MiddleClient.jsx">
+"use client";
+import { useState } from "react";
+import ClientEditUser from "./ClientEditUser";
+export default function MiddleClient({ plans }) {
+    const [key, setKey] = useState(0);
+    const handleReset = () => {
+        setKey(prev => prev + 1);
+    };
+    return (
+        <div key={key}>
+            <ClientEditUser onReset={handleReset} plans={plans}  />
+        </div>
+    )
+}
+</file>
+
+<file path="edit-user/page.jsx">
+import { redirect } from "next/navigation";
+import { getUser } from "../lib/getUser";
+import MiddleClient from "./MiddleClient";
+import { db } from "../lib/turso";
+export const metadata = {
+    title: "Manage Subscribers - NetAdmin",
+    description: "Edit client profiles, update bandwidth speeds, or modify user packages.",
+};
+export default async function EditUser() {
+    const currentUser = await getUser();
+    if (!currentUser?.id) redirect("/login");
+    const fetchPlans = await db.execute(`SELECT public_id, speed, rate FROM plans WHERE admin_id = ?`, [currentUser.id]);
+    const plans = fetchPlans.rows.map(row => ({
+        public_id: row.public_id,
+        speed: Number(row.speed),
+        rate: Number(row.rate)
+    })) || [];
+    return (
+        <MiddleClient plans={plans} />
+    );
+}
+</file>
+
+<file path="fee-submit/Child.jsx">
+'use client'
+import { startTransition, useActionState, useEffect, useRef, useState } from "react";
+import { fetchDetails, searchUser, submit } from "./feeSubmitSA";
+import Form from "next/form";
+export default function ChildFeeSubmit({ onReset }) {
+    const properties = {
+        record_public_id: null, fee_status: null, amount_due: null,
+        remaining_fee: null, plan: null, contact: null, username: null,
+    };
+    const initialState = { ok: null, searchComplete: false, arr: [], message: "" };
+    const initialState2 = { ok: null, searchComplete: false, message: "", ...properties };
+    const [stateSearch, actionSearch, isPendingSearch] = useActionState(searchUser, initialState);
+    const [stateDetails, actionDetails, isPendingDetails] = useActionState(fetchDetails, initialState2);
+    const [stateSubmit, actionSubmit, isPendingSubmit] = useActionState(submit, { ok: null, submitComplete: false, invoice: null, message: "" });
+    const [view, setView] = useState("search");
+    const timerRef = useRef(null);
+    useEffect(() => {
+        if (stateDetails.ok && stateDetails.record_public_id) setView("details");
+        if (stateSubmit.ok && stateSubmit.submitComplete) setView("submited");
+    }, [stateDetails, stateSubmit]);
+    const handleOnChange = (e) => {
+        const value = e.target.value;
+        if (timerRef.current) clearTimeout(timerRef.current);
+        timerRef.current = setTimeout(() => {
+            startTransition(() => { actionSearch(value); });
+        }, 1000);
+    };
+    return (
+        <div className="max-w-lg mx-auto px-4 py-6">
+            <div className="mb-6">
+                <h1 className="text-xl font-bold text-gray-900">Collect Fees</h1>
+                <p className="text-sm text-gray-500 mt-0.5">Search a user to process payment</p>
+            </div>
+            {}
+            {view === "search" && (
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+                    <div className="flex flex-col gap-1.5 mb-4">
+                        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                            Username
+                        </label>
+                        <div className="relative">
+                            <input
+                                type="text"
+                                name="username"
+                                placeholder="Search username…"
+                                onChange={handleOnChange}
+                                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900 placeholder-gray-400 bg-white focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent transition-all"
+                            />
+                            {isPendingSearch && (
+                                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400">
+                                    Searching…
+                                </span>
+                            )}
+                        </div>
+                    </div>
+                    {!stateSearch.ok && stateSearch.searchComplete && stateSearch.arr.length === 0 && (
+                        <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-xl px-4 py-3">
+                            {stateSearch.message}
+                        </p>
+                    )}
+                    {stateSearch.ok && stateSearch.arr.length > 0 && (
+                        <div className="flex flex-col gap-2 mt-2">
+                            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">Results</p>
+                            {stateSearch.arr.map(user => (
+                                <Form key={user.public_id} action={actionDetails}>
+                                    <input type="hidden" name="user_public_id" value={user.public_id} />
+                                    <input type="hidden" name="username" value={user.username} />
+                                    <button
+                                        type="submit"
+                                        disabled={isPendingDetails}
+                                        className="w-full text-left flex items-center justify-between border border-gray-200 rounded-xl px-4 py-3 text-sm font-medium text-gray-900 hover:bg-gray-50 active:bg-gray-100 disabled:opacity-40 transition-colors"
+                                    >
+                                        <span>{user.username}</span>
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4 text-gray-400">
+                                            <polyline points="9 18 15 12 9 6" />
+                                        </svg>
+                                    </button>
+                                </Form>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            )}
+            {!stateDetails.ok && stateDetails.searchComplete && (
+                <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-xl px-4 py-3 mt-4">
+                    {stateDetails.message}
+                </p>
+            )}
+            {}
+            {stateDetails.ok && stateDetails.record_public_id && view === "details" && (
+                <Form action={actionSubmit} className="flex flex-col gap-4">
+                    <input type="hidden" name="record_public_id" value={stateDetails.record_public_id} />
+                    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+                        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-4">User Details</p>
+                        <div className="grid grid-cols-2 gap-3">
+                            {[
+                                { label: "Username", value: stateDetails.username },
+                                { label: "Plan", value: stateDetails.plan },
+                                { label: "Contact", value: stateDetails.contact },
+                                { label: "Status", value: stateDetails.fee_status },
+                                { label: "Amount Due", value: stateDetails.amount_due ? `Rs ${stateDetails.amount_due}` : null },
+                                { label: "Remaining", value: stateDetails.remaining_fee ? `Rs ${stateDetails.remaining_fee}` : null },
+                            ].map(({ label, value }) => (
+                                <div key={label}>
+                                    <p className="text-xs text-gray-400 mb-0.5">{label}</p>
+                                    <p className="text-sm font-semibold text-gray-900">{value || "—"}</p>
+                                </div>
+                            ))}
+                        </div>
+                        {}
+                        <input type="hidden" name="username" value={stateDetails.username || ""} />
+                        <input type="hidden" name="plan" value={stateDetails.plan || ""} />
+                        <input type="hidden" name="fee_status" value={stateDetails.fee_status || ""} />
+                        <input type="hidden" name="amount_due" value={stateDetails.amount_due || 0} />
+                        <input type="hidden" name="remaining_fee" value={stateDetails.remaining_fee || 0} />
+                        <input type="hidden" name="contact" value={stateDetails.contact || ""} />
+                    </div>
+                    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+                        <div className="flex flex-col gap-1.5">
+                            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                                Payment Amount (Rs)
+                            </label>
+                            <input
+                                type="number"
+                                name="payment"
+                                placeholder="Enter amount"
+                                defaultValue={stateDetails.remaining_fee || 0}
+                                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900 placeholder-gray-400 bg-white focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent transition-all"
+                            />
+                        </div>
+                    </div>
+                    {stateSubmit.ok === false && stateSubmit.message && (
+                        <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-xl px-4 py-3">
+                            {stateSubmit.message}
+                        </p>
+                    )}
+                    <div className="flex gap-3">
+                        <button
+                            type="button"
+                            onClick={onReset}
+                            className="flex-1 border border-gray-200 text-gray-700 rounded-xl py-3 text-sm font-semibold hover:bg-gray-50 active:bg-gray-100 transition-colors"
+                        >
+                            Back
+                        </button>
+                        <button
+                            type="submit"
+                            disabled={isPendingSubmit}
+                            className="flex-1 bg-gray-900 text-white rounded-xl py-3 text-sm font-semibold hover:bg-gray-700 active:bg-gray-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                        >
+                            {isPendingSubmit ? "Processing…" : "Submit Payment"}
+                        </button>
+                    </div>
+                </Form>
+            )}
+            {}
+            {stateSubmit.ok && stateSubmit.submitComplete && view === "submited" && (
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 text-center">
+                    <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-6 h-6 text-green-600">
+                            <polyline points="20 6 9 17 4 12" />
+                        </svg>
+                    </div>
+                    <p className="text-base font-bold text-gray-900 mb-1">Payment Recorded</p>
+                    <p className="text-sm text-gray-500 mb-1">{stateSubmit.message}</p>
+                    {stateSubmit.invoiceId && (
+                        <p className="text-xs text-gray-400 mb-6">Invoice: {stateSubmit.invoiceId}</p>
+                    )}
+                    <button
+                        type="button"
+                        onClick={onReset}
+                        className="w-full bg-gray-900 text-white rounded-xl py-3 text-sm font-semibold hover:bg-gray-700 transition-colors"
+                    >
+                        New Payment
+                    </button>
+                </div>
+            )}
+            {!stateSubmit.ok && stateSubmit.submitComplete && view === "submited" && (
+                <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-xl px-4 py-3 mt-4">
+                    {stateSubmit.message}
+                </p>
+            )}
+        </div>
+    );
+}
+</file>
+
+<file path="fee-submit/feeSubmitSA.js">
+'use server';
+import { db } from "@/app/lib/turso";
+import { updateRecords } from "@/app/lib/update-records";
+import { initBilling_transactionsTable } from "@/app/models/table-inits";
+import { nanoid } from "nanoid";
+import { getUser } from "../lib/getUser";
+import { redisIpLimit } from "@/app/utils/redidIpLimit";
+export async function searchUser(_, searchTerm) {
+    const currentUser = await getUser();
+    if (!currentUser?.id) return { ok: false, searchComplete: false, arr: [], message: "You must be logged in" };
+    const adminId = currentUser.id;
+    const term = searchTerm?.toString().trim();
+    if (!term || term.length < 2) {
+        return {
+            ok: false,
+            searchComplete: false,
+            arr: [],
+            message: "Enter at least 2 characters",
+        };
+    }
+    try {
+        const fetch = await db.execute(`
+        SELECT public_id, username
+        FROM users
+        WHERE admin_id = ? AND username LIKE ?
+        LIMIT 5
+        `, [adminId, `%${term}%`]);
+        if (fetch.rows.length === 0) return { ok: false, searchComplete: true, arr: [], message: "No user found" };
+        const arr = fetch.rows.map(user => ({
+            public_id: user.public_id,
+            username: user.username
+        }));
+        return { ok: true, searchComplete: true, arr, message: "Search completed" };
+    } catch (error) {
+        console.error(error);
+        return { ok: false, searchComplete: false, arr: [], message: "Database error." };
+    }
+}
+export async function fetchDetails(_, formData) {
+    const currentUser = await getUser();
+    if (!currentUser?.id) return { ok: false, searchComplete: false, arr: [], message: "You must be logged in" };
+    const adminId = currentUser.id;
+    try {
+        if (!formData) {
+            return { ok: false, message: "Search term is broken" };
+        }
+        await updateRecords();
+        const user_public_id = formData.get("user_public_id");
+        const username = formData.get("username");
+        const fetchUserId = await db.execute(
+            "SELECT id FROM users WHERE admin_id = ? AND public_id = ?",
+            [adminId, user_public_id]
+        );
+        const userId = fetchUserId?.rows?.[0]?.id;
+        if (!userId) {
+            return { ok: false, searchComplete: false, message: "User details conflict" };
+        }
+        const d = new Date();
+        const month = d.getMonth() + 1;
+        const year = d.getFullYear();
+        const columns =
+            "public_id, fee_status, amount_due, remaining_fee, plan_snapshot, contact_snapshot, username_snapshot";
+        const fetchCurrentMonthRecord = await db.execute(
+            `SELECT ${columns}
+             FROM billing_transactions
+             WHERE user_id = ?
+             AND admin_id = ?
+             AND billing_month = ?
+             AND billing_year = ?`,
+            [userId, adminId, month, year]
+        );
+        const row = fetchCurrentMonthRecord?.rows?.[0];
+        if (!row) {
+            return {
+                ok: false,
+                searchComplete: false,
+                message: "update records in settings"
+            };
+        }
+        const payload = {
+            record_public_id: row.public_id,
+            fee_status: row.fee_status,
+            amount_due: row.amount_due,
+            remaining_fee: row.remaining_fee,
+            plan: row.plan_snapshot,
+            contact: row.contact_snapshot,
+            username: username
+        };
+        return { ok: true, searchComplete: true, ...payload, message: "Search completed" };
+    } catch (error) {
+        console.error(error);
+        return { ok: false, message: "Database error." };
+    }
+}
+export async function submit(_, formData) {
+    const currentUser = await getUser();
+    if (!currentUser?.id) return { ok: false, searchComplete: false, arr: [], message: "You must be logged in" };
+    const adminId = currentUser.id;
+    const ipLimit = await redisIpLimit(20, "fee_submit");
+    if (!ipLimit.ok) return ipLimit;
+    try {
+        const record_public_id = formData.get("record_public_id");
+        const username = formData.get("username");
+        const paymentRaw = formData.get("payment");
+        const payment = Number(paymentRaw);
+        if (!record_public_id || !username) {
+            return {
+                ok: false,
+                submitComplete: false,
+                message: "Search term is broken",
+            };
+        }
+        if (!Number.isFinite(payment) || payment <= 0) {
+            return {
+                ok: false,
+                submitComplete: false,
+                message: "Payment must be a valid positive number",
+            };
+        }
+        const d = new Date();
+        const month = d.getMonth() + 1;
+        const year = d.getFullYear();
+        const fetchUserId = await db.execute(`
+            SELECT amount_due, remaining_fee, billing_month, billing_year FROM billing_transactions
+            WHERE public_id = ? AND admin_id = ?
+        `, [record_public_id, adminId]);
+        if (fetchUserId.rows.length === 0) {
+            return {
+                ok: false,
+                submitComplete: false,
+                message: "Billing record not found",
+            };
+        }
+        const amount_due = fetchUserId.rows[0].amount_due;
+        const remaining_fee = Number(fetchUserId.rows[0].remaining_fee);
+        const record_month = fetchUserId.rows[0].billing_month;
+        const record_year = fetchUserId.rows[0].billing_year;
+        if (!Number.isFinite(remaining_fee) || remaining_fee < 0) {
+            return {
+                ok: false,
+                submitComplete: false,
+                message: "Invalid billing record",
+            };
+        }
+        if (payment > remaining_fee) {
+            return {
+                ok: false,
+                submitComplete: false,
+                message: "Payment cannot exceed remaining fee",
+            };
+        }
+        const remainingFee = remaining_fee - payment;
+        const feeStatus = remainingFee <= 0 ? "paid" : (remainingFee === amount_due ? "unpaid" : "partial");
+        const amount_paid = amount_due - remainingFee;
+        const invoiceId = `${record_month}${record_year}-${record_public_id}${nanoid(8)}`;
+        const update = await db.execute(`
+            UPDATE billing_transactions
+            SET fee_status = ?, amount_paid = ?, remaining_fee = ?, invoice_id = ?, last_updated = CURRENT_TIMESTAMP
+            WHERE public_id = ? AND admin_id = ?
+        `, [feeStatus, amount_paid, remainingFee, invoiceId, record_public_id, adminId]);
+        if (update.rowsAffected === 0) {
+            return {
+                ok: false,
+                submitComplete: false,
+                message: "Payment could not be submitted",
+            };
+        }
+        return { ok: true, message: "Payment submitted", invoiceId, submitComplete: true };
+    } catch (error) {
+        console.log(error);
+        return { ok: false, submitComplete: false, message: "Database error." };
+    }
+}
+</file>
+
+<file path="fee-submit/loading.jsx">
+export default function FeeSubmitLoading() {
+    return (
+        <div className="max-w-lg mx-auto px-4 py-6 animate-pulse">
+            {}
+            <div className="mb-6">
+                <div className="h-6 w-32 bg-gray-200 rounded-lg mb-2" />
+                <div className="h-4 w-52 bg-gray-100 rounded-lg" />
+            </div>
+            {}
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+                <div className="h-3 w-28 bg-gray-200 rounded mb-2" />
+                <div className="h-12 bg-gray-100 rounded-xl" />
+            </div>
+        </div>
+    );
+}
+</file>
+
+<file path="fee-submit/MiddleClient.jsx">
+'use client'
+import { useState } from "react";
+import ChildFeeSubmit from "./Child";
+export default function MiddleClient() {
+    const [resetKey, setResetKey] = useState(0);
+    const handleReset = () => {
+        setResetKey(prev => prev + 1);
+    };
+    return (
+        <div key={resetKey}>
+            <ChildFeeSubmit onReset={handleReset} />
+        </div>
+    );
+}
+</file>
+
+<file path="fee-submit/page.jsx">
+import { redirect } from "next/navigation";
+import { getUser } from "../lib/getUser";
+import MiddleClient from "./MiddleClient";
+export const metadata = {
+    title: "Collect Fees - NetAdmin",
+    description: "Process monthly billing payments and generate subscriber receipts.",
+};
+export default async function FeeSubmit() {
+    const currentUser = await getUser();
+    if (!currentUser?.id) redirect("/login");
+    return (
+        <MiddleClient />
+    );
+}
+</file>
+
+<file path="globals.css">
+@import "tailwindcss";
+:root {
+  --background: #f9fafb;
+  --foreground: #111827;
+}
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+}
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+body {
+  background: var(--background);
+  color: var(--foreground);
+  -webkit-font-smoothing: antialiased;
+}
+select {
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 1rem center;
+  padding-right: 2.5rem !important;
+}
+</file>
+
+<file path="layout.js">
+import NavBar from "./components/nav-bar";
+import Sidebar from "./components/side-navigation";
+import "./globals.css";
+import { getUser } from "./lib/getUser";
+import { Inter } from "next/font/google";
+const inter = Inter({
+  subsets: ["latin"],
+});
+export const viewport = {
+  width: "device-width",
+  initialScale: 1,
+};
+export const metadata = {
+  title: "NetAdmin - ISP Management Dashboard",
+  description: "A premium subscriber and billing management platform for local internet service providers.",
+  keywords: ["ISP management", "billing tracking", "subscriber management", "dashboard", "Next.js"],
+  authors: [{ name: "NetAdmin Team" }],
+  openGraph: {
+    title: "NetAdmin - ISP Management Dashboard",
+    description: "A subscriber and billing management platform for local ISPs.",
+    type: "website",
+  },
+};
+export default async function RootLayout({ children }) {
+  const currentUser = await getUser();
+  return (
+    <html lang="en" className={inter.className}>
+      <body className="bg-gray-50 min-h-screen">
+        <NavBar />
+        <div className="flex pt-14">
+          {currentUser?.id && <Sidebar />}
+          <main className={`flex-1 min-h-[calc(100vh-56px)] ${currentUser?.id ? "pb-20 md:pb-6" : ""}`}>
+            {children}
+          </main>
+        </div>
+      </body>
+    </html>
+  );
+}
+</file>
+
+<file path="lib/checkAdminNameSA.js">
+"use server";
+import { db } from "@/app/lib/turso";
+import { redisIpLimit } from "@/app/utils/redidIpLimit";
+import {
+  normalizeUsername,
+  validateUsername,
+} from "@/app/utils/validation";
+export async function checkAdminNameServerAction(_, usernameRaw) {
+    const ipLimit = await redisIpLimit(20, "admin_username_check");
+    if (!ipLimit.ok) return ipLimit;
+    try {
+        const username = normalizeUsername(usernameRaw);
+        const usernameError = validateUsername(username);
+        if (usernameError) {
+            return { ok: false, username, message: usernameError };
+        }
+        const result = await db.execute(`SELECT COUNT(*) as count FROM admins WHERE username = ?`, [username]);
+        if (result.rows[0].count !== 0) {
+            return { ok: false, username, message: "Username already in use" };
+        }
+        return { ok: true, username, message: "Username is available" };
+    } catch (error) {
+        console.error(error);
+        return { ok: false, message: "Error checking username" };
+    }
+}
+</file>
+
+<file path="lib/checkUsernameSA.js">
+"use server";
+import { db } from "@/app/lib/turso";
+import { getUser } from "./getUser";
+import {
+  normalizeUsername,
+  validateUsername,
+} from "@/app/utils/validation";
+export async function checkUsernameServerAction(_, usernameRaw) {
+    const currentUser = await getUser();
+    if (!currentUser?.id) return { ok: false, message: "You must be logged in" };
+    const adminId = currentUser.id;
+    try {
+        const username = normalizeUsername(usernameRaw);
+        const usernameError = validateUsername(username);
+        if (usernameError) {
+            return { ok: false, username, message: usernameError };
+        }
+        const result = await db.execute(`SELECT COUNT(*) as count FROM users WHERE admin_id = ? AND username = ?`, [adminId, username]);
+        if (result.rows[0].count !== 0) {
+            return { ok: false, message: "Username already in use" };
+        }
+        return { ok: true, username, message: "Username is available" };
+    } catch (error) {
+        console.error(error);
+        return { ok: false, message: "Error checking username" };
+    }
+}
+</file>
+
+<file path="lib/deleteAccount.js">
+"use server";
+import { redirect } from "next/navigation";
+import { getUser } from "./getUser";
+import { db } from "@/app/lib/turso";
+import { cookies } from "next/headers";
+import { redisIpLimit } from "../utils/redidIpLimit";
+import { verifyPassword } from "../utils/hash";
+export async function deleteAccount(_, formData) {
+    try {
+        const ipLimit = await redisIpLimit(5, 'delete_account');
+        if (!ipLimit.ok) return ipLimit;
+        const password = formData?.get('password')?.toString();
+        if (!password) return { ok: false, message: "Password is required." };
+        const currentUser = await getUser();
+        if (!currentUser?.id) return { ok: false, message: "You must be logged in to delete your account." };
+        const fetchPass = await db.execute(`SELECT password FROM admins WHERE id = ?`, [currentUser.id]);
+        if (fetchPass.rows.length === 0) {
+            return { ok: false, message: "Account not found" };
+        }
+        const currentPassword = fetchPass.rows[0].password;
+        if (!verifyPassword(password, currentPassword)) return { ok: false, message: "Incorrect password." };
+        const cookieStore = await cookies();
+        await db.execute('DELETE FROM admins WHERE id = ?', [currentUser.id]);
+        cookieStore.delete("isp-token");
+    } catch (error) {
+        console.error(error);
+        return { ok: false, message: "Something went wrong." };
+    }
+    redirect("/signup");
+}
+</file>
+
+<file path="lib/getUser.js">
+"use server"
+import { cookies } from "next/headers";
+import { db } from "./turso";
+import { cache } from "react";
+export const getUser = cache(async function getUser() {
+    try {
+        const cookieStore = await cookies();
+        const token = cookieStore.get("isp-token");
+        if (!token?.value) return null;
+        const now = Date.now();
+        const sessionRes = await db.execute(
+          `SELECT admin_id FROM sessions
+           WHERE session_id = ?
+           AND CAST(expires_at AS INTEGER) > ?`,
+          [token.value, now]
+        );
+        if (sessionRes.rows.length === 0) {
+          return null;
+        }
+        const userId = sessionRes.rows[0].admin_id;
+        const userRes = await db.execute(
+            'SELECT id, public_id, username, email FROM admins WHERE id = ?',
+            [userId]
+        );
+        if (userRes.rows.length === 0) return null;
+        return userRes.rows[0];
+    } catch (error) {
+        console.error(error);
+        return null;
+    }
+})
+</file>
+
+<file path="lib/logout.js">
+"use server";
+import { redirect } from "next/navigation";
+import { getUser } from "./getUser";
+import { db } from "@/app/lib/turso";
+import { cookies } from "next/headers";
+export async function logout() {
+    const cookieStore = await cookies();
+    const token = cookieStore.get('isp-token');
+    try {
+        const currentUser = await getUser();
+        if (!currentUser) return null;
+        await db.execute('DELETE FROM sessions WHERE admin_id = ? AND session_id = ?', [currentUser?.id, token?.value]);
+        cookieStore.delete("isp-token");
+    } catch (error) {
+        console.error(error);
+        return null;
+    }
+    redirect("/login");
+}
+</file>
+
+<file path="lib/redis.js">
+import { Redis } from "@upstash/redis";
+export const redis = new Redis({
+    url: process.env.UPSTASH_REDIS_REST_URL,
+    token: process.env.UPSTASH_REDIS_REST_TOKEN,
+});
+</file>
+
+<file path="lib/turso.js">
+import { createClient } from "@libsql/client";
+export const db = createClient({
+  url: process.env.TURSO_DATABASE_URL,
+  authToken: process.env.TURSO_AUTH_TOKEN,
+});
+</file>
+
+<file path="lib/update-records.js">
+"use server";
+import { nanoid } from "nanoid";
+import { db } from "./turso";
+import { initBilling_transactionsTable } from "../models/table-inits";
+import { getUser } from "./getUser";
+export async function updateRecords() {
+    const currentUser = await getUser();
+    if (!currentUser?.id) {
+        return { ok: false, message: "You must be logged in" };
+    }
+    try {
+        const adminId = currentUser.id;
+        await initBilling_transactionsTable();
+        const result = await db.execute(
+            `
+                SELECT
+                    users.id AS user_id,
+                    users.public_id AS user_public_id,
+                    users.admin_id AS admin_id,
+                    users.username,
+                    users.contact,
+                    users.password,
+                    COALESCE(plans.speed, 2) AS plan,
+                    COALESCE(plans.rate, 500) AS fee
+                FROM users
+                LEFT JOIN plans
+                    ON users.plan_id = plans.id
+                    AND plans.admin_id = ?
+                WHERE users.admin_id = ?
+            `,
+            [adminId, adminId]
+        );
+        if (!result.rows.length) {
+            return { ok: false, message: "No records found" };
+        }
+        const d = new Date();
+        const month = d.getMonth() + 1;
+        const year = d.getFullYear();
+        const parameters =
+            "(public_id, user_id, admin_id, billing_month, billing_year, amount_due, plan_snapshot, fee_snapshot, username_snapshot, contact_snapshot, password_snapshot, remaining_fee)";
+        const placeHolders = result.rows
+            .map(() => "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
+            .join(", ");
+        const VALUES = [];
+        for (const userObj of result.rows) {
+            const public_id = nanoid(16);
+            const user_id = userObj.user_id;
+            const admin_id = adminId;
+            const amount_due = userObj.fee || 0;
+            const plan_snapshot = userObj.plan ? `${userObj.plan}Mbps` : null;
+            const fee_snapshot = userObj.fee ? `${userObj.fee}Rs` : null;
+            const username_snapshot = userObj.username;
+            const contact_snapshot = userObj.contact;
+            const password_snapshot = userObj.password || null;
+            const remaining_fee = amount_due;
+            VALUES.push(
+                public_id,
+                user_id,
+                admin_id,
+                month,
+                year,
+                amount_due,
+                plan_snapshot,
+                fee_snapshot,
+                username_snapshot,
+                contact_snapshot,
+                password_snapshot,
+                remaining_fee
+            );
+        }
+        await db.execute(
+            `
+                INSERT INTO billing_transactions ${parameters}
+                VALUES ${placeHolders}
+                ON CONFLICT (user_id, billing_month, billing_year) DO NOTHING
+            `,
+            VALUES
+        );
+        return { ok: true, message: "Records updated successfully" };
+    } catch (error) {
+        console.error(error);
+        return { ok: false, message: "Error updating records" };
+    }
+}
+</file>
+
+<file path="models/table-inits.js">
+import { db } from "../lib/turso";
+export async function initAdminsTable() {
+    try {
+        await db.execute("PRAGMA foreign_keys = ON;");
+        await db.execute(`
+                    CREATE TABLE IF NOT EXISTS admins (
+                    id INTEGER PRIMARY KEY,
+                    public_id TEXT NOT NULL,
+                    username TEXT UNIQUE NOT NULL,
+                    email TEXT,
+                    password TEXT
+                    )
+                    `);
+        return { ok: true, message: "Admins table initialized" };
+    } catch (error) {
+        console.log(error);
+        return { ok: false, message: "Error creating admins table" };
+    }
+}
+export async function initUsersTable() {
+    try {
+        await db.execute(`
+                    CREATE TABLE IF NOT EXISTS users (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    public_id TEXT NOT NULL,
+                    admin_id INTEGER NOT NULL,
+                    username TEXT NOT NULL,
+                    password TEXT DEFAULT NULL,
+                    contact INTEGER DEFAULT 0,
+                    plan_id INTEGER,
+                    FOREIGN KEY (admin_id) REFERENCES admins (id) ON DELETE CASCADE ON UPDATE CASCADE,
+                    FOREIGN KEY (plan_id) REFERENCES plans (id) ON DELETE SET NULL,
+                    UNIQUE(admin_id, username)
+                    )`
+        );
+        return { ok: true, message: "users table initialized" };
+    } catch (error) {
+        console.log(error);
+        return { ok: false, message: "Error creating users table" };
+    }
+}
+export async function initPlansTable() {
+    try {
+        await db.execute(`
+                    CREATE TABLE IF NOT EXISTS plans (
+                    id INTEGER PRIMARY KEY,
+                    public_id TEXT NOT NULL,
+                    admin_id INTEGER NOT NULL,
+                    speed INTEGER,
+                    rate INTEGER,
+                    FOREIGN KEY (admin_id) REFERENCES admins (id) ON DELETE CASCADE ON UPDATE CASCADE
+                    )
+                    `);
+        return { ok: true, message: "plans table initialized" };
+    } catch (error) {
+        console.log(error);
+        return { ok: false, message: "Error creating plans table" };
+    }
+}
+export async function initBilling_transactionsTable() {
+    try {
+        await db.execute(`
+                    CREATE TABLE IF NOT EXISTS billing_transactions (
+                    id INTEGER PRIMARY KEY,
+                    public_id TEXT,
+                    user_id INTEGER,
+                    admin_id INTEGER,
+                    billing_month INTEGER,
+                    billing_year INTEGER,
+                    fee_status TEXT DEFAULT 'unpaid',
+                    amount_due INTEGER DEFAULT 0,
+                    amount_paid INTEGER DEFAULT 0,
+                    remaining_fee INTEGER DEFAULT 0,
+                    plan_snapshot TEXT,
+                    fee_snapshot TEXT,
+                    username_snapshot TEXT,
+                    contact_snapshot INTEGER DEFAULT 0,
+                    password_snapshot TEXT DEFAULT NULL,
+                    invoice_id TEXT UNIQUE DEFAULT NULL,
+                    entry_date TEXT DEFAULT CURRENT_TIMESTAMP,
+                    last_updated TEXT DEFAULT CURRENT_TIMESTAMP,
+                    UNIQUE(user_id, billing_month, billing_year),
+                    FOREIGN KEY (admin_id) REFERENCES admins(id) ON DELETE SET NULL,
+                    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
+                    )`
+        );
+        return { ok: true, message: "billing_transactions table initialized" };
+    } catch (error) {
+        console.log(error);
+        return { ok: false, message: "Error creating billing_transactions table" };
+    }
+};
+export async function initSessionsTable() {
+    try {
+        await db.execute(`
+                    CREATE TABLE IF NOT EXISTS sessions (
+                    id INTEGER PRIMARY KEY,
+                    session_id TEXT NOT NULL UNIQUE,
+                    admin_id INTEGER NOT NULL REFERENCES admins(id) ON DELETE CASCADE,
+                    expires_at TEXT NOT NULL,
+                    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+                    )
+                    `);
+        return { ok: true, message: "sessions table initialized" };
+    } catch (error) {
+        console.log(error);
+        return { ok: false, message: "Error creating sessions table" };
+    }
+};
+</file>
+
+<file path="page.js">
+import { redirect } from "next/navigation";
+export default function Home() {
+  redirect("/dashboard");
+}
+</file>
+
+<file path="plans/ClientPlans.jsx">
+'use client';
+import Form from "next/form";
+import { plansServerAction } from "./plansSA";
+import { useActionState, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+export default function ClientPlans({ plans = [] }) {
+    const router = useRouter();
+    const initialState = { ok: null, message: "" };
+    const [state, action, isPending] = useActionState(plansServerAction, initialState);
+    const [mode, setMode] = useState("");
+    useEffect(() => {
+        if (state.ok === true) {
+            setMode("");
+            router.refresh();
+        }
+    }, [state]);
+    const modeButtons = [
+        { id: "add", label: "Add Plan" },
+        { id: "update", label: "Update Plan" },
+        { id: "delete", label: "Delete Plan" },
+    ];
+    return (
+        <div className="max-w-lg mx-auto px-4 py-6">
+            <div className="mb-6">
+                <h1 className="text-xl font-bold text-gray-900">Manage Plans</h1>
+                <p className="text-sm text-gray-500 mt-0.5">Create, update or remove ISP plans</p>
+            </div>
+            {}
+            <div className="flex gap-2 mb-6">
+                {modeButtons.map(({ id, label }) => (
+                    <button
+                        key={id}
+                        onClick={() => setMode(mode === id ? "" : id)}
+                        className={`flex-1 py-2.5 rounded-xl text-sm font-semibold border transition-colors ${
+                            mode === id
+                                ? id === "delete"
+                                    ? "bg-red-500 text-white border-red-500"
+                                    : "bg-gray-900 text-white border-gray-900"
+                                : "bg-white text-gray-700 border-gray-200 hover:bg-gray-50"
+                        }`}
+                    >
+                        {label}
+                    </button>
+                ))}
+            </div>
+            {state.message && (
+                <p className={`text-sm px-4 py-3 rounded-xl border mb-4 ${
+                    state.ok
+                        ? "text-green-700 bg-green-50 border-green-200"
+                        : "text-red-600 bg-red-50 border-red-200"
+                }`}>
+                    {state.message}
+                </p>
+            )}
+            {}
+            {mode === "add" && (
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-4">New Plan</p>
+                    <Form action={action} className="flex flex-col gap-4">
+                        <input type="hidden" name="action_type" value="add" />
+                        <div className="flex flex-col gap-1.5">
+                            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Speed (Mbps)</label>
+                            <input
+                                type="number"
+                                name="speed"
+                                placeholder="e.g. 10"
+                                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900 placeholder-gray-400 bg-white focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent transition-all"
+                            />
+                        </div>
+                        <div className="flex flex-col gap-1.5">
+                            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Rate (Rs)</label>
+                            <input
+                                type="number"
+                                name="rate"
+                                placeholder="e.g. 1500"
+                                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900 placeholder-gray-400 bg-white focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent transition-all"
+                            />
+                        </div>
+                        <button
+                            type="submit"
+                            disabled={isPending}
+                            className="w-full bg-gray-900 text-white rounded-xl py-3 text-sm font-semibold hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                        >
+                            {isPending ? "Adding…" : "Add Plan"}
+                        </button>
+                    </Form>
+                </div>
+            )}
+            {}
+            {mode === "update" && (
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-4">Update Plan</p>
+                    <Form action={action} className="flex flex-col gap-4">
+                        <input type="hidden" name="action_type" value="update" />
+                        <div className="flex flex-col gap-1.5">
+                            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Select Plan</label>
+                            <select
+                                name="public_id"
+                                defaultValue=""
+                                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent transition-all"
+                            >
+                                <option value="" disabled>Choose plan…</option>
+                                {plans.map((plan) => (
+                                    <option key={plan.public_id} value={plan.public_id}>
+                                        {plan.speed} Mbps — Rs {plan.rate}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+                        <div className="flex gap-3">
+                            <div className="flex flex-col gap-1.5 flex-1">
+                                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">New Speed</label>
+                                <input
+                                    type="number"
+                                    name="speed"
+                                    placeholder="Mbps"
+                                    className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900 placeholder-gray-400 bg-white focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent transition-all"
+                                />
+                            </div>
+                            <div className="flex flex-col gap-1.5 flex-1">
+                                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">New Rate</label>
+                                <input
+                                    type="number"
+                                    name="rate"
+                                    placeholder="Rs"
+                                    className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900 placeholder-gray-400 bg-white focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent transition-all"
+                                />
+                            </div>
+                        </div>
+                        <button
+                            type="submit"
+                            disabled={isPending}
+                            className="w-full bg-gray-900 text-white rounded-xl py-3 text-sm font-semibold hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                        >
+                            {isPending ? "Updating…" : "Update Plan"}
+                        </button>
+                    </Form>
+                </div>
+            )}
+            {}
+            {mode === "delete" && (
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-4">Delete Plan</p>
+                    <Form action={action} className="flex flex-col gap-4">
+                        <input type="hidden" name="action_type" value="delete" />
+                        <div className="flex flex-col gap-1.5">
+                            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Select Plan</label>
+                            <select
+                                name="public_id"
+                                defaultValue=""
+                                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent transition-all"
+                            >
+                                <option value="" disabled>Choose plan to delete…</option>
+                                {plans.map((plan) => (
+                                    <option key={plan.public_id} value={plan.public_id}>
+                                        {plan.speed} Mbps — Rs {plan.rate}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+                        <button
+                            type="submit"
+                            disabled={isPending}
+                            className="w-full bg-red-500 text-white rounded-xl py-3 text-sm font-semibold hover:bg-red-600 active:bg-red-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                        >
+                            {isPending ? "Deleting…" : "Delete Plan"}
+                        </button>
+                    </Form>
+                </div>
+            )}
+            {}
+            {plans.length > 0 && (
+                <div className="mt-6">
+                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3 px-1">Active Plans</p>
+                    <div className="flex flex-col gap-2">
+                        {plans.map((plan) => (
+                            <div key={plan.public_id} className="bg-white rounded-xl border border-gray-100 shadow-sm px-4 py-3 flex items-center justify-between">
+                                <span className="text-sm font-semibold text-gray-900">{plan.speed} Mbps</span>
+                                <span className="text-sm text-gray-500">Rs {plan.rate}</span>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+}
+</file>
+
+<file path="plans/loading.jsx">
+export default function PlansLoading() {
+    return (
+        <div className="max-w-lg mx-auto px-4 py-6 animate-pulse">
+            {}
+            <div className="mb-6">
+                <div className="h-6 w-36 bg-gray-200 rounded-lg mb-2" />
+                <div className="h-4 w-52 bg-gray-100 rounded-lg" />
+            </div>
+            {}
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 mb-4">
+                <div className="h-3 w-24 bg-gray-200 rounded mb-3" />
+                <div className="flex flex-col gap-2">
+                    {[...Array(3)].map((_, i) => (
+                        <div key={i} className="h-12 bg-gray-100 rounded-xl" />
+                    ))}
+                </div>
+            </div>
+            {}
+            <div className="grid grid-cols-3 gap-2">
+                {[...Array(3)].map((_, i) => (
+                    <div key={i} className="h-10 bg-gray-100 rounded-xl" />
+                ))}
+            </div>
+        </div>
+    );
+}
+</file>
+
+<file path="plans/page.jsx">
+import { db } from "@/app/lib/turso";
+import ClientPlans from "./ClientPlans";
+import { initPlansTable } from "../models/table-inits";
+import { getUser } from "../lib/getUser";
+import { redirect } from "next/navigation";
+export const metadata = {
+    title: "Manage Plans - NetAdmin",
+    description: "Create, update, or remove internet packages and speed tiers.",
+};
+export default async function Packages() {
+    const currentUser = await getUser();
+    if (!currentUser?.id) redirect("/login");
+    const adminId = currentUser.id;
+    await initPlansTable();
+    const result = await db.execute(`SELECT public_id, speed, rate FROM plans WHERE admin_id = ?`, [adminId]);
+    const plans = result?.rows?.map(row => ({
+        public_id: row.public_id,
+        speed: Number(row.speed),
+        rate: Number(row.rate)
+    }));
+    return (<>
+        <ClientPlans plans={plans} />
+    </>);
+}
+</file>
+
+<file path="plans/plansSA.js">
+"use server";
+import { db } from "@/app/lib/turso";
+import { nanoid } from "nanoid";
+import { getUser } from "../lib/getUser";
+import { redisIpLimit } from "@/app/utils/redidIpLimit";
+export async function plansServerAction(_, formData) {
+    const currentUser = await getUser();
+    if (!currentUser?.id) return { ok: false, message: "You must be logged in" };
+    const adminId = currentUser.id;
+    const ipLimit = await redisIpLimit(15, "plans_action");
+    if (!ipLimit.ok) return ipLimit;
+    try {
+        const actionType = formData.get("action_type")?.toString();
+        const planId = formData.get("public_id")?.toString().trim();
+        const speedRaw = formData.get("speed")?.toString().trim();
+        const rateRaw = formData.get("rate")?.toString().trim();
+        if (!["add", "update", "delete"].includes(actionType)) {
+            return { ok: false, message: "Invalid request" };
+        }
+        if (actionType === "delete") {
+            if (!planId) {
+                return { ok: false, message: "Select a plan to delete" };
+            }
+            const result = await db.execute(
+                `DELETE FROM plans WHERE public_id = ? AND admin_id = ?`,
+                [planId, adminId]
+            );
+            if (result.rowsAffected === 0) {
+                return { ok: false, message: "Error deleting plan" };
+            }
+            return { ok: true, message: "Plan deleted successfully" };
+        }
+        if (!speedRaw || !rateRaw) {
+            return { ok: false, message: "Speed and rate are required" };
+        }
+        const speed = Number(speedRaw);
+        const rate = Number(rateRaw);
+        if (!Number.isFinite(speed) || speed <= 0) {
+            return { ok: false, message: "Speed must be a valid positive number" };
+        }
+        if (!Number.isFinite(rate) || rate <= 0) {
+            return { ok: false, message: "Rate must be a valid positive number" };
+        }
+        if (speed > 10000) {
+            return { ok: false, message: "Speed seems unrealistic (max 10000 Mbps)" };
+        }
+        if (rate > 1000000) {
+            return { ok: false, message: "Rate seems unrealistic (max 1,000,000)" };
+        }
+        if (actionType === "add") {
+            if (planId) {
+                return { ok: false, message: "Invalid request" };
+            }
+            const result = await db.execute(
+                `INSERT INTO plans (public_id, speed, rate, admin_id) VALUES (?, ?, ?, ?)`,
+                [nanoid(), speed, rate, adminId]
+            );
+            if (result.rowsAffected === 0) {
+                return { ok: false, message: "Error adding new plan" };
+            }
+            return { ok: true, message: "New plan added successfully" };
+        }
+        if (actionType === "update") {
+            if (!planId) {
+                return { ok: false, message: "Select a plan to update" };
+            }
+            const result = await db.execute(
+                `UPDATE plans SET speed = ?, rate = ? WHERE public_id = ? AND admin_id = ?`,
+                [speed, rate, planId, adminId]
+            );
+            if (result.rowsAffected === 0) {
+                return { ok: false, message: "Error updating plan" };
+            }
+            return { ok: true, message: "Plan updated successfully" };
+        }
+        return { ok: false, message: "Invalid request" };
+    } catch (error) {
+        console.error(error);
+        return { ok: false, message: "Something went wrong" };
+    }
+}
+</file>
+
+<file path="settings/ClientSettings.jsx">
+'use client';
+import Form from "next/form";
+import { startTransition, useActionState, useEffect, useRef, useState } from "react";
+import { checkAdminNameServerAction } from "../lib/checkAdminNameSA";
+import { settingsServerAction } from "./settingsSA";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+export default function SettingsClient({ userInfo }) {
+    const [stateUpdate, actionUpdate, isPendingUpdate] = useActionState(settingsServerAction, { ok: null, message: "" });
+    const [stateSearch, actionSearch, isPendingSearch] = useActionState(checkAdminNameServerAction, { ok: null, message: "" });
+    const [changePass, setChangePass] = useState(false);
+    const adminNameRef = useRef(null);
+    const router = useRouter();
+    useEffect(() => {
+        if (stateUpdate.ok === true) router.refresh();
+    }, [stateUpdate]);
+    const handleOnchange = (e) => {
+        const value = e.target.value;
+        if (adminNameRef.current) clearTimeout(adminNameRef.current);
+        adminNameRef.current = setTimeout(() => {
+            startTransition(() => { actionSearch(value); });
+        }, 600);
+    };
+    return (
+        <div className="max-w-lg mx-auto px-4 py-6">
+            <div className="mb-6">
+                <h1 className="text-xl font-bold text-gray-900">Settings</h1>
+                <p className="text-sm text-gray-500 mt-0.5">Manage your account details</p>
+            </div>
+            {stateUpdate.message && (
+                <p className={`text-sm px-4 py-3 rounded-xl border mb-4 ${
+                    stateUpdate.ok
+                        ? "text-green-700 bg-green-50 border-green-200"
+                        : "text-red-600 bg-red-50 border-red-200"
+                }`}>
+                    {stateUpdate.message}
+                </p>
+            )}
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+                <Form action={actionUpdate} className="flex flex-col gap-4">
+                    <input type="hidden" name="public_id" value={userInfo.public_id} />
+                    <div className="flex flex-col gap-1.5">
+                        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Username</label>
+                        <input
+                            type="text"
+                            name="username"
+                            defaultValue={userInfo.username}
+                            onChange={handleOnchange}
+                            className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent transition-all"
+                        />
+                        {stateSearch.ok !== null && stateSearch.message && userInfo.username !== stateSearch.username && (
+                            <p className={`text-xs px-3 py-2 rounded-lg border ${
+                                stateSearch.ok
+                                    ? "text-green-700 bg-green-50 border-green-200"
+                                    : "text-red-600 bg-red-50 border-red-200"
+                            }`}>
+                                {stateSearch.message}
+                            </p>
+                        )}
+                    </div>
+                    <div className="flex flex-col gap-1.5">
+                        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Email</label>
+                        <input
+                            type="email"
+                            name="email"
+                            defaultValue={userInfo.email}
+                            placeholder="you@example.com"
+                            className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900 placeholder-gray-400 bg-white focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent transition-all"
+                        />
+                    </div>
+                    <div className="pt-1 border-t border-gray-100">
+                        <button
+                            type="button"
+                            onClick={() => setChangePass(!changePass)}
+                            className="text-sm font-semibold text-gray-600 hover:text-gray-900 transition-colors"
+                        >
+                            {changePass ? "✕ Cancel password change" : "Change Password"}
+                        </button>
+                    </div>
+                    {changePass && (
+                        <div className="flex flex-col gap-1.5">
+                            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">New Password</label>
+                            <input
+                                type="password"
+                                name="new_password"
+                                placeholder="New password"
+                                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900 placeholder-gray-400 bg-white focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent transition-all"
+                            />
+                        </div>
+                    )}
+                    <div className="flex flex-col gap-1.5">
+                        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                            {changePass ? "Current Password" : "Password Required"}
+                        </label>
+                        <input
+                            type="password"
+                            name="password"
+                            placeholder={changePass ? "Current password" : "Enter password to save"}
+                            className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900 placeholder-gray-400 bg-white focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent transition-all"
+                        />
+                    </div>
+                    <button
+                        type="submit"
+                        disabled={isPendingUpdate}
+                        className="w-full bg-gray-900 text-white rounded-xl py-3 text-sm font-semibold hover:bg-gray-700 active:bg-gray-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                    >
+                        {isPendingUpdate ? "Saving…" : "Save Changes"}
+                    </button>
+                </Form>
+            </div>
+            <div className="mt-6 bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+                <p className="text-sm font-semibold text-gray-900 mb-1">Danger Zone</p>
+                <p className="text-xs text-gray-500 mb-4">Permanently delete your account and all data.</p>
+                <Link
+                    href="/delete_account"
+                    className="inline-block w-full text-center border border-red-200 text-red-600 rounded-xl py-3 text-sm font-semibold hover:bg-red-50 active:bg-red-100 transition-colors"
+                >
+                    Delete Account
+                </Link>
+            </div>
+        </div>
+    );
+}
+</file>
+
+<file path="settings/loading.jsx">
+export default function SettingsLoading() {
+    return (
+        <div className="max-w-lg mx-auto px-4 py-6 animate-pulse">
+            {}
+            <div className="mb-6">
+                <div className="h-6 w-24 bg-gray-200 rounded-lg mb-2" />
+                <div className="h-4 w-44 bg-gray-100 rounded-lg" />
+            </div>
+            {}
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 mb-4">
+                <div className="h-4 w-32 bg-gray-200 rounded mb-5" />
+                <div className="flex flex-col gap-5">
+                    {}
+                    <div>
+                        <div className="h-3 w-20 bg-gray-200 rounded mb-2" />
+                        <div className="h-12 bg-gray-100 rounded-xl" />
+                    </div>
+                    {}
+                    <div>
+                        <div className="h-3 w-12 bg-gray-200 rounded mb-2" />
+                        <div className="h-12 bg-gray-100 rounded-xl" />
+                    </div>
+                    {}
+                    <div className="border-t border-gray-100 pt-4">
+                        <div className="h-4 w-36 bg-gray-100 rounded" />
+                    </div>
+                    {}
+                    <div>
+                        <div className="h-3 w-28 bg-gray-200 rounded mb-2" />
+                        <div className="h-12 bg-gray-100 rounded-xl" />
+                    </div>
+                    {}
+                    <div className="h-12 bg-gray-200 rounded-xl" />
+                </div>
+            </div>
+            {}
+            <div className="bg-white rounded-2xl border border-red-100 shadow-sm p-5">
+                <div className="h-4 w-28 bg-gray-200 rounded mb-2" />
+                <div className="h-3 w-52 bg-gray-100 rounded mb-4" />
+                <div className="h-12 bg-red-50 rounded-xl border border-red-100" />
+            </div>
+        </div>
+    );
+}
+</file>
+
+<file path="settings/page.jsx">
+import { redirect } from "next/navigation";
+import { getUser } from "../lib/getUser";
+import SettingsClient from "./ClientSettings";
+export const metadata = {
+    title: "Account Settings - NetAdmin",
+    description: "Manage your admin username, email, password, or delete your account.",
+};
+export default async function Settings() {
+    const currentUser = await getUser();
+    if (!currentUser?.id) redirect("/login");
+    const userInfo = {
+        public_id: currentUser.public_id,
+        username: currentUser.username,
+        email: currentUser.email
+    }
+    return (<>
+        <SettingsClient userInfo={userInfo} />
+    </>);
+}
+</file>
+
+<file path="settings/settingsSA.js">
+"use server";
+import { db } from "@/app/lib/turso";
+import { getUser } from "../lib/getUser";
+import { hashPassword, verifyPassword } from "@/app/utils/hash";
+import {
+  normalizeUsername,
+  validateUsername,
+  validateAdminPassword,
+  validateOptionalAdminPassword,
+  validateEmail,
+} from "@/app/utils/validation";
+import { redisIpLimit } from "@/app/utils/redidIpLimit";
+export async function settingsServerAction(_, formData) {
+    try {
+        const currentUser = await getUser();
+        if (!currentUser?.id) return { ok: false, message: "You must be logged in" };
+        const ipLimit = await redisIpLimit(10, "settings_update");
+        if (!ipLimit.ok) return ipLimit;
+        const userPublicId = formData.get("public_id")?.toString().trim();
+        const username = normalizeUsername(formData.get("username"));
+        const email = formData.get("email")?.toString().trim() || null;
+        const password = formData.get("password")?.toString();
+        const newPassword = formData.get("new_password")?.toString() || null;
+        const usernameError = validateUsername(username);
+        if (usernameError) {
+            return { ok: false, message: usernameError };
+        }
+        const emailError = validateEmail(email);
+        if (emailError) {
+            return { ok: false, message: emailError };
+        }
+        const passwordError = validateAdminPassword(password, "Current password");
+        if (passwordError) {
+            return { ok: false, message: passwordError };
+        }
+        const newPasswordError = validateOptionalAdminPassword(newPassword, "New password");
+        if (newPasswordError) {
+            return { ok: false, message: newPasswordError };
+        }
+        if (currentUser.public_id !== userPublicId) return { ok: false, message: "User details conflict" };
+        const fetchPass = await db.execute(`SELECT password FROM admins WHERE id = ?`, [currentUser.id]);
+        if (fetchPass.rows.length === 0) {
+            return { ok: false, message: "Account not found" };
+        }
+        const currentPassword = fetchPass.rows[0].password;
+        if (!verifyPassword(password, currentPassword)) return { ok: false, message: "Incorrect password" };
+        await db.execute(`UPDATE admins SET username = ?, email = ? WHERE id = ?`, [username, email, currentUser.id]);
+        if (newPassword) {
+            const hashedPassword = hashPassword(newPassword);
+            await db.execute(`UPDATE admins SET password = ? WHERE id = ?`, [hashedPassword, currentUser.id]);
+        }
+        return { ok: true, message: "Settings updated successfully" };
+    } catch (error) {
+        console.error(error);
+        if (error.message && error.message.includes("UNIQUE")) {
+            return { ok: false, message: "Username already in use" };
+        }
+        return { ok: false, message: "Error updating settings" };
+    }
+}
+</file>
+
+<file path="utils/hash.js">
+import crypto from "crypto";
+export function hashPassword(password) {
+    if (!password) return "";
+    const salt = crypto.randomBytes(16).toString("hex");
+    const hash = crypto.scryptSync(password, salt, 64).toString("hex");
+    return `${salt}:${hash}`;
+}
+export function verifyPassword(password, storedPassword) {
+    if (!storedPassword) return false;
+    if (!storedPassword.includes(":")) {
+        return password === storedPassword;
+    }
+    const [salt, hash] = storedPassword.split(":");
+    const verifyHash = crypto.scryptSync(password, salt, 64).toString("hex");
+    return hash === verifyHash;
+}
+</file>
+
+<file path="utils/redidIpLimit.js">
+import { headers } from "next/headers";
+import { redis } from "../lib/redis";
+export async function redisIpLimit(incomingLimit, _for) {
+    try {
+        let limit = parseInt(incomingLimit);
+        if (isNaN(limit) || limit <= 0) {
+            limit = 5;
+        }
+        const identifier = _for || "default_action";
+        const headerStore = await headers();
+        const rawIp = headerStore.get("x-forwarded-for");
+        const ip = rawIp?.split(",")[0].trim() || "127.0.0.1";
+        const key = `limit:${identifier}:${ip}`;
+        const windowInSeconds = 60 * 15;
+        let attempts = parseInt(await redis.get(key)) || 0;
+        if (attempts >= limit) {
+            return {
+                ok: false,
+                message: `Too many ${identifier.replace(/_/g, " ")} attempts. Try again later.`
+            };
+        }
+        attempts = await redis.incr(key);
+        if (attempts === 1) {
+            await redis.expire(key, windowInSeconds);
+        }
+        return { ok: true, message: `${limit - attempts} attempts left` };
+    } catch (error) {
+        console.error(error);
+        return { ok: false, message: "An error occurred" };
+    }
+}
+</file>
+
+<file path="utils/validation.js">
+export function normalizeUsername(value) {
+  return value?.toString().trim() || "";
+}
+export function validateUsername(username, label = "Username") {
+  if (!username) return `${label} is required`;
+  if (username.length < 3) return `${label} must be at least 3 characters`;
+  if (username.length > 32) return `${label} must be 32 characters or less`;
+  if (!/^[A-Za-z0-9_]+$/.test(username)) {
+    return `${label} can only contain letters, numbers, and underscores`;
+  }
+  return null;
+}
+export function validateAdminPassword(password, label = "Password") {
+  if (!password) return `${label} is required`;
+  if (password.length < 6) return `${label} must be at least 6 characters`;
+  if (password.length > 128) return `${label} must be 128 characters or less`;
+  return null;
+}
+export function validateOptionalAdminPassword(password, label = "Password") {
+  if (!password) return null;
+  if (password.length < 6) return `${label} must be at least 6 characters`;
+  if (password.length > 128) return `${label} must be 128 characters or less`;
+  return null;
+}
+export function validateOptionalPassword(password, label = "Password") {
+  if (!password) return null;
+  if (password.length > 128) return `${label} must be 128 characters or less`;
+  return null;
+}
+export function validateEmail(email) {
+  if (!email) return null;
+  if (email.length > 254) {
+    return "Email too long";
+  }
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) {
+    return "Invalid email format";
+  }
+  return null;
+}
+</file>
+
+</files>

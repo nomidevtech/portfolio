@@ -22,7 +22,7 @@ export async function redisIpLimit(incomingLimit, _for) {
         if (attempts >= limit) {
             return {
                 ok: false,
-                message: `Too many ${identifier.replace("_", " ")} attempts. Try again later.`
+                message: `Too many ${identifier.replace(/_/g, " ")} attempts. Try again later.`
             };
         }
 

@@ -65,6 +65,7 @@ export default function ClientPlans({ plans = [] }) {
                 <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
                     <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-4">New Plan</p>
                     <Form action={action} className="flex flex-col gap-4">
+                        <input type="hidden" name="action_type" value="add" />
                         <div className="flex flex-col gap-1.5">
                             <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Speed (Mbps)</label>
                             <input
@@ -99,6 +100,7 @@ export default function ClientPlans({ plans = [] }) {
                 <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
                     <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-4">Update Plan</p>
                     <Form action={action} className="flex flex-col gap-4">
+                        <input type="hidden" name="action_type" value="update" />
                         <div className="flex flex-col gap-1.5">
                             <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Select Plan</label>
                             <select
@@ -150,6 +152,7 @@ export default function ClientPlans({ plans = [] }) {
                 <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
                     <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-4">Delete Plan</p>
                     <Form action={action} className="flex flex-col gap-4">
+                        <input type="hidden" name="action_type" value="delete" />
                         <div className="flex flex-col gap-1.5">
                             <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Select Plan</label>
                             <select
