@@ -44,10 +44,7 @@ export async function initUsersTable() {
     }
 }
 
-
 export async function initPlansTable() {
-
-
     try {
         await db.execute(`
                     CREATE TABLE IF NOT EXISTS plans (
@@ -66,12 +63,6 @@ export async function initPlansTable() {
         return { ok: false, message: "Error creating plans table" };
     }
 }
-
-
-
-
-
-
 
 export async function initBilling_transactionsTable() {
     try {
@@ -114,8 +105,7 @@ export async function initBilling_transactionsTable() {
         console.log(error);
         return { ok: false, message: "Error creating billing_transactions table" };
     }
-};
-
+}
 
 export async function initSessionsTable() {
     try {
@@ -134,4 +124,49 @@ export async function initSessionsTable() {
         console.log(error);
         return { ok: false, message: "Error creating sessions table" };
     }
-};
+}
+
+export async function initAllTables() {
+    try {
+        await db.execute("PRAGMA foreign_keys = ON;");
+
+        const adminsResult = await initAdminsTable();
+        if (!adminsResult.ok) return adminsResult;
+
+        const plansResult = await initPlansTable();
+        if (!plansResult.ok) return plansResult;
+
+        const usersResult = await initUsersTable();
+        if (!usersResult.ok) return usersResult;
+
+        const billingTransactionsResult = await initBilling_transactionsTable();
+        if (!billingTransactionsResult.ok) return billingTransactionsResult;
+
+        const sessionsResult = await initSessionsTable();
+        if (!sessionsResult.ok) return sessionsResult;
+
+        return { ok: true, message: "All tables initialized" };
+    } catch (error) {
+        console.log(error);
+        return { ok: false, message: "Error initializing all tables" };
+    }
+}
+
+export async function resetDb() {
+    try {
+        await db.execute("PRAGMA foreign_keys = OFF;");
+
+        await db.execute("DROP TABLE IF EXISTS sessions;");
+        await db.execute("DROP TABLE IF EXISTS billing_transactions;");
+        await db.execute("DROP TABLE IF EXISTS users;");
+        await db.execute("DROP TABLE IF EXISTS plans;");
+        await db.execute("DROP TABLE IF EXISTS admins;");
+
+        await db.execute("PRAGMA foreign_keys = ON;");
+
+        return { ok: true, message: "Database reset" };
+    } catch (error) {
+        console.log(error);
+        return { ok: false, message: "Error resetting database" };
+    }
+}

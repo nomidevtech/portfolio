@@ -5,9 +5,9 @@ import { db } from "@/app/lib/turso";
 import { nanoid } from "nanoid";
 import { getUser } from "../lib/getUser";
 import {
-  normalizeUsername,
-  validateUsername,
-  validateOptionalPassword,
+    normalizeUsername,
+    validateUsername,
+    validateOptionalPassword,
 } from "@/app/utils/validation";
 import { redisIpLimit } from "@/app/utils/redidIpLimit";
 
@@ -49,7 +49,7 @@ export async function addUserServerAction(_, formData) {
 
         // Auto-generate strong password if left blank
         if (!password) {
-            password = crypto.randomBytes(6).toString("hex");
+            password = Math.floor(100000 + Math.random() * 900000).toString();
         }
 
         const adminId = currentUser.id;

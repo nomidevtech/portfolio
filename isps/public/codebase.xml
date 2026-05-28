@@ -2263,22 +2263,24 @@ import {
   validateUsername,
 } from "@/app/utils/validation";
 export async function checkAdminNameServerAction(_, usernameRaw) {
-    const ipLimit = await redisIpLimit(20, "admin_username_check");
-    if (!ipLimit.ok) return ipLimit;
     try {
+        const ipLimit = await redisIpLimit(20, "admin_username_check");
+        if (!ipLimit.ok) return ipLimit;
         const username = normalizeUsername(usernameRaw);
         const usernameError = validateUsername(username);
         if (usernameError) {
             return { ok: false, username, message: usernameError };
         }
         const result = await db.execute(`SELECT COUNT(*) as count FROM admins WHERE username = ?`, [username]);
-        if (result.rows[0].count !== 0) {
+        const count = Number(result.rows[0]?.count ?? 0);
+        if (count !== 0) {
             return { ok: false, username, message: "Username already in use" };
         }
         return { ok: true, username, message: "Username is available" };
     } catch (error) {
         console.error(error);
-        return { ok: false, message: "Error checking username" };
+        const username = normalizeUsername(usernameRaw);
+        return { ok: false, username, message: "Error checking username" };
     }
 }
 </file>
@@ -2302,8 +2304,9 @@ export async function checkUsernameServerAction(_, usernameRaw) {
             return { ok: false, username, message: usernameError };
         }
         const result = await db.execute(`SELECT COUNT(*) as count FROM users WHERE admin_id = ? AND username = ?`, [adminId, username]);
-        if (result.rows[0].count !== 0) {
-            return { ok: false, message: "Username already in use" };
+        const count = Number(result.rows[0]?.count ?? 0);
+        if (count !== 0) {
+            return { ok: false, username, message: "Username already in use" };
         }
         return { ok: true, username, message: "Username is available" };
     } catch (error) {
@@ -2597,7 +2600,7 @@ export async function initBilling_transactionsTable() {
         console.log(error);
         return { ok: false, message: "Error creating billing_transactions table" };
     }
-};
+}
 export async function initSessionsTable() {
     try {
         await db.execute(`
@@ -2614,7 +2617,41 @@ export async function initSessionsTable() {
         console.log(error);
         return { ok: false, message: "Error creating sessions table" };
     }
-};
+}
+export async function initAllTables() {
+    try {
+        await db.execute("PRAGMA foreign_keys = ON;");
+        const adminsResult = await initAdminsTable();
+        if (!adminsResult.ok) return adminsResult;
+        const plansResult = await initPlansTable();
+        if (!plansResult.ok) return plansResult;
+        const usersResult = await initUsersTable();
+        if (!usersResult.ok) return usersResult;
+        const billingTransactionsResult = await initBilling_transactionsTable();
+        if (!billingTransactionsResult.ok) return billingTransactionsResult;
+        const sessionsResult = await initSessionsTable();
+        if (!sessionsResult.ok) return sessionsResult;
+        return { ok: true, message: "All tables initialized" };
+    } catch (error) {
+        console.log(error);
+        return { ok: false, message: "Error initializing all tables" };
+    }
+}
+export async function resetDb() {
+    try {
+        await db.execute("PRAGMA foreign_keys = OFF;");
+        await db.execute("DROP TABLE IF EXISTS sessions;");
+        await db.execute("DROP TABLE IF EXISTS billing_transactions;");
+        await db.execute("DROP TABLE IF EXISTS users;");
+        await db.execute("DROP TABLE IF EXISTS plans;");
+        await db.execute("DROP TABLE IF EXISTS admins;");
+        await db.execute("PRAGMA foreign_keys = ON;");
+        return { ok: true, message: "Database reset" };
+    } catch (error) {
+        console.log(error);
+        return { ok: false, message: "Error resetting database" };
+    }
+}
 </file>
 
 <file path="page.js">
@@ -3233,7 +3270,7 @@ export function verifyPassword(password, storedPassword) {
 
 <file path="utils/redidIpLimit.js">
 import { headers } from "next/headers";
-import { redis } from "../lib/redis";
+import { redis } from "@/app/lib/redis";
 export async function redisIpLimit(incomingLimit, _for) {
     try {
         let limit = parseInt(incomingLimit);
