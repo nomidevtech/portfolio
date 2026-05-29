@@ -22,7 +22,7 @@ export const emailOrchestrator = async (user_pid, email, incomingToken) => {
             if (!inserted) return { ok: false, message: "Something went wrong" };
         }
 
-        return await sendWithResend(email, incomingToken);
+        return await sendWithResend(email, incomingToken, user_pid);
     } catch (error) {
         console.error(error);
         return { ok: false, message: "Something went wrong" };
@@ -45,9 +45,9 @@ const insertTokenIntoDB = async (userPId, token) => {
     return result.rowsAffected === 1;
 }
 
-const sendWithResend = async (email, token) => {
+const sendWithResend = async (email, token, user_pid) => {
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://portfolio-2mnb.vercel.app";
-    const url = `${appUrl}/verify/?token=${token}`;
+    const url = `${appUrl}/verify/?token=${token}&pid=${user_pid}`;
     const result = await resendInstance.emails.send({
         from: "MUB <noreply@nomidev.com>",
         to: email,

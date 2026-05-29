@@ -1,10 +1,16 @@
 "use server";
 
 import { db } from "../lib/turso";
+import { redisIpLimit } from "@/app/utils/redidIpLimit";
 
 export async function searchServerAction(_, value) {
 
     try {
+
+        const ipLimit = await redisIpLimit(30, 'search');
+        if (!ipLimit.ok) {
+            return { ok: false, postTitlesArr: [], message: ipLimit.message };
+        }
 
         const searchTerms =
             value

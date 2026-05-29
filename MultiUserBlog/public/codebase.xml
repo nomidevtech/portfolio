@@ -1,0 +1,3705 @@
+This file is a merged representation of the entire codebase, combined into a single document by Repomix.
+The content has been processed where comments have been removed, empty lines have been removed.
+
+<file_summary>
+This section contains a summary of this file.
+
+<purpose>
+This file contains a packed representation of the entire repository's contents.
+It is designed to be easily consumable by AI systems for analysis, code review,
+or other automated processes.
+</purpose>
+
+<file_format>
+The content is organized as follows:
+1. This summary section
+2. Repository information
+3. Directory structure
+4. Repository files (if enabled)
+5. Multiple file entries, each consisting of:
+  - File path as an attribute
+  - Full contents of the file
+</file_format>
+
+<usage_guidelines>
+- This file should be treated as read-only. Any changes should be made to the
+  original repository files, not this packed version.
+- When processing this file, use the file path to distinguish
+  between different files in the repository.
+- Be aware that this file may contain sensitive information. Handle it with
+  the same level of security as you would the original repository.
+</usage_guidelines>
+
+<notes>
+- Some files may have been excluded based on .gitignore rules and Repomix's configuration
+- Binary files are not included in this packed representation. Please refer to the Repository Structure section for a complete list of file paths, including binary files
+- Files matching patterns in .gitignore are excluded
+- Files matching default ignore patterns are excluded
+- Code comments have been removed from supported file types
+- Empty lines have been removed from all files
+- Files are sorted by Git change count (files with more changes are at the bottom)
+</notes>
+
+</file_summary>
+
+<directory_structure>
+(auth)/delete_account/Client.jsx
+(auth)/delete_account/loading.jsx
+(auth)/delete_account/page.jsx
+(auth)/login/Client.jsx
+(auth)/login/loading.jsx
+(auth)/login/loginSA.js
+(auth)/login/page.jsx
+(auth)/sign-up/loading.jsx
+(auth)/sign-up/page.jsx
+(auth)/sign-up/signupSA.js
+(auth)/sign-up/SUCC.jsx
+(auth)/verify/loading.jsx
+(auth)/verify/page.jsx
+add-post/error.jsx
+add-post/loading.jsx
+add-post/page.jsx
+authors/loading.jsx
+authors/page.jsx
+blog/loading.jsx
+blog/page.jsx
+blog/SearchBar.jsx
+blog/SSA.js
+components/AddToFavorites.jsx
+components/DeleteBTN.jsx
+components/nav/Client.jsx
+components/nav/NavBar.jsx
+components/nav/SC.jsx
+components/PostCard.jsx
+components/PostForm.jsx
+components/PostListSkeleton.jsx
+components/Skeletons.jsx
+components/ThemeToggle.jsx
+edit/loading.jsx
+edit/page.jsx
+favicon.ico
+favorites/FavClient.jsx
+favorites/loading.jsx
+favorites/page.jsx
+globals.css
+layout.js
+lib/checkEmail.js
+lib/checkUsername.js
+lib/cloudinary.js
+lib/deleteAccount.js
+lib/getUser.js
+lib/logout.js
+lib/posts/deletePost.js
+lib/posts/favorites.js
+lib/posts/upsert.js
+lib/redis.js
+lib/resend.js
+lib/turso.js
+loading.jsx
+models/tablesInit.js
+my-posts/loading.jsx
+my-posts/page.jsx
+page.js
+post/[slug]/[pid]/Comments.jsx
+post/[slug]/[pid]/commentsSA.js
+post/[slug]/[pid]/loading.jsx
+post/[slug]/[pid]/page.jsx
+settings/Client.jsx
+settings/loading.jsx
+settings/page.jsx
+settings/SA.js
+tags/loading.jsx
+tags/page.jsx
+taxonomies/loading.jsx
+taxonomies/page.jsx
+utils/bcrypt.js
+utils/getSession.js
+utils/pagination.js
+utils/redidIpLimit.js
+</directory_structure>
+
+<files>
+This section contains the contents of the repository's files.
+
+<file path="(auth)/delete_account/Client.jsx">
+'use client';
+import { deleteAccount } from "@/app/lib/deleteAccount";
+import Link from "next/link";
+import { useActionState } from "react";
+export default function DeleteClient() {
+  const initialState = { ok: null, message: "" };
+  const [state, formAction, isPending] = useActionState(deleteAccount, initialState);
+  const serverMessage = state.ok === false ? state.message : "";
+  return (
+    <div className="min-h-[calc(100vh-3.5rem)] bg-[var(--bg)] flex items-center justify-center px-4 py-12">
+      <div className="w-full max-w-sm">
+        <h1 className="text-2xl font-bold text-[var(--text)] mb-1">Delete account</h1>
+        <p className="font-sans text-sm text-[var(--text-faint)] mb-6 leading-relaxed">This permanently deletes your account and all data. This cannot be undone.</p>
+        {serverMessage && (
+          <div className="font-sans mb-4 text-sm text-red-700 bg-red-50 border border-red-200 dark:text-red-400 dark:bg-red-950 dark:border-red-800 rounded-md px-4 py-3">{serverMessage}</div>
+        )}
+        <form action={formAction} className="space-y-4">
+          <div>
+            <label className="block font-sans text-xs text-[var(--text-faint)] uppercase tracking-widest mb-1.5">Confirm password</label>
+            <input type="password" name="password" placeholder="Enter your password" className="w-full font-sans bg-[var(--bg-raised)] border border-[var(--border)] text-[var(--text)] placeholder-[var(--text-faint)] rounded-md px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent transition-colors" />
+          </div>
+          <button type="submit" disabled={isPending}
+            className="w-full font-sans font-semibold bg-red-600 hover:bg-red-500 disabled:opacity-50 text-white px-6 py-2.5 rounded-md text-sm transition-colors cursor-pointer">
+            {isPending ? "Deleting..." : "Delete my account"}
+          </button>
+        </form>
+        <Link href="/settings" className="block font-sans text-center text-sm text-[var(--text-faint)] hover:text-[var(--text)] transition-colors mt-5">Back to settings</Link>
+      </div>
+    </div>
+  );
+}
+</file>
+
+<file path="(auth)/delete_account/loading.jsx">
+import { AuthFormSkeleton } from "@/app/components/Skeletons";
+export default function Loading() {
+  return <AuthFormSkeleton mode="delete" />;
+}
+</file>
+
+<file path="(auth)/delete_account/page.jsx">
+import { getUser } from "@/app/lib/getUser";
+import DeleteClient from "./Client";
+import { redirect } from "next/navigation";
+export default async function DeleteAccount() {
+  const user = await getUser();
+  if (!user?.id) return redirect("/login");
+  return <DeleteClient />;
+}
+</file>
+
+<file path="(auth)/login/Client.jsx">
+"use client";
+import Form from "next/form";
+import Link from "next/link";
+import { loginSA } from "./loginSA";
+import { useActionState } from "react";
+export default function Client() {
+  const initialState = { ok: null, message: "" };
+  const [state, formAction, isPending] = useActionState(loginSA, initialState);
+  return (
+    <div className="min-h-[calc(100vh-3.5rem)] bg-[var(--bg)] flex items-center justify-center px-4 py-12">
+      <div className="w-full max-w-sm">
+        <p className="font-sans text-xs uppercase tracking-widest text-[var(--accent)] mb-3">Inkline</p>
+        <h1 className="text-2xl font-bold text-[var(--text)] mb-1">Welcome back</h1>
+        <p className="font-sans text-sm text-[var(--text-faint)] mb-7">Sign in to continue writing and saving posts.</p>
+        <Form action={formAction} className="space-y-4">
+          <div>
+            <label className="block font-sans text-xs text-[var(--text-faint)] uppercase tracking-widest mb-1.5">Username or email</label>
+            <input name="username_or_email" type="text" placeholder="you@example.com" className="w-full font-sans bg-[var(--bg-raised)] border border-[var(--border)] text-[var(--text)] placeholder-[var(--text-faint)] rounded-md px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent transition-colors" />
+          </div>
+          <div>
+            <label className="block font-sans text-xs text-[var(--text-faint)] uppercase tracking-widest mb-1.5">Password</label>
+            <input name="password" type="password" placeholder="Enter your password" className="w-full font-sans bg-[var(--bg-raised)] border border-[var(--border)] text-[var(--text)] placeholder-[var(--text-faint)] rounded-md px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent transition-colors" />
+          </div>
+          {state?.message && (
+            <p className={`font-sans text-sm px-4 py-2.5 rounded-md border ${state.ok ? "text-green-700 bg-green-50 border-green-200 dark:text-green-400 dark:bg-green-950 dark:border-green-800" : "text-red-700 bg-red-50 border-red-200 dark:text-red-400 dark:bg-red-950 dark:border-red-800"}`}>
+              {state.ok ? "Login successful. Redirecting..." : state.message}
+            </p>
+          )}
+          <button type="submit" disabled={isPending} className="font-sans font-semibold bg-[var(--text)] text-[var(--bg)] px-6 py-2.5 rounded-md text-sm hover:opacity-85 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity cursor-pointer w-full mt-1">
+            {isPending ? "Signing in..." : "Sign in"}
+          </button>
+        </Form>
+        <p className="font-sans text-sm text-[var(--text-faint)] text-center mt-6">
+          No account? <Link href="/sign-up" className="text-[var(--text)] underline underline-offset-4 hover:text-[var(--accent)] transition-colors">Sign up</Link>
+        </p>
+      </div>
+    </div>
+  );
+}
+</file>
+
+<file path="(auth)/login/loading.jsx">
+import { AuthFormSkeleton } from "@/app/components/Skeletons";
+export default function Loading() {
+  return <AuthFormSkeleton mode="login" />;
+}
+</file>
+
+<file path="(auth)/login/loginSA.js">
+"use server";
+import crypto from "crypto";
+import { db } from "@/app/lib/turso";
+import { compare } from "@/app/utils/bcrypt";
+import { cookies, headers } from "next/headers";
+import { redis } from "@/app/lib/redis";
+import { redirect } from "next/navigation";
+export async function loginSA(_, formData) {
+    const identifier = formData.get("username_or_email")?.trim();
+    const password = formData.get("password");
+    if (!identifier) {
+        return { ok: false, message: "Username or email required" };
+    }
+    if (!password) {
+        return { ok: false, message: "Password required" };
+    }
+    const headerStore = await headers();
+    const rawIp = headerStore.get("x-forwarded-for");
+    const ip = rawIp?.split(",")[0].trim() || '127.0.0.1';
+    const maxAttempts = 5;
+    const blockTime = 60 * 15;
+    const key = `login:attempt:${ip}`;
+    const currentAttempts = parseInt(await redis.get(key)) || 0;
+    if (currentAttempts >= maxAttempts) {
+        return {
+            ok: false,
+            message: `Too many attempts. Try again in 15 minutes`
+        };
+    }
+    try {
+        const result = await db.execute(
+            `SELECT id, password
+             FROM users
+             WHERE username = ? OR email = ?
+             LIMIT 1`,
+            [identifier, identifier]
+        );
+        if (result.rows.length === 0) {
+            const attempts = await redis.incr(key);
+            if (attempts === 1) {
+                await redis.expire(key, blockTime);
+            }
+            return {
+                ok: false,
+                message: `Invalid username or password. ${maxAttempts - attempts} attempts left`
+            };
+        }
+        const user = result.rows[0];
+        const userId = user.id;
+        const hashedPassword = user.password;
+        const isPasswordValid =
+            await compare(password, hashedPassword);
+        if (!isPasswordValid) {
+            const attempts = await redis.incr(key);
+            if (attempts === 1) {
+                await redis.expire(key, blockTime);
+            }
+            return {
+                ok: false,
+                message: `Invalid username or password. ${maxAttempts - attempts} attempts left`
+            };
+        }
+        await redis.del(key);
+        const sessionToken =
+            crypto.randomBytes(32).toString("hex");
+        const expiresAt = Date.now() + 1000 * 60 * 60 * 24 * 14;
+        await db.execute(
+            `INSERT INTO sessions (session_id, user_id, expires_at)
+             VALUES (?, ?, ?)`,
+            [sessionToken, userId, expiresAt]
+        );
+        const cookieStore = await cookies();
+        cookieStore.set("mub-session-token", sessionToken, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === "production",
+            sameSite: "lax",
+            path: "/",
+            maxAge: 60 * 60 * 24 * 14
+        });
+    } catch (error) {
+        console.error(error);
+        return {
+            ok: false,
+            message: "Internal server error"
+        };
+    }
+    redirect("/");
+}
+</file>
+
+<file path="(auth)/login/page.jsx">
+import { getUser } from "@/app/lib/getUser";
+import Client from "./Client";
+import { redirect } from "next/navigation";
+export default async function LoginPage() {
+  const user = await getUser();
+  if (user?.id) return redirect("/settings");
+  return <Client />;
+}
+</file>
+
+<file path="(auth)/sign-up/loading.jsx">
+import { AuthFormSkeleton } from "@/app/components/Skeletons";
+export default function Loading() {
+  return <AuthFormSkeleton mode="signup" />;
+}
+</file>
+
+<file path="(auth)/sign-up/page.jsx">
+import { getUser } from "@/app/lib/getUser";
+import SignUpClientComponent from "./SUCC";
+import { redirect } from "next/navigation";
+import { initAllTables } from "@/app/models/tablesInit";
+export default async function SignUp() {
+    await initAllTables();
+    const currentUser = await getUser();
+    if (currentUser?.id) return redirect("/settings");
+    return (
+        <SignUpClientComponent />
+    );
+}
+</file>
+
+<file path="(auth)/sign-up/signupSA.js">
+"use server";
+import { nanoid } from "nanoid";
+import { db } from "@/app/lib/turso";
+import { hash } from "@/app/utils/bcrypt";
+import { redirect } from "next/navigation";
+import crypto from "crypto";
+import { emailOrchestrator } from "@/app/lib/resend";
+import { redisIpLimit } from "@/app/utils/redidIpLimit";
+export async function signuptServerAction(_, formData) {
+    const name = formData.get('name')?.trim();
+    const username = formData.get('username')?.trim();
+    const email = formData.get('email')?.trim();
+    const password = formData.get('password');
+    const confirmPassword = formData.get('confirmPassword');
+    if (!name || !username || !email || !password || !confirmPassword) {
+        return { ok: false, message: 'All fields are required' };
+    }
+    if (name.length < 2 || name.length > 60) {
+        return { ok: false, message: 'Name must be between 2 and 60 characters' };
+    }
+    if (username.length < 3 || username.length > 30) {
+        return { ok: false, message: 'Username must be between 3 and 30 characters' };
+    }
+    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailPattern.test(email)) return { ok: false, message: 'Invalid email format' };
+    const passwordPattern = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/;
+    if (!passwordPattern.test(password)) {
+        return { ok: false, message: 'Password must be at least 8 characters, include uppercase, lowercase, and a number' };
+    }
+    if (password !== confirmPassword) {
+        return { ok: false, message: 'Passwords do not match' };
+    }
+    const ipLimit = await redisIpLimit(5, 'signup_check');
+    if (!ipLimit.ok) return ipLimit;
+    try {
+        const hashPassword = await hash(password);
+        const rawToken = crypto.randomBytes(32).toString('hex');
+        const hashToken = await hash(rawToken);
+        const user_pid = nanoid();
+        const result = await db.execute(`
+            INSERT INTO users (public_id, name, username, email, email_token, password)
+            VALUES (?, ?, ?, ?, ?, ?)
+        `, [user_pid, name, username, email, hashToken, hashPassword]);
+        if (result.rowsAffected === 0) {
+            return { ok: false, message: 'Something went wrong' };
+        }
+        const sendingVerificationEmail =
+            await emailOrchestrator(user_pid, email, rawToken);
+        if (sendingVerificationEmail.error) {
+            return { ok: false, message: sendingVerificationEmail.error.message };
+        }
+    } catch (error) {
+        console.error(error);
+        if (error?.message?.includes('UNIQUE')) {
+            return { ok: false, message: 'Username or email is already in use.' };
+        }
+        return { ok: false, message: 'Something went wrong while signing up.' };
+    }
+    redirect('/login');
+}
+</file>
+
+<file path="(auth)/sign-up/SUCC.jsx">
+'use client'
+import { startTransition, useActionState } from "react"
+import Form from "next/form"
+import Link from "next/link"
+import { signuptServerAction } from "./signupSA"
+import { checkUsername } from "@/app/lib/checkUsername"
+import { checkEmail } from "@/app/lib/checkEmail"
+export default function SignUpClientComponent() {
+  const initialState = { ok: null, message: "" };
+  const [submitState, submitAction, submitPending] = useActionState(signuptServerAction, initialState);
+  const [usernameState, usernameAction, usernamePending] = useActionState(checkUsername, null);
+  const [emailState, emailAction, emailPending] = useActionState(checkEmail, null);
+  const inputClass = "w-full font-sans bg-[var(--bg-raised)] border border-[var(--border)] text-[var(--text)] placeholder-[var(--text-faint)] rounded-md px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent transition-colors";
+  return (
+    <div className="min-h-[calc(100vh-3.5rem)] bg-[var(--bg)] flex items-center justify-center px-4 py-12">
+      <div className="w-full max-w-sm">
+        <p className="font-sans text-xs uppercase tracking-widest text-[var(--accent)] mb-3">Inkline</p>
+        <h1 className="text-2xl font-bold text-[var(--text)] mb-1">Create account</h1>
+        <p className="font-sans text-sm text-[var(--text-faint)] mb-7">Join the community and start publishing.</p>
+        {submitState?.message && (
+          <div className={`font-sans mb-5 text-sm px-4 py-2.5 rounded-md border ${submitState.ok ? "text-green-700 bg-green-50 border-green-200 dark:text-green-400 dark:bg-green-950 dark:border-green-800" : "text-red-700 bg-red-50 border-red-200 dark:text-red-400 dark:bg-red-950 dark:border-red-800"}`}>
+            {submitState.message}
+          </div>
+        )}
+        <Form action={submitAction} className="space-y-4">
+          <div>
+            <label className="block font-sans text-xs text-[var(--text-faint)] uppercase tracking-widest mb-1.5">Full name</label>
+            <input name="name" type="text" placeholder="John Doe" className={inputClass} />
+          </div>
+          <div>
+            <label className="block font-sans text-xs text-[var(--text-faint)] uppercase tracking-widest mb-1.5">Username</label>
+            <input name="username" type="text" placeholder="john_doe" className={inputClass} onBlur={(e) => startTransition(() => usernameAction(e.target.value))} />
+            {usernamePending && <p className="font-sans mt-1 text-xs text-[var(--text-faint)]">Checking...</p>}
+            {usernameState?.message && <p className={`font-sans mt-1 text-xs ${usernameState.ok ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>{usernameState.message}</p>}
+          </div>
+          <div>
+            <label className="block font-sans text-xs text-[var(--text-faint)] uppercase tracking-widest mb-1.5">Email</label>
+            <input name="email" type="email" placeholder="john@example.com" className={inputClass} onBlur={(e) => startTransition(() => emailAction(e.target.value))} />
+            {emailPending && <p className="font-sans mt-1 text-xs text-[var(--text-faint)]">Checking...</p>}
+            {emailState?.message && <p className={`font-sans mt-1 text-xs ${emailState.ok ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>{emailState.message}</p>}
+          </div>
+          <div>
+            <label className="block font-sans text-xs text-[var(--text-faint)] uppercase tracking-widest mb-1.5">Password</label>
+            <input name="password" type="password" placeholder="Create a password" className={inputClass} />
+          </div>
+          <div>
+            <label className="block font-sans text-xs text-[var(--text-faint)] uppercase tracking-widest mb-1.5">Confirm password</label>
+            <input name="confirmPassword" type="password" placeholder="Repeat your password" className={inputClass} />
+          </div>
+          <button type="submit" disabled={submitPending} className="font-sans font-semibold bg-[var(--text)] text-[var(--bg)] px-6 py-2.5 rounded-md text-sm hover:opacity-85 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity cursor-pointer w-full mt-2">
+            {submitPending ? "Creating account..." : "Create account"}
+          </button>
+        </Form>
+        <p className="font-sans text-sm text-[var(--text-faint)] text-center mt-6">
+          Already have an account? <Link href="/login" className="text-[var(--text)] underline underline-offset-4 hover:text-[var(--accent)] transition-colors">Sign in</Link>
+        </p>
+      </div>
+    </div>
+  );
+}
+</file>
+
+<file path="(auth)/verify/loading.jsx">
+import { VerificationSkeleton } from "@/app/components/Skeletons";
+export default function Loading() {
+  return <VerificationSkeleton />;
+}
+</file>
+
+<file path="(auth)/verify/page.jsx">
+import { db } from "@/app/lib/turso";
+import { compare } from "@/app/utils/bcrypt";
+const Wrap = ({ children }) => (
+  <div className="min-h-screen bg-[var(--bg)] flex items-center justify-center px-4">
+    <div className="w-full max-w-sm text-center">{children}</div>
+  </div>
+);
+const Message = ({ tone = "default", children }) => (
+  <Wrap>
+    <p className={`font-sans ${tone === "error" ? "text-red-500" : "text-[var(--text)]"}`}>{children}</p>
+  </Wrap>
+);
+export default async function Verify({ searchParams }) {
+  const { token, pid } = await searchParams;
+  if (!token || !pid) return <Message tone="error">Verification failed. Please request a new link.</Message>;
+  let status = "verified";
+  try {
+    const userRes = await db.execute("SELECT email_verified, email_token FROM users WHERE public_id = ?", [pid]);
+    const user = userRes.rows[0];
+    if (!user) {
+      status = "invalid";
+    } else if (user.email_verified === 1) {
+      status = "alreadyVerified";
+    } else {
+      const isValid = await compare(token, user.email_token);
+      if (!isValid) {
+        status = "expired";
+      } else {
+        await db.execute("UPDATE users SET email_verified = 1, email_token = NULL WHERE public_id = ?", [pid]);
+      }
+    }
+  } catch (err) {
+    console.error(err);
+    status = "error";
+  }
+  if (status === "invalid") return <Message tone="error">Invalid verification link.</Message>;
+  if (status === "alreadyVerified") return <Message>Email already verified. You can close this window.</Message>;
+  if (status === "expired") return <Message tone="error">Invalid or expired token. Please request a new link.</Message>;
+  if (status === "error") return <Message tone="error">Unexpected error. Please try again later.</Message>;
+  return (
+    <Wrap>
+      <div className="font-sans text-sm font-bold uppercase tracking-widest text-[var(--accent)] mb-4">Verified</div>
+      <p className="text-xl font-bold text-[var(--text)] mb-2">Email verified!</p>
+      <p className="font-sans text-sm text-[var(--text-faint)]">Your account is fully active. You can close this window.</p>
+    </Wrap>
+  );
+}
+</file>
+
+<file path="add-post/error.jsx">
+"use client"
+export default function Error({ error, reset }) {
+  return (
+    <div className="max-w-lg mx-auto px-4 py-16 text-center">
+      <p className="text-2xl mb-3">⚠</p>
+      <p className="font-bold text-[var(--text)] mb-1">Upload failed</p>
+      <p className="font-sans text-sm text-[var(--text-muted)] mb-6">{error?.message || "The file may not be a valid image."}</p>
+      <button onClick={reset} className="font-sans font-semibold bg-[var(--text)] text-[var(--bg)] px-5 py-2 rounded-full text-sm hover:opacity-80 transition-opacity cursor-pointer">Try again</button>
+    </div>
+  );
+}
+</file>
+
+<file path="add-post/loading.jsx">
+import { PostEditorSkeleton } from "../components/Skeletons";
+export default function Loading() {
+  return <PostEditorSkeleton />;
+}
+</file>
+
+<file path="add-post/page.jsx">
+import Link from "next/link";
+import PostForm from "../components/PostForm";
+import { getUser } from "../lib/getUser";
+import { db } from "../lib/turso";
+export const metadata = {
+  title: "New Post",
+  description: "Write and publish a new article or essay on Inkline.",
+};
+export default async function AddPost() {
+    const currentUser = await getUser();
+    if (!currentUser?.id) return (
+        <div className="max-w-3xl mx-auto px-4 py-16">
+            <p className="font-sans text-[var(--text-muted)]">
+                You must <Link href="/login" className="underline underline-offset-4 hover:text-[var(--accent)] transition-colors">login</Link> to write a post.
+            </p>
+        </div>
+    );
+    if (currentUser?.email_verified === 0) return (
+        <div className="max-w-3xl mx-auto px-4 py-16">
+            <div className="border border-[var(--border)] bg-[var(--bg-raised)] rounded-lg p-5">
+                <h1 className="text-xl font-bold text-[var(--text)] mb-2">Verify your email first</h1>
+                <p className="font-sans text-sm text-[var(--text-muted)] mb-4">Verified accounts can publish posts and join the discussion.</p>
+                <Link href="/settings" className="font-sans text-sm font-semibold bg-[var(--text)] text-[var(--bg)] px-4 py-2 rounded-md hover:opacity-85 transition-opacity">
+                    Go to settings
+                </Link>
+            </div>
+        </div>
+    );
+    const fetchTaxonomies = await db.execute(`
+        SELECT name FROM taxonomies`);
+    const fetchAllTags = await db.execute(`
+        SELECT name FROM tags`);
+    let taxonomies = [];
+    let allTags = [];
+    if (fetchTaxonomies?.rows?.length > 0) taxonomies = fetchTaxonomies.rows.map((row) => row.name);
+    if (fetchAllTags?.rows?.length > 0) allTags = fetchAllTags.rows.map((row) => row.name);
+    return (
+        <PostForm taxonomies={taxonomies} tags={allTags} />
+    );
+}
+</file>
+
+<file path="authors/loading.jsx">
+import { AuthorResultsSkeleton } from "../components/Skeletons";
+export default function Loading() {
+  return <AuthorResultsSkeleton />;
+}
+</file>
+
+<file path="authors/page.jsx">
+import Link from "next/link";
+import { getUser } from "../lib/getUser";
+import { db } from "../lib/turso";
+import AddTofavorites from "../components/AddToFavorites";
+import DeleteButton from "../components/DeleteBTN";
+function formatDate(d) {
+  if (!d) return "";
+  return new Date(d).toLocaleDateString("en-US", { day: "numeric", month: "long", year: "numeric" });
+}
+function PostRow({ post, currentUser }) {
+  const tags = post.tags ? post.tags.split(",").map(t => t.trim()).filter(Boolean) : [];
+  return (
+    <article className="py-5 border-b border-[var(--border)]">
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex-1 min-w-0">
+          {post.taxonomy && (
+            <Link href={`/taxonomies?value=${post.taxonomy}`}
+              className="font-sans text-xs font-bold uppercase tracking-widest text-[var(--accent)] hover:underline mr-2">
+              {post.taxonomy}
+            </Link>
+          )}
+          <h3 className="text-lg font-bold text-[var(--text)] leading-snug mt-1 mb-1.5">
+            <Link href={`/post/${post.slug}/${post.public_id}`} className="hover:text-[var(--accent)] transition-colors">
+              {post.title}
+            </Link>
+          </h3>
+          {post.excerpt && (
+            <p className="font-sans text-sm text-[var(--text-muted)] leading-relaxed mb-2 line-clamp-2 hidden sm:block">
+              {post.excerpt}
+            </p>
+          )}
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 font-sans text-xs text-[var(--text-faint)]">
+            {post.author && <Link href={`/authors?value=${post.author}`} className="hover:text-[var(--text)] transition-colors">{post.author}</Link>}
+            <span>{formatDate(post.created_at)}</span>
+            {tags.map((t, i) => <Link key={i} href={`/tags?value=${t}`} className="hover:text-[var(--text)] transition-colors">#{t}</Link>)}
+          </div>
+        </div>
+        {currentUser?.id && <div className="shrink-0 mt-1"><AddTofavorites ppid={post.public_id} isFavorited={post.isFavorited ?? false} /></div>}
+      </div>
+      {post.user_id === currentUser?.id && (
+        <div className="flex gap-3 mt-2.5">
+          <Link href={`/edit?value=${post.public_id}`} className="font-sans text-xs border border-[var(--border)] text-[var(--text-muted)] px-3 py-1 rounded-full hover:border-[var(--text)] hover:text-[var(--text)] transition-colors">Edit</Link>
+          <DeleteButton publicId={post.public_id} />
+        </div>
+      )}
+    </article>
+  );
+}
+export default async function Authors({ searchParams }) {
+  const { value } = await searchParams;
+  if (!value) return <div className="max-w-3xl mx-auto px-4 py-16"><p className="font-sans text-[var(--text-muted)]">No author specified.</p></div>;
+  const author = value;
+  const fetchPosts = await db.execute(`
+    SELECT posts.*, taxonomies.name as taxonomy, GROUP_CONCAT(DISTINCT tags.name) as tags, users.username as author
+    FROM posts LEFT JOIN post_taxonomies ON posts.id = post_taxonomies.post_id
+    LEFT JOIN taxonomies ON post_taxonomies.taxonomy_id = taxonomies.id
+    LEFT JOIN post_tags ON posts.id = post_tags.post_id
+    LEFT JOIN tags ON post_tags.tag_id = tags.id
+    LEFT JOIN users ON posts.user_id = users.id
+    WHERE users.username = ? GROUP BY posts.id ORDER BY posts.created_at DESC
+  `, [author]);
+  if (!fetchPosts?.rows?.length) return <div className="max-w-3xl mx-auto px-4 py-16"><p className="font-sans text-[var(--text-muted)]">No posts by @{author}.</p></div>;
+  const posts = fetchPosts.rows;
+  const currentUser = await getUser();
+  let favIds = [];
+  if (currentUser?.id) { const r = await db.execute("SELECT post_id FROM favorites WHERE user_id = ?", [currentUser.id]); favIds = r.rows.map(row => row.post_id); }
+  for (const p of posts) p.isFavorited = favIds.includes(p.id);
+  return (
+    <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8">
+      <div className="mb-8 pb-4 border-b-2 border-[var(--text)]">
+        <p className="font-sans text-xs uppercase tracking-widest text-[var(--accent)] mb-1">Author</p>
+        <h1 className="text-2xl font-bold text-[var(--text)]">@{author}</h1>
+        <p className="font-sans text-sm text-[var(--text-faint)] mt-1">{posts.length} article{posts.length !== 1 ? "s" : ""}</p>
+      </div>
+      {posts.map((post, i) => <PostRow key={i} post={post} currentUser={currentUser} />)}
+    </div>
+  );
+}
+</file>
+
+<file path="blog/loading.jsx">
+import { BlogIndexSkeleton } from "../components/Skeletons";
+export default function Loading() {
+  return <BlogIndexSkeleton />;
+}
+</file>
+
+<file path="blog/page.jsx">
+import Link from "next/link";
+import { getUser } from "../lib/getUser";
+import { db } from "../lib/turso";
+import { paginate } from "../utils/pagination";
+import SearchBar from "./SearchBar";
+import AddTofavorites from "../components/AddToFavorites";
+import DeleteButton from "../components/DeleteBTN";
+export const metadata = {
+  title: "Discover",
+  description: "Browse writing, search topics, explore categories, and discover polished articles from diverse writers.",
+};
+function formatDate(d) {
+  if (!d) return "";
+  return new Date(d).toLocaleDateString("en-US", { day: "numeric", month: "long", year: "numeric" });
+}
+function HeroPost({ post, currentUser }) {
+  const tags = post.tags ? post.tags.split(",").map(t => t.trim()).filter(Boolean) : [];
+  return (
+    <article className="pb-8 mb-8 border-b-2 border-[var(--text)]">
+      <div className="flex flex-wrap gap-2 mb-3">
+        {post.taxonomy && (
+          <Link href={`/taxonomies?value=${post.taxonomy}`}
+            className="font-sans text-xs font-bold uppercase tracking-widest text-[var(--accent)] hover:underline">
+            {post.taxonomy}
+          </Link>
+        )}
+      </div>
+      <h2 className="text-3xl sm:text-4xl font-bold text-[var(--text)] leading-tight mb-3">
+        <Link href={`/post/${post.slug}/${post.public_id}`} className="hover:text-[var(--accent)] transition-colors">
+          {post.title}
+        </Link>
+      </h2>
+      {post.excerpt && (
+        <p className="font-sans text-base text-[var(--text-muted)] leading-relaxed mb-4 max-w-2xl">
+          {post.excerpt}
+        </p>
+      )}
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 font-sans text-sm text-[var(--text-faint)]">
+        {post.author && (
+          <Link href={`/authors?value=${post.author}`} className="hover:text-[var(--text)] transition-colors">
+            {post.author}
+          </Link>
+        )}
+        <span>{formatDate(post.created_at)}</span>
+        {tags.map((t, i) => (
+          <Link key={i} href={`/tags?value=${t}`} className="hover:text-[var(--text)] transition-colors">#{t}</Link>
+        ))}
+        {currentUser?.id && <AddTofavorites ppid={post.public_id} isFavorited={post.isFavorited ?? false} />}
+      </div>
+      {post.user_id === currentUser?.id && (
+        <div className="flex gap-3 mt-3">
+          <Link href={`/edit?value=${post.public_id}`}
+            className="font-sans text-xs border border-[var(--border)] text-[var(--text-muted)] px-3 py-1 rounded-full hover:border-[var(--text)] hover:text-[var(--text)] transition-colors">
+            Edit
+          </Link>
+          <DeleteButton publicId={post.public_id} />
+        </div>
+      )}
+    </article>
+  );
+}
+function ListPost({ post, currentUser }) {
+  const tags = post.tags ? post.tags.split(",").map(t => t.trim()).filter(Boolean) : [];
+  return (
+    <article className="py-5 border-b border-[var(--border)]">
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex-1 min-w-0">
+          {post.taxonomy && (
+            <Link href={`/taxonomies?value=${post.taxonomy}`}
+              className="font-sans text-xs font-bold uppercase tracking-widest text-[var(--accent)] hover:underline mr-3">
+              {post.taxonomy}
+            </Link>
+          )}
+          <h3 className="text-lg font-bold text-[var(--text)] leading-snug mt-1 mb-1.5">
+            <Link href={`/post/${post.slug}/${post.public_id}`} className="hover:text-[var(--accent)] transition-colors">
+              {post.title}
+            </Link>
+          </h3>
+          {post.excerpt && (
+            <p className="font-sans text-sm text-[var(--text-muted)] leading-relaxed mb-2 line-clamp-2 hidden sm:block">
+              {post.excerpt}
+            </p>
+          )}
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 font-sans text-xs text-[var(--text-faint)]">
+            {post.author && (
+              <Link href={`/authors?value=${post.author}`} className="hover:text-[var(--text)] transition-colors">
+                {post.author}
+              </Link>
+            )}
+            <span>{formatDate(post.created_at)}</span>
+            {tags.map((t, i) => (
+              <Link key={i} href={`/tags?value=${t}`} className="hover:text-[var(--text)] transition-colors">#{t}</Link>
+            ))}
+          </div>
+        </div>
+        {currentUser?.id && (
+          <div className="shrink-0 mt-1">
+            <AddTofavorites ppid={post.public_id} isFavorited={post.isFavorited ?? false} />
+          </div>
+        )}
+      </div>
+      {post.user_id === currentUser?.id && (
+        <div className="flex gap-3 mt-2.5">
+          <Link href={`/edit?value=${post.public_id}`}
+            className="font-sans text-xs border border-[var(--border)] text-[var(--text-muted)] px-3 py-1 rounded-full hover:border-[var(--text)] hover:text-[var(--text)] transition-colors">
+            Edit
+          </Link>
+          <DeleteButton publicId={post.public_id} />
+        </div>
+      )}
+    </article>
+  );
+}
+export default async function Blog({ searchParams }) {
+  let { page } = await searchParams;
+  page = Math.max(1, Math.min(parseInt(page) || 1, 9999));
+  let fetchTotal;
+  try {
+    fetchTotal = await db.execute("SELECT COUNT(*) as total FROM posts");
+  } catch (error) {
+    if (!String(error?.message).includes("no such table")) throw error;
+    fetchTotal = { rows: [{ total: 0 }] };
+  }
+  if (!fetchTotal?.rows?.length) return (
+    <div className="max-w-3xl mx-auto px-4 sm:px-6 py-16 text-center">
+      <p className="font-sans text-[var(--text-muted)]">No posts yet.</p>
+    </div>
+  );
+  const totalPosts = fetchTotal.rows[0].total;
+  if (totalPosts === 0) return (
+    <div className="max-w-3xl mx-auto px-4 sm:px-6 py-16 text-center">
+      <h1 className="text-2xl font-bold text-[var(--text)] mb-2">No posts yet</h1>
+      <p className="font-sans text-sm text-[var(--text-muted)]">Create an account and publish the first article.</p>
+    </div>
+  );
+  const offset = (page - 1) * 10;
+  const fetchPosts = await db.execute(`
+    SELECT posts.*, taxonomies.name as taxonomy,
+    GROUP_CONCAT(DISTINCT tags.name) as tags,
+    users.username as author
+    FROM posts
+    LEFT JOIN post_taxonomies ON posts.id = post_taxonomies.post_id
+    LEFT JOIN taxonomies ON post_taxonomies.taxonomy_id = taxonomies.id
+    LEFT JOIN post_tags ON posts.id = post_tags.post_id
+    LEFT JOIN tags ON post_tags.tag_id = tags.id
+    LEFT JOIN users ON posts.user_id = users.id
+    GROUP BY posts.id ORDER BY posts.created_at DESC LIMIT ? OFFSET ?
+  `, [10, offset]);
+  const allPosts = fetchPosts.rows;
+  const currentUser = await getUser();
+  let favIds = [];
+  if (currentUser?.id) {
+    const r = await db.execute("SELECT post_id FROM favorites WHERE user_id = ?", [currentUser.id]);
+    favIds = r.rows.map(row => row.post_id);
+  }
+  for (const p of allPosts) p.isFavorited = favIds.includes(p.id);
+  const paginatedBtnsArr = paginate(page, totalPosts);
+  const [hero, ...rest] = allPosts;
+  return (
+    <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8">
+      {}
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-8 pb-4 border-b-2 border-[var(--text)]">
+        <div>
+          <h1 className="text-2xl font-bold text-[var(--text)]">Latest</h1>
+          <p className="font-sans text-sm text-[var(--text-faint)] mt-0.5">{totalPosts} articles</p>
+        </div>
+        <SearchBar />
+      </div>
+      {}
+      {hero && <HeroPost post={hero} currentUser={currentUser} />}
+      {}
+      <div>
+        {rest.map((post, idx) => (
+          <ListPost key={idx} post={post} currentUser={currentUser} />
+        ))}
+      </div>
+      {}
+      {(Number(page) > 1 || Number(page) < Math.ceil(totalPosts / 10)) && (
+        <div className="flex items-center justify-center gap-2 mt-10 font-sans">
+          {Number(page) > 1 && (
+            <Link href={`/blog?page=${Number(page) - 1}`}
+              className="text-sm border border-[var(--border)] text-[var(--text-muted)] px-4 py-2 rounded-md hover:border-[var(--text)] hover:text-[var(--text)] transition-colors">
+              Previous
+            </Link>
+          )}
+          {paginatedBtnsArr.map((btn, i) => (
+            <Link key={i} href={`/blog?page=${btn}`}
+              className={`text-sm px-4 py-2 rounded-md transition-colors ${Number(page) === btn ? "bg-[var(--text)] text-[var(--bg)] font-semibold" : "border border-[var(--border)] text-[var(--text-muted)] hover:border-[var(--text)] hover:text-[var(--text)]"}`}>
+              {btn}
+            </Link>
+          ))}
+          {Number(page) < Math.ceil(totalPosts / 10) && (
+            <Link href={`/blog?page=${Number(page) + 1}`}
+              className="text-sm border border-[var(--border)] text-[var(--text-muted)] px-4 py-2 rounded-md hover:border-[var(--text)] hover:text-[var(--text)] transition-colors">
+              Next
+            </Link>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+</file>
+
+<file path="blog/SearchBar.jsx">
+'use client'
+import { useState, useRef, startTransition, useActionState } from "react";
+import { searchServerAction } from "./SSA";
+import Link from "next/link";
+export default function SearchBar() {
+  const initialState = { ok: null, postTitlesArr: [], message: "" };
+  const [state, formAction, isPending] = useActionState(searchServerAction, initialState);
+  const [inputValue, setInputValue] = useState("");
+  const timeoutRef = useRef(null);
+  const handleInput = (e) => {
+    const value = e.target.value;
+    setInputValue(value);
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    timeoutRef.current = setTimeout(() => startTransition(() => formAction(value)), 500);
+  };
+  return (
+    <div className="relative w-full sm:w-72">
+      <div className="relative">
+        <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[var(--text-faint)] pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+        </svg>
+        <input
+          type="search"
+          placeholder="Search posts"
+          value={inputValue}
+          onChange={handleInput}
+          className="w-full font-sans bg-[var(--bg-raised)] border border-[var(--border)] text-[var(--text)] placeholder-[var(--text-faint)] rounded-md pl-9 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent transition-all"
+        />
+      </div>
+      {inputValue.trim() !== "" && (
+        <div className="absolute top-full left-0 w-full bg-[var(--bg-raised)] border border-[var(--border)] rounded-lg mt-1.5 shadow-[var(--shadow)] z-20 overflow-hidden">
+          {isPending
+            ? <p className="font-sans px-4 py-3 text-sm text-[var(--text-faint)]">Searching...</p>
+            : state?.postTitlesArr?.length > 0
+              ? <ul className="py-1">{state.postTitlesArr.map(post => (
+                  <li key={post.ppid}>
+                    <Link href={`/post/${post.slug}/${post.ppid}`}
+                      className="block font-sans px-4 py-2.5 text-sm text-[var(--text-muted)] hover:bg-[var(--bg-subtle)] hover:text-[var(--text)] transition-colors">
+                      {post.title}
+                    </Link>
+                  </li>
+                ))}</ul>
+              : <p className="font-sans px-4 py-3 text-sm text-[var(--text-faint)]">No results found</p>
+          }
+        </div>
+      )}
+    </div>
+  );
+}
+</file>
+
+<file path="blog/SSA.js">
+"use server";
+import { db } from "../lib/turso";
+import { redisIpLimit } from "@/app/utils/redidIpLimit";
+export async function searchServerAction(_, value) {
+    try {
+        const ipLimit = await redisIpLimit(30, 'search');
+        if (!ipLimit.ok) {
+            return { ok: false, postTitlesArr: [], message: ipLimit.message };
+        }
+        const searchTerms =
+            value
+                .replace(/[^a-zA-Z0-9 ]/g, "")
+                .replace(/\s+/g, ' ')
+                .trim()
+                .toLowerCase()
+                .split(' ')
+                .filter(Boolean)
+                .filter(term => term.length >= 2 && term.length < 20)
+                .slice(0, 20);
+        if (searchTerms.length === 0) return { ok: false, postTitlesArr: [], message: "invalid search terms." };
+        const clause = searchTerms.map(() => `title LIKE ?`).join(' OR ');
+        const values = searchTerms.map(term => `%${term}%`);
+        const query = `SELECT public_id, title, slug FROM posts WHERE ${clause} LIMIT 10`;
+        const result = await db.execute(query, values);
+        if (result.rows.length === 0) return { ok: false, postTitlesArr: [], message: "no results." };
+        const postTitlesArr = result?.rows?.map((row) => {
+            return { ppid: row.public_id, title: row.title, slug: row.slug }
+        });
+        return { ok: true, postTitlesArr, message: "success" };
+    } catch (error) {
+        console.error(error);
+        return { ok: false, postTitlesArr: [], message: "something went wrong" };
+    }
+}
+</file>
+
+<file path="components/AddToFavorites.jsx">
+'use client';
+import Form from "next/form";
+import { addTofavorites } from "../lib/posts/favorites";
+import { useActionState } from "react";
+export default function AddTofavorites({ ppid, isFavorited = false }) {
+  const initialState = { ok: null, message: "", added: false, removed: false };
+  const [state, formAction, isPending] = useActionState(addTofavorites, initialState);
+  const fav = state.added ? true : state.removed ? false : isFavorited;
+  return (
+    <Form action={formAction}>
+      <input type="hidden" name="ppid" value={ppid} readOnly />
+      <button
+        type="submit"
+        disabled={isPending}
+        title={fav ? "Remove from favorites" : "Add to favorites"}
+        aria-label={fav ? "Remove from favorites" : "Add to favorites"}
+        className={`min-w-12 rounded-md border px-2 py-1 font-sans text-xs font-semibold transition-colors disabled:opacity-40 cursor-pointer ${fav ? "border-[var(--accent)] bg-[var(--accent-soft)] text-[var(--accent)]" : "border-[var(--border)] text-[var(--text-faint)] hover:border-[var(--accent)] hover:text-[var(--accent)]"}`}
+      >
+        {fav ? "Saved" : "Save"}
+      </button>
+    </Form>
+  );
+}
+</file>
+
+<file path="components/DeleteBTN.jsx">
+"use client";
+import { useState, useActionState } from "react";
+import { deletePostServerAction } from "../lib/posts/deletePost";
+export default function DeleteButton({ publicId }) {
+  const initialState = { ok: null, message: "" };
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [state, formAction, pending] = useActionState(deletePostServerAction, initialState);
+  if (!showConfirm) return (
+    <button onClick={() => setShowConfirm(true)}
+      className="font-sans text-xs border border-[var(--border)] text-red-500 px-3 py-1 rounded-md hover:border-red-400 transition-colors cursor-pointer">
+      Delete
+    </button>
+  );
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <span className="font-sans text-xs text-[var(--text-muted)]">Delete this post?</span>
+      {state?.ok === false && <span className="font-sans text-xs text-red-500">{state.message}</span>}
+      <button type="button" onClick={() => setShowConfirm(false)}
+        className="font-sans text-xs border border-[var(--border)] text-[var(--text-muted)] px-3 py-1 rounded-md hover:border-[var(--text)] transition-colors cursor-pointer">
+        Cancel
+      </button>
+      <form action={formAction} className="inline">
+        <input type="hidden" name="ppid" value={publicId} />
+        <button type="submit" disabled={pending}
+          className="font-sans text-xs bg-red-600 hover:bg-red-500 disabled:opacity-50 text-white px-3 py-1 rounded-md transition-colors cursor-pointer">
+          {pending ? "Deleting..." : "Confirm"}
+        </button>
+      </form>
+    </div>
+  );
+}
+</file>
+
+<file path="components/nav/Client.jsx">
+"use client";
+import { useState } from "react";
+import Link from "next/link";
+import Form from "next/form";
+import { logout } from "@/app/lib/logout";
+import ThemeToggle from "@/app/components/ThemeToggle";
+export default function NavBarClient({ serializedUser }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const user = JSON.parse(serializedUser);
+  return (
+    <nav className="sticky top-0 z-30 border-b border-[var(--border)] bg-[var(--bg)]/95 backdrop-blur supports-[backdrop-filter]:bg-[var(--bg)]/85">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 flex items-center justify-between h-14">
+        <Link href="/" className="font-bold text-xl tracking-tight text-[var(--text)] hover:text-[var(--accent)] transition-colors font-serif">
+          Inkline
+        </Link>
+        <div className="flex items-center gap-3">
+          <Link href="/blog" className="text-sm text-[var(--text-muted)] hover:text-[var(--text)] transition-colors">
+            Blog
+          </Link>
+          <ThemeToggle />
+          {!user ? (
+            <Link href="/login" className="text-sm font-semibold text-[var(--bg)] bg-[var(--text)] px-4 py-1.5 rounded-md hover:opacity-85 transition-opacity">
+              Login
+            </Link>
+          ) : (
+            <div className="relative">
+              <button
+                onClick={() => setIsOpen(!isOpen)}
+                className="flex items-center gap-2 text-sm text-[var(--text-muted)] hover:text-[var(--text)] transition-colors cursor-pointer"
+              >
+                <span className="w-7 h-7 rounded-full bg-[var(--accent)] flex items-center justify-center text-xs font-bold text-white uppercase">
+                  {user.name?.[0] || "U"}
+                </span>
+                <svg className={`w-3 h-3 transition-transform ${isOpen ? "rotate-180" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+              {isOpen && (
+                <>
+                  <div className="fixed inset-0 z-10" onClick={() => setIsOpen(false)} />
+                  <div className="absolute right-0 top-full mt-2 w-52 bg-[var(--bg-raised)] border border-[var(--border)] rounded-lg shadow-[var(--shadow)] z-20 overflow-hidden">
+                    <div className="px-4 py-3 border-b border-[var(--border)]">
+                      <p className="text-sm font-semibold text-[var(--text)]">{user.name}</p>
+                      <p className="text-xs text-[var(--text-faint)]">@{user.username}</p>
+                    </div>
+                    <div className="py-1">
+                      {[["Add Post","/add-post"],["My Posts","/my-posts"],["Favorites","/favorites"],["Settings","/settings"]].map(([label, href]) => (
+                        <Link key={href} href={href} onClick={() => setIsOpen(false)}
+                          className="block px-4 py-2 text-sm text-[var(--text-muted)] hover:bg-[var(--bg-subtle)] hover:text-[var(--text)] transition-colors">
+                          {label}
+                        </Link>
+                      ))}
+                    </div>
+                    <div className="border-t border-[var(--border)] py-1">
+                      <Form action={logout}>
+                        <button type="submit" className="w-full text-left px-4 py-2 text-sm text-red-500 hover:bg-[var(--bg-subtle)] transition-colors cursor-pointer">
+                          Logout
+                        </button>
+                      </Form>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    </nav>
+  );
+}
+</file>
+
+<file path="components/nav/NavBar.jsx">
+import NavServerComponent from "./SC";
+export default async function NavBar() {
+  return <NavServerComponent />;
+}
+</file>
+
+<file path="components/nav/SC.jsx">
+import { getUser } from "@/app/lib/getUser";
+import NavBarClient from "./Client";
+export default async function NavServerComponent() {
+    let user = null;
+    try {
+        const result = await getUser();
+        user = result;
+    } catch (error) {
+        console.error("Failed to fetch user:", error);
+    }
+    return < NavBarClient serializedUser={JSON.stringify(user)} />;
+}
+</file>
+
+<file path="components/PostCard.jsx">
+import Link from "next/link";
+import DeleteButton from "./DeleteBTN";
+import AddTofavorites from "./AddToFavorites";
+function formatDate(d) {
+  if (!d) return "";
+  return new Date(d).toLocaleDateString("en-US", { day: "numeric", month: "long", year: "numeric" });
+}
+export default function PostCard({ post, currentUser }) {
+  const tags = post.tags ? post.tags.split(",").map(t => t.trim()).filter(Boolean) : [];
+  return (
+    <article className="py-5 border-b border-[var(--border)]">
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex-1 min-w-0">
+          {post.taxonomy && (
+            <Link href={`/taxonomies?value=${post.taxonomy}`}
+              className="font-sans text-xs font-bold uppercase tracking-widest text-[var(--accent)] hover:underline mr-2">
+              {post.taxonomy}
+            </Link>
+          )}
+          <h3 className="text-lg font-bold text-[var(--text)] leading-snug mt-1 mb-1.5">
+            <Link href={`/post/${post.slug}/${post.public_id}`} className="hover:text-[var(--accent)] transition-colors">
+              {post.title}
+            </Link>
+          </h3>
+          {post.excerpt && (
+            <p className="font-sans text-sm text-[var(--text-muted)] leading-relaxed mb-2 line-clamp-2 hidden sm:block">{post.excerpt}</p>
+          )}
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 font-sans text-xs text-[var(--text-faint)]">
+            {post.author && <Link href={`/authors?value=${post.author}`} className="hover:text-[var(--text)] transition-colors">{post.author}</Link>}
+            <span>{formatDate(post.created_at)}</span>
+            {tags.map((t, i) => <Link key={i} href={`/tags?value=${t}`} className="hover:text-[var(--text)] transition-colors">#{t}</Link>)}
+          </div>
+        </div>
+        {currentUser?.id && <div className="shrink-0 mt-1"><AddTofavorites ppid={post.public_id} isFavorited={post.isFavorited ?? false} /></div>}
+      </div>
+      {post.user_id === currentUser?.id && (
+        <div className="flex gap-3 mt-2.5">
+          <Link href={`/edit?value=${post.public_id}`}
+            className="font-sans text-xs border border-[var(--border)] text-[var(--text-muted)] px-3 py-1 rounded-full hover:border-[var(--text)] hover:text-[var(--text)] transition-colors">
+            Edit
+          </Link>
+          <DeleteButton publicId={post.public_id} />
+        </div>
+      )}
+    </article>
+  );
+}
+</file>
+
+<file path="components/PostForm.jsx">
+'use client'
+import { postUpsert } from "@/app/lib/posts/upsert";
+import Form from "next/form";
+import Image from "next/image";
+import { useState, useActionState } from "react";
+const IC = "w-full font-sans bg-[var(--bg-subtle)] border border-[var(--border)] text-[var(--text)] placeholder-[var(--text-faint)] rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--text)] focus:border-transparent transition-colors";
+const LC = "block font-sans text-xs text-[var(--text-faint)] uppercase tracking-widest mb-1.5";
+export default function PostForm({ post = {}, taxonomies = [], tags = [] }) {
+  const prevContent = [];
+  post.content?.forEach(item => { if (item.type && item.value) prevContent.push([item.type, item.value]); });
+  const initialState = { ok: null, message: "" };
+  const [state, formAction, isPending] = useActionState(postUpsert, initialState);
+  const [blocks, setBlocks] = useState(() => prevContent);
+  const [userTags, setUserTags] = useState(post.tags || []);
+  const addBlock = (type) => setBlocks(prev => [...prev, [type, null]]);
+  const removeBlock = (i) => setBlocks(prev => prev.filter((_, j) => j !== i));
+  const insertAfter = (i, type) => setBlocks(prev => { const c = [...prev]; c.splice(i+1,0,[type,null]); return c; });
+  const msgCls = (ok) => `font-sans mb-4 text-sm px-4 py-2.5 rounded-lg border ${ok ? "text-green-700 bg-green-50 border-green-200 dark:text-green-400 dark:bg-green-950 dark:border-green-800" : "text-red-700 bg-red-50 border-red-200 dark:text-red-400 dark:bg-red-950 dark:border-red-800"}`;
+  return (
+    <div className="max-w-2xl mx-auto px-4 sm:px-6 py-8">
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-[var(--text)]">{post.post_public_id ? "Edit post" : "New post"}</h1>
+        <p className="font-sans text-sm text-[var(--text-faint)] mt-1">Shape your article with clean blocks, topics, and tags.</p>
+      </div>
+      {state.message && <div className={msgCls(state.ok)}>{state.message}</div>}
+      <Form action={formAction} className="space-y-5">
+        <input name="post_public_id" type="hidden" readOnly value={post.post_public_id ?? ""} />
+        <div><label className={LC}>Title</label><input name="title" type="text" placeholder="Post title" defaultValue={post.title ?? ""} className={IC} /></div>
+        <div><label className={LC}>Excerpt</label><textarea name="excerpt" placeholder="Short summary..." rows={3} defaultValue={post.excerpt ?? ""} className={`${IC} resize-none`} /></div>
+        <div>
+          <label className={LC}>Category</label>
+          <input name="taxonomy" type="text" list="taxonomy-list" placeholder="Select or type a category" defaultValue={post.taxonomy ?? ""} className={IC} />
+          <datalist id="taxonomy-list">{taxonomies.map((t, i) => <option key={i} value={t} />)}</datalist>
+        </div>
+        <div>
+          <label className={LC}>Tags</label>
+          <input type="text" list="tags-list" placeholder="Type and press Enter" className={IC}
+            onKeyDown={(e) => { if (e.key !== "Enter") return; e.preventDefault(); const v = e.target.value.trim(); if (!v || userTags.includes(v)) return; setUserTags(p => [...p, v]); e.target.value = ""; }}
+            onChange={(e) => { const v = e.target.value.trim(); if (!v || !tags.includes(v) || userTags.includes(v)) return; setUserTags(p => [...p, v]); e.target.value = ""; }}
+          />
+          <datalist id="tags-list">{tags.map((t, i) => <option key={i} value={t} />)}</datalist>
+          {userTags.length > 0 && (
+            <div className="flex flex-wrap gap-2 mt-2">
+              {userTags.map((tg, i) => (
+                <div key={i} className="flex items-center gap-1.5 bg-[var(--bg-subtle)] border border-[var(--border)] rounded-full px-3 py-1">
+                  <input name="tags" type="hidden" value={tg} />
+                  <span className="font-sans text-xs text-[var(--text-muted)]">#{tg}</span>
+                  <button type="button" onClick={() => setUserTags(p => p.filter((_,j)=>j!==i))} className="font-sans text-[var(--text-faint)] hover:text-[var(--text)] text-xs cursor-pointer">x</button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+        <div>
+          <label className={LC}>Content</label>
+          <div className="space-y-3">
+            {blocks.map(([key, value], index) => (
+              <div key={index} className="border border-[var(--border)] rounded-lg p-4 bg-[var(--bg-subtle)]">
+                <div className="flex items-center justify-between mb-3">
+                  <span className="font-sans text-xs uppercase tracking-widest text-[var(--text-faint)] font-semibold">{key}</span>
+                  <button type="button" onClick={() => removeBlock(index)} className="font-sans text-xs text-red-500 hover:underline cursor-pointer">Remove</button>
+                </div>
+                {key === "heading" && <input name={`heading-${index}`} type="text" placeholder="Heading" defaultValue={value} className={IC} />}
+                {key === "paragraph" && <textarea name={`paragraph-${index}`} rows={5} placeholder="Paragraph..." defaultValue={value} className={`${IC} resize-none`} />}
+                {key === "image" && (value?.url
+                  ? <><Image src={value.url} alt="Uploaded content preview" width={800} height={500} className="w-full max-h-64 object-cover rounded-lg mb-2" /><input name={`image-${index}`} type="hidden" value={JSON.stringify(value)} /></>
+                  : <input name={`image-${index}`} type="file" className="font-sans text-sm text-[var(--text-muted)] file:mr-3 file:py-1.5 file:px-4 file:rounded-full file:border file:border-[var(--border)] file:text-xs file:font-semibold file:bg-[var(--bg)] file:text-[var(--text-muted)] cursor-pointer" />
+                )}
+                <div className="flex gap-2 mt-3 pt-3 border-t border-[var(--border)]">
+                  <span className="font-sans text-xs text-[var(--text-faint)] self-center">After:</span>
+                  {["heading","paragraph","image"].map(tp => (
+                    <button key={tp} type="button" onClick={() => insertAfter(index, tp)}
+                      className="font-sans text-xs text-[var(--text-faint)] border border-[var(--border)] hover:border-[var(--text)] hover:text-[var(--text)] rounded-full px-2.5 py-1 transition-colors cursor-pointer capitalize">{tp}</button>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="flex gap-2 mt-3">
+            {["heading","paragraph","image"].map(tp => (
+              <button key={tp} type="button" onClick={() => addBlock(tp)}
+                className="font-sans text-xs border border-[var(--border)] text-[var(--text-muted)] hover:border-[var(--text)] hover:text-[var(--text)] bg-[var(--bg-subtle)] px-3 py-2 rounded-full transition-colors cursor-pointer capitalize">+ {tp}</button>
+            ))}
+          </div>
+        </div>
+        <button type="submit" disabled={isPending}
+          className="font-sans font-semibold bg-[var(--text)] text-[var(--bg)] px-6 py-2.5 rounded-full text-sm hover:opacity-80 disabled:opacity-50 transition-opacity cursor-pointer">
+          {post.post_public_id ? (isPending ? "Updating..." : "Update Post") : (isPending ? "Publishing..." : "Publish Post")}
+        </button>
+      </Form>
+    </div>
+  );
+}
+</file>
+
+<file path="components/PostListSkeleton.jsx">
+export default function PostListSkeleton({ count = 4 }) {
+  return (
+    <div className="animate-pulse">
+      {Array.from({ length: count }).map((_, i) => (
+        <div key={i} className="py-5 border-b border-[var(--border)]">
+          <div className="h-5 bg-[var(--bg-subtle)] rounded w-3/4 mb-2" />
+          <div className="h-3 bg-[var(--bg-subtle)] rounded w-full mb-1.5 hidden sm:block" />
+          <div className="h-3 bg-[var(--bg-subtle)] rounded w-1/2 hidden sm:block mb-2" />
+          <div className="flex gap-3">
+            <div className="h-3 bg-[var(--bg-subtle)] rounded-full w-16" />
+            <div className="h-3 bg-[var(--bg-subtle)] rounded-full w-20" />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+</file>
+
+<file path="components/Skeletons.jsx">
+const pulse = "animate-pulse";
+const block = "bg-[var(--bg-subtle)] rounded";
+function Bar({ className = "" }) {
+  return <div className={`${block} ${className}`} />;
+}
+function Pill({ className = "" }) {
+  return <div className={`bg-[var(--bg-subtle)] rounded-full ${className}`} />;
+}
+function ScreenReaderLabel() {
+  return <span className="sr-only">Loading...</span>;
+}
+function PostRowSkeleton({ actions = false, favorite = true }) {
+  return (
+    <article className="py-5 border-b border-[var(--border)]">
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex-1 min-w-0">
+          <Bar className="h-3 w-20 mb-3" />
+          <Bar className="h-5 w-4/5 mb-2" />
+          <Bar className="h-3 w-full mb-1.5 hidden sm:block" />
+          <Bar className="h-3 w-2/3 mb-3 hidden sm:block" />
+          <div className="flex flex-wrap gap-3">
+            <Pill className="h-3 w-20" />
+            <Pill className="h-3 w-24" />
+            <Pill className="h-3 w-14" />
+          </div>
+        </div>
+        {favorite && <Pill className="h-8 w-8 shrink-0 mt-1" />}
+      </div>
+      {actions && (
+        <div className="flex gap-3 mt-3">
+          <Pill className="h-6 w-14" />
+          <Pill className="h-6 w-16" />
+        </div>
+      )}
+    </article>
+  );
+}
+function TopicSkeleton({ labelWidth = "w-16", titleWidth = "w-40", rows = 5 }) {
+  return (
+    <div className={`max-w-3xl mx-auto px-4 sm:px-6 py-8 ${pulse}`}>
+      <div className="mb-8 pb-4 border-b-2 border-[var(--text)]">
+        <Bar className={`h-3 ${labelWidth} mb-2`} />
+        <Bar className={`h-7 ${titleWidth} mb-2`} />
+        <Pill className="h-3 w-20" />
+      </div>
+      {Array.from({ length: rows }).map((_, i) => (
+        <PostRowSkeleton key={i} favorite={i % 2 === 0} actions={i === 1} />
+      ))}
+      <ScreenReaderLabel />
+    </div>
+  );
+}
+function FieldSkeleton({ area = false }) {
+  return (
+    <div>
+      <Bar className="h-3 w-20 mb-2" />
+      <Bar className={area ? "h-24 w-full rounded-lg" : "h-10 w-full rounded-lg"} />
+    </div>
+  );
+}
+export function HomeSkeleton() {
+  return (
+    <div className={`max-w-4xl mx-auto px-4 sm:px-6 py-16 sm:py-24 ${pulse}`}>
+      <div className="max-w-2xl">
+        <Bar className="h-3 w-20 mb-5" />
+        <Bar className="h-11 sm:h-14 w-full mb-3" />
+        <Bar className="h-11 sm:h-14 w-4/5 mb-6" />
+        <Bar className="h-5 w-full mb-2" />
+        <Bar className="h-5 w-3/4 mb-8" />
+        <div className="flex gap-3 flex-wrap">
+          <Bar className="h-10 w-32 rounded-md" />
+          <Bar className="h-10 w-36 rounded-md" />
+        </div>
+      </div>
+      <div className="mt-16 grid gap-4 sm:grid-cols-3">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <section key={i} className="border-t border-[var(--border)] pt-4">
+            <Bar className="h-4 w-20 mb-3" />
+            <Bar className="h-3 w-full mb-2" />
+            <Bar className="h-3 w-4/5" />
+          </section>
+        ))}
+      </div>
+      <ScreenReaderLabel />
+    </div>
+  );
+}
+export function BlogIndexSkeleton() {
+  return (
+    <div className={`max-w-3xl mx-auto px-4 sm:px-6 py-8 ${pulse}`}>
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-8 pb-4 border-b-2 border-[var(--text)]">
+        <div>
+          <Bar className="h-7 w-24 mb-2" />
+          <Pill className="h-3 w-20" />
+        </div>
+        <Bar className="h-10 w-full sm:w-72 rounded-md" />
+      </div>
+      <article className="pb-8 mb-8 border-b-2 border-[var(--text)]">
+        <Bar className="h-3 w-24 mb-4" />
+        <Bar className="h-9 w-full mb-3" />
+        <Bar className="h-9 w-3/4 mb-5" />
+        <Bar className="h-4 w-full mb-2" />
+        <Bar className="h-4 w-2/3 mb-5" />
+        <div className="flex flex-wrap gap-4">
+          <Pill className="h-4 w-20" />
+          <Pill className="h-4 w-28" />
+          <Pill className="h-4 w-14" />
+          <Pill className="h-4 w-16" />
+        </div>
+      </article>
+      {Array.from({ length: 4 }).map((_, i) => (
+        <PostRowSkeleton key={i} favorite={i % 2 === 0} actions={i === 2} />
+      ))}
+      <div className="flex items-center justify-center gap-2 mt-10">
+        <Bar className="h-9 w-20 rounded-md" />
+        <Bar className="h-9 w-10 rounded-md" />
+        <Bar className="h-9 w-10 rounded-md" />
+        <Bar className="h-9 w-14 rounded-md" />
+      </div>
+      <ScreenReaderLabel />
+    </div>
+  );
+}
+export function FavoritesSkeleton() {
+  return (
+    <div className={`max-w-3xl mx-auto px-4 sm:px-6 py-8 ${pulse}`}>
+      <div className="flex items-center justify-between gap-4 mb-8 pb-4 border-b-2 border-[var(--text)]">
+        <div>
+          <Bar className="h-7 w-32 mb-2" />
+          <Pill className="h-3 w-28" />
+        </div>
+        <div className="flex items-center gap-1 border border-[var(--border)] rounded-md p-1">
+          <Bar className="h-7 w-11 rounded-sm" />
+          <Bar className="h-7 w-12 rounded-sm" />
+        </div>
+      </div>
+      {Array.from({ length: 5 }).map((_, i) => (
+        <PostRowSkeleton key={i} favorite actions={i === 0 || i === 3} />
+      ))}
+      <ScreenReaderLabel />
+    </div>
+  );
+}
+export function MyPostsSkeleton() {
+  return (
+    <div className={`max-w-3xl mx-auto px-4 sm:px-6 py-8 ${pulse}`}>
+      <div className="flex items-center justify-between gap-4 mb-8 pb-4 border-b-2 border-[var(--text)]">
+        <div>
+          <Bar className="h-7 w-32 mb-2" />
+          <Pill className="h-3 w-20" />
+        </div>
+        <Bar className="h-9 w-28 rounded-full" />
+      </div>
+      {Array.from({ length: 5 }).map((_, i) => (
+        <PostRowSkeleton key={i} favorite actions />
+      ))}
+      <ScreenReaderLabel />
+    </div>
+  );
+}
+export function CategoryResultsSkeleton() {
+  return <TopicSkeleton labelWidth="w-20" titleWidth="w-44" />;
+}
+export function TagResultsSkeleton() {
+  return <TopicSkeleton labelWidth="w-12" titleWidth="w-28" />;
+}
+export function AuthorResultsSkeleton() {
+  return <TopicSkeleton labelWidth="w-16" titleWidth="w-36" />;
+}
+export function PostEditorSkeleton() {
+  return (
+    <div className={`max-w-2xl mx-auto px-4 sm:px-6 py-8 ${pulse}`}>
+      <div className="mb-6">
+        <Bar className="h-7 w-32 mb-2" />
+        <Bar className="h-4 w-80 max-w-full" />
+      </div>
+      <div className="space-y-5">
+        <FieldSkeleton />
+        <FieldSkeleton area />
+        <FieldSkeleton />
+        <div>
+          <Bar className="h-3 w-16 mb-2" />
+          <Bar className="h-10 w-full rounded-lg mb-3" />
+          <div className="flex flex-wrap gap-2">
+            <Pill className="h-7 w-20" />
+            <Pill className="h-7 w-24" />
+          </div>
+        </div>
+        <div>
+          <Bar className="h-3 w-20 mb-2" />
+          <div className="space-y-3">
+            <Bar className="h-24 w-full rounded-lg" />
+            <Bar className="h-36 w-full rounded-lg" />
+          </div>
+          <div className="flex gap-2 mt-3">
+            <Pill className="h-9 w-24" />
+            <Pill className="h-9 w-28" />
+            <Pill className="h-9 w-24" />
+          </div>
+        </div>
+        <Bar className="h-10 w-32 rounded-full" />
+      </div>
+      <ScreenReaderLabel />
+    </div>
+  );
+}
+export function ArticleDetailSkeleton() {
+  return (
+    <div className={`max-w-3xl mx-auto px-4 sm:px-6 py-8 ${pulse}`}>
+      <header className="mb-8 pb-6 border-b border-[var(--border)]">
+        <Bar className="h-3 w-24 mb-4" />
+        <Bar className="h-10 w-full mb-3" />
+        <Bar className="h-10 w-2/3 mb-5" />
+        <div className="flex flex-wrap gap-4 mb-4">
+          <Pill className="h-4 w-24" />
+          <Pill className="h-4 w-28" />
+          <Pill className="h-4 w-20" />
+        </div>
+        <div className="flex gap-3">
+          <Pill className="h-4 w-14" />
+          <Pill className="h-4 w-16" />
+        </div>
+      </header>
+      <div className="mb-12 space-y-5">
+        <Bar className="h-7 w-1/2" />
+        <Bar className="h-4 w-full" />
+        <Bar className="h-4 w-full" />
+        <Bar className="h-4 w-5/6" />
+        <Bar className="h-64 w-full rounded-lg my-6" />
+        <Bar className="h-4 w-full" />
+        <Bar className="h-4 w-4/5" />
+      </div>
+      <div className="border-t border-[var(--border)] pt-8">
+        <Bar className="h-6 w-28 mb-4" />
+        <Bar className="h-24 w-full rounded-lg mb-5" />
+        <div className="space-y-4">
+          <Bar className="h-16 w-full rounded-lg" />
+          <Bar className="h-16 w-full rounded-lg" />
+        </div>
+      </div>
+      <ScreenReaderLabel />
+    </div>
+  );
+}
+export function SettingsSkeleton() {
+  return (
+    <div className={`max-w-lg mx-auto px-4 sm:px-6 py-8 ${pulse}`}>
+      <Bar className="h-7 w-28 mb-6" />
+      <div className="space-y-6">
+        <div className="border-b border-[var(--border)] pb-6">
+          <Bar className="h-3 w-20 mb-4" />
+          <div className="space-y-4">
+            <FieldSkeleton />
+            <FieldSkeleton />
+            <FieldSkeleton />
+            <Bar className="h-9 w-32 rounded-full" />
+          </div>
+        </div>
+        <div>
+          <Bar className="h-3 w-20 mb-4" />
+          <div className="flex flex-col gap-3 items-start">
+            <Bar className="h-9 w-24 rounded-full" />
+            <Bar className="h-4 w-28" />
+          </div>
+        </div>
+      </div>
+      <ScreenReaderLabel />
+    </div>
+  );
+}
+export function AuthFormSkeleton({ mode = "login" }) {
+  const fieldCount = mode === "delete" ? 1 : mode === "signup" ? 5 : 2;
+  const titleWidth = mode === "delete" ? "w-36" : mode === "signup" ? "w-40" : "w-36";
+  return (
+    <div className={`min-h-[calc(100vh-3.5rem)] bg-[var(--bg)] flex items-center justify-center px-4 py-12 ${pulse}`}>
+      <div className="w-full max-w-sm">
+        {mode !== "delete" && <Bar className="h-3 w-20 mb-3" />}
+        <Bar className={`h-7 ${titleWidth} mb-2`} />
+        <Bar className="h-4 w-full mb-7" />
+        <div className="space-y-4">
+          {Array.from({ length: fieldCount }).map((_, i) => (
+            <FieldSkeleton key={i} />
+          ))}
+          <Bar className="h-10 w-full rounded-md mt-2" />
+        </div>
+        <Bar className="h-4 w-44 mx-auto mt-6" />
+      </div>
+      <ScreenReaderLabel />
+    </div>
+  );
+}
+export function VerificationSkeleton() {
+  return (
+    <div className={`min-h-screen bg-[var(--bg)] flex items-center justify-center px-4 ${pulse}`}>
+      <div className="w-full max-w-sm text-center">
+        <Bar className="h-3 w-20 mx-auto mb-4" />
+        <Bar className="h-7 w-44 mx-auto mb-3" />
+        <Bar className="h-4 w-full mb-2" />
+        <Bar className="h-4 w-2/3 mx-auto" />
+      </div>
+      <ScreenReaderLabel />
+    </div>
+  );
+}
+</file>
+
+<file path="components/ThemeToggle.jsx">
+"use client";
+export default function ThemeToggle() {
+  const toggle = () => {
+    const root = document.documentElement;
+    const next = !root.classList.contains("dark");
+    root.classList.toggle("dark", next);
+    localStorage.setItem("theme", next ? "dark" : "light");
+  };
+  return (
+    <button
+      onClick={toggle}
+      aria-label="Toggle color theme"
+      title="Toggle color theme"
+      className="h-8 min-w-12 rounded-md border border-transparent px-2 font-sans text-xs font-semibold text-[var(--text-muted)] hover:border-[var(--border)] hover:bg-[var(--bg-subtle)] hover:text-[var(--text)] transition-colors cursor-pointer"
+    >
+      Theme
+    </button>
+  );
+}
+</file>
+
+<file path="edit/loading.jsx">
+import { PostEditorSkeleton } from "../components/Skeletons";
+export default function Loading() {
+  return <PostEditorSkeleton />;
+}
+</file>
+
+<file path="edit/page.jsx">
+import { getUser } from "@/app/lib/getUser";
+import { db } from "@/app/lib/turso";
+import PostForm from "@/app/components/PostForm";
+import Link from "next/link";
+export default async function EditPost({ searchParams }) {
+    const { value } = await searchParams;
+    if (!value) return (
+        <div className="max-w-3xl mx-auto px-4 py-16">
+            <p className="font-sans text-[var(--text-muted)]">This edit link is missing a post id.</p>
+        </div>
+    );
+    const fetchCurrentUser = await getUser();
+    const fetchPost = await db.execute(`
+        SELECT
+        posts.*,
+        taxonomies.name as taxonomy,
+        GROUP_CONCAT(DISTINCT tags.name) as tags,
+        users.name as author,
+        users.public_id as author_public_id
+        FROM posts
+        LEFT JOIN post_taxonomies ON posts.id = post_taxonomies.post_id
+        LEFT JOIN taxonomies ON post_taxonomies.taxonomy_id = taxonomies.id
+        LEFT JOIN post_tags ON posts.id = post_tags.post_id
+        LEFT JOIN tags ON post_tags.tag_id = tags.id
+        LEFT JOIN users ON posts.user_id = users.id
+        WHERE posts.public_id = ?
+        GROUP BY posts.id
+        `, [value]);
+    if (fetchPost?.rows?.length === 0) return (
+        <div className="max-w-3xl mx-auto px-4 py-16">
+            <p className="font-sans text-[var(--text-muted)]">Post not found.</p>
+        </div>
+    );
+    const postAutherPublicId = fetchPost?.rows[0]?.author_public_id;
+    const currentUserPublicId = fetchCurrentUser?.public_id;
+    const isOwned = postAutherPublicId === currentUserPublicId;
+    if (!isOwned) return (
+        <div className="max-w-3xl mx-auto px-4 py-16">
+            <p className="font-sans text-[var(--text-muted)]">
+                You can only edit your own posts. Return to <Link href="/blog" className="underline underline-offset-4 hover:text-[var(--accent)] transition-colors">Blog</Link>.
+            </p>
+        </div>
+    );
+    const rawData = fetchPost.rows[0];
+    let content = [];
+    try {
+        content = JSON.parse(rawData.content || "[]");
+    } catch (e) {
+        content = [{ type: "paragraph", value: rawData.content }];
+    }
+    const post = {
+        post_public_id: rawData.public_id,
+        title: rawData.title,
+        slug: rawData.slug,
+        excerpt: rawData.excerpt,
+        content,
+        taxonomy: rawData.taxonomy,
+        tags: rawData.tags ? rawData.tags.split(",").map((tag) => tag.trim()).filter(Boolean) : [],
+    };
+    return (
+        <PostForm post={post} />
+    );
+}
+</file>
+
+<file path="favorites/FavClient.jsx">
+'use client'
+import Link from "next/link";
+import DeleteButton from "../components/DeleteBTN";
+import { useState } from "react";
+import AddTofavorites from "../components/AddToFavorites";
+function fmt(d) {
+  if (!d) return "";
+  return new Date(d).toLocaleDateString("en-US", { day: "numeric", month: "long", year: "numeric" });
+}
+export default function FavoritesClientComponent({ postsSerialized }) {
+  const [showAll, setShowAll] = useState(true);
+  const posts = JSON.parse(postsSerialized);
+  const filtered = showAll ? posts : posts.filter(p => p.isOwned);
+  return (
+    <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8">
+      <div className="flex items-center justify-between gap-4 mb-8 pb-4 border-b-2 border-[var(--text)]">
+        <div>
+          <h1 className="text-2xl font-bold text-[var(--text)]">Favorites</h1>
+          <p className="font-sans text-sm text-[var(--text-faint)] mt-0.5">{posts.length} saved article{posts.length !== 1 ? "s" : ""}</p>
+        </div>
+        <div className="flex items-center gap-1 border border-[var(--border)] rounded-md p-1">
+          {[["All", true], ["Mine", false]].map(([label, val]) => (
+            <button key={label} onClick={() => setShowAll(val)}
+              className={`font-sans text-xs px-3 py-1 rounded-sm transition-colors cursor-pointer ${showAll === val ? "bg-[var(--text)] text-[var(--bg)] font-semibold" : "text-[var(--text-muted)] hover:text-[var(--text)]"}`}>
+              {label}
+            </button>
+          ))}
+        </div>
+      </div>
+      {filtered.length === 0
+        ? <p className="font-sans text-[var(--text-faint)]">No posts found.</p>
+        : filtered.map(post => {
+            const tags = post.tags ? post.tags.split(",").map(t => t.trim()).filter(Boolean) : [];
+            return (
+              <article key={post.id} className="py-5 border-b border-[var(--border)]">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex-1 min-w-0">
+                    {post.taxonomy && <span className="font-sans text-xs font-bold uppercase tracking-widest text-[var(--accent)] mr-2">{post.taxonomy}</span>}
+                    <h3 className="text-lg font-bold text-[var(--text)] leading-snug mt-1 mb-1.5">
+                      <Link href={`/post/${post.slug}/${post.public_id}`} className="hover:text-[var(--accent)] transition-colors">{post.title}</Link>
+                    </h3>
+                    {post.excerpt && <p className="font-sans text-sm text-[var(--text-muted)] leading-relaxed mb-2 line-clamp-2 hidden sm:block">{post.excerpt}</p>}
+                    <div className="flex flex-wrap gap-x-3 gap-y-1 font-sans text-xs text-[var(--text-faint)]">
+                      {post.author && <span>{post.author}</span>}
+                      <span>{fmt(post.created_at)}</span>
+                      {tags.map((t, i) => <Link key={i} href={`/tags?value=${t}`} className="hover:text-[var(--text)] transition-colors">#{t}</Link>)}
+                    </div>
+                  </div>
+                  {post.isFavorited && <div className="shrink-0 mt-1"><AddTofavorites ppid={post.public_id} isFavorited={post.isFavorited} /></div>}
+                </div>
+                {post.isOwned && (
+                  <div className="flex gap-3 mt-2.5">
+                    <Link href={`/edit?value=${post.public_id}`} className="font-sans text-xs border border-[var(--border)] text-[var(--text-muted)] px-3 py-1 rounded-full hover:border-[var(--text)] hover:text-[var(--text)] transition-colors">Edit</Link>
+                    <DeleteButton publicId={post.public_id} />
+                  </div>
+                )}
+              </article>
+            );
+          })
+      }
+    </div>
+  );
+}
+</file>
+
+<file path="favorites/loading.jsx">
+import { FavoritesSkeleton } from "../components/Skeletons";
+export default function Loading() {
+  return <FavoritesSkeleton />;
+}
+</file>
+
+<file path="favorites/page.jsx">
+import { getUser } from "../lib/getUser";
+import { db } from "../lib/turso";
+import FavoritesClientComponent from "./FavClient";
+import Link from "next/link";
+export const metadata = {
+  title: "Favorites",
+  description: "Read your saved articles, essays, and stories on Inkline.",
+};
+export default async function Favorites() {
+  const currentUser = await getUser();
+  if (!currentUser?.id) return (
+    <div className="max-w-3xl mx-auto px-4 py-16">
+      <p className="font-sans text-[var(--text-muted)]">
+        You must <Link href="/login" className="underline underline-offset-4 hover:text-[var(--accent)] transition-colors">login</Link> to view your favorites.
+      </p>
+    </div>
+  );
+  const getPostIds = await db.execute(`
+    SELECT post_id FROM favorites WHERE user_id = ?
+  `, [currentUser.id]);
+  if (getPostIds.rows.length === 0) {
+    return (
+      <div className="max-w-3xl mx-auto px-4 sm:px-6 py-16 text-center">
+        <h1 className="text-2xl font-bold text-[var(--text)] mb-2">No favorites yet</h1>
+        <p className="font-sans text-sm text-[var(--text-muted)] mb-5">Save posts from the blog and they will appear here.</p>
+        <Link href="/blog" className="font-sans text-sm font-semibold bg-[var(--text)] text-[var(--bg)] px-5 py-2 rounded-md hover:opacity-85 transition-opacity">
+          Browse posts
+        </Link>
+      </div>
+    );
+  }
+  const placeholders = getPostIds.rows.map((_) => "?").join(", ");
+  const idsClause = getPostIds.rows.map((row) => row.post_id);
+  const fetchPosts = await db.execute(`
+    SELECT
+    posts.*,
+    taxonomies.name as taxonomy,
+    GROUP_CONCAT(DISTINCT tags.name) as tags,
+    users.name as author
+    FROM posts
+    LEFT JOIN post_taxonomies ON posts.id = post_taxonomies.post_id
+    LEFT JOIN taxonomies ON post_taxonomies.taxonomy_id = taxonomies.id
+    LEFT JOIN post_tags ON posts.id = post_tags.post_id
+    LEFT JOIN tags ON post_tags.tag_id = tags.id
+    LEFT JOIN users ON posts.user_id = users.id
+    WHERE posts.id IN (${placeholders})
+    GROUP BY posts.id
+    ORDER BY posts.created_at DESC
+  `, [...idsClause]);
+  const posts = fetchPosts.rows;
+  for (const post of posts) {
+    post.isFavorited = true;
+    post.isOwned = false;
+    if (currentUser?.id && post.user_id === currentUser?.id) {
+      post.isOwned = true;
+    }
+  }
+  return (
+    <FavoritesClientComponent postsSerialized={JSON.stringify(posts)} />
+  )
+}
+</file>
+
+<file path="globals.css">
+@import "tailwindcss";
+:root {
+  color-scheme: light;
+  --bg: #fbfaf7;
+  --bg-raised: #ffffff;
+  --bg-subtle: #f3f1ec;
+  --border: #ded9cf;
+  --text: #1d1b18;
+  --text-muted: #5f5a52;
+  --text-faint: #8d877d;
+  --accent: #b53a2f;
+  --accent-soft: #f7e9e5;
+  --shadow: 0 20px 50px rgba(29, 27, 24, 0.08);
+}
+.dark {
+  color-scheme: dark;
+  --bg: #12110f;
+  --bg-raised: #191815;
+  --bg-subtle: #201f1b;
+  --border: #343128;
+  --text: #f4f0e8;
+  --text-muted: #c6bfb1;
+  --text-faint: #8f8779;
+  --accent: #f06d5b;
+  --accent-soft: #331b17;
+  --shadow: 0 20px 50px rgba(0, 0, 0, 0.28);
+}
+* {
+  box-sizing: border-box;
+}
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+h1,
+h2,
+h3,
+.font-serif {
+  font-family: var(--font-serif), Georgia, serif;
+}
+a,
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+::selection {
+  background: var(--accent-soft);
+  color: var(--text);
+}
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+img {
+  max-width: 100%;
+  height: auto;
+}
+</file>
+
+<file path="layout.js">
+import { Instrument_Sans, Lora } from "next/font/google";
+import NavBar from "./components/nav/NavBar";
+import "./globals.css";
+const instrumentSans = Instrument_Sans({
+  subsets: ["latin"],
+  variable: "--font-sans",
+  display: "swap",
+});
+const lora = Lora({
+  subsets: ["latin"],
+  variable: "--font-serif",
+  display: "swap",
+});
+const siteName = "Inkline";
+const description =
+  "A polished multi-user publishing platform for essays, comments, tags, favorites, and personal writing workflows.";
+export const dynamic = "force-dynamic";
+export const metadata = {
+  title: {
+    default: `${siteName} | Multi-user blog platform`,
+    template: `%s | ${siteName}`,
+  },
+  description,
+  applicationName: siteName,
+  keywords: ["blog", "publishing", "multi-user", "Next.js", "portfolio project"],
+  authors: [{ name: siteName }],
+  creator: siteName,
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"),
+  openGraph: {
+    title: `${siteName} | Multi-user blog platform`,
+    description,
+    type: "website",
+    siteName,
+    images: [{ url: '/og-image.png', width: 1200, height: 630 }],
+  },
+  twitter: {
+    card: "summary",
+    title: `${siteName} | Multi-user blog platform`,
+    description,
+    images: ['/og-image.png'],
+  },
+};
+export const viewport = {
+  width: 'device-width',
+  initialScale: 1,
+};
+export default function RootLayout({ children }) {
+  return (
+    <html lang="en" className={`${instrumentSans.variable} ${lora.variable}`} suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: `try{if(localStorage.getItem('theme')==='dark')document.documentElement.classList.add('dark')}catch(e){}` }} />
+      </head>
+      <body className="bg-[var(--bg)] text-[var(--text)] min-h-screen transition-colors duration-200">
+        <NavBar />
+        <main>{children}</main>
+      </body>
+    </html>
+  );
+}
+</file>
+
+<file path="lib/checkEmail.js">
+"use server";
+import { db } from "@/app/lib/turso";
+import { redisIpLimit } from "../utils/redidIpLimit";
+export async function checkEmail(_, email) {
+    email = email?.trim();
+    if (!email) return { ok: false, message: 'Email is required' };
+    const ipLimit = await redisIpLimit(30, 'email_check');
+    if (!ipLimit.ok) return ipLimit;
+    if (!email.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)) {
+        return { ok: false, message: 'Please enter a valid email address' };
+    }
+    try {
+        const result = await db.execute(`SELECT COUNT(*) as count FROM users WHERE email = ?`, [email]);
+        if (result.rows[0].count !== 0) return { ok: false, message: 'Email is already in use' };
+        return { ok: true, message: 'Email is available' };
+    } catch (error) {
+        console.error(error);
+        return { ok: false, message: 'Something went wrong' };
+    }
+}
+</file>
+
+<file path="lib/checkUsername.js">
+"use server";
+import { db } from "@/app/lib/turso";
+import { redisIpLimit } from "../utils/redidIpLimit";
+export async function checkUsername(_, username) {
+    username = username?.trim();
+    if (!username) return { ok: false, message: 'Username is required' };
+    if (username.length < 3) return { ok: false, message: 'Username must be at least 3 characters' };
+    if (username.length > 30) return { ok: false, message: 'Username must be at most 30 characters' };
+    const ipLimit = await redisIpLimit(30, 'username_check');
+    if (!ipLimit.ok) return ipLimit;
+    try {
+        const result = await db.execute(`SELECT COUNT(*) as count FROM users WHERE username = ?`, [username]);
+        if (result.rows[0].count !== 0) return { ok: false, message: 'Username is already taken' };
+        return { ok: true, message: 'Username is available' };
+    } catch (error) {
+        console.error(error);
+        return { ok: false, message: 'Something went wrong' };
+    }
+}
+</file>
+
+<file path="lib/cloudinary.js">
+import { v2 as cloudinary } from "cloudinary";
+cloudinary.config({
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET,
+});
+export const cloudinaryUpload = async (buffer) => {
+    if (!buffer) {
+        throw new Error("No file provided for upload");
+    }
+    try {
+        const result = await new Promise((resolve, reject) => {
+            cloudinary.uploader
+                .upload_stream(
+                    { folder: "Blog-Imgs" },
+                    (error, response) => {
+                        if (error) reject(error);
+                        else resolve(response);
+                    }
+                )
+                .end(buffer);
+        });
+        if (!result?.secure_url || !result?.public_id) {
+            throw new Error("Cloudinary upload failed");
+        }
+        return {
+            ok: true,
+            url: result.secure_url,
+            publicId: result.public_id,
+        };
+    } catch (error) {
+        console.log(error);
+        return { ok: false, message: `Cloudinary upload error: ${error.message ? error.message : 'some error while uploading to cloudinary'}` };
+    }
+};
+export const cloudinaryDeleteSingle = async (publicId) => {
+    if (!publicId) {
+        throw new Error("publicId is required to delete an image");
+    }
+    try {
+        const result = await cloudinary.uploader.destroy(publicId);
+        if (result.result !== "ok") {
+            throw new Error("Cloudinary delete failed");
+        }
+        return result;
+    } catch (error) {
+        return { ok: false, message: `Cloudinary delete error: ${error.message ? error.message : 'some error while deleting from cloudinary'}` };
+    }
+};
+export const cloudinaryDeleteMultiple = async (publicIdsArr = []) => {
+    if (!publicIdsArr || publicIdsArr.length === 0) {
+        throw new Error("publicIds is required to delete multiple images");
+    }
+    try {
+        const result = await cloudinary.api.delete_resources(publicIdsArr);
+        if (!result.deleted) {
+            throw new Error("Cloudinary delete failed");
+        }
+        return result;
+    } catch (error) {
+        return { ok: false, message: `Cloudinary delete error: ${error.message ? error.message : 'some error while deleting from cloudinary'}` };
+    }
+};
+export { cloudinary };
+</file>
+
+<file path="lib/deleteAccount.js">
+"use server";
+import { redirect } from "next/navigation";
+import { getUser } from "./getUser";
+import { db } from "@/app/lib/turso";
+import { cookies } from "next/headers";
+import { cloudinaryDeleteMultiple } from "./cloudinary";
+import { compare } from "../utils/bcrypt";
+import { redis } from "./redis";
+import { headers } from "next/headers";
+import { redisIpLimit } from "../utils/redidIpLimit";
+export async function deleteAccount(_, formData) {
+    try {
+        const ipLimit = await redisIpLimit(5, 'delete_account');
+        if (!ipLimit.ok) return ipLimit;
+        const password = formData?.get('password');
+        if (!password) return { ok: false, message: "Password is required." };
+        const currentUser = await getUser();
+        if (!currentUser?.id) return { ok: false, message: "You must be logged in to delete your account." };
+        const hashedPass = await db.execute(`SELECT password FROM users WHERE id = ?`, [currentUser.id]);
+        if (hashedPass.rows.length === 0 || !hashedPass.rows[0].password) return { ok: false, message: "User not found." };
+        const isPasswordCorrect = await compare(password, hashedPass?.rows[0]?.password);
+        if (!isPasswordCorrect) return { ok: false, message: "Incorrect password." };
+        const cookieStore = await cookies();
+        const fetchPostsContent = await db.execute(`
+            SELECT content FROM posts WHERE user_id = ?
+        `, [currentUser.id]);
+        const cloudinaryIdsToDelete = fetchPostsContent.rows
+            .flatMap(row => {
+                try {
+                    return JSON.parse(row.content || "[]");
+                } catch (e) {
+                    console.error("Failed to parse post content for user deletion:", row.content, e);
+                    return [];
+                }
+            })
+            .filter(item => item && item.type === 'image' && item.value?.publicId)
+            .map(item => item.value.publicId);
+        if (cloudinaryIdsToDelete.length > 0) {
+            await cloudinaryDeleteMultiple(cloudinaryIdsToDelete);
+        }
+        await db.execute('DELETE FROM users WHERE id = ?', [currentUser.id]);
+        cookieStore.delete("mub-session-token");
+    } catch (error) {
+        console.error(error);
+        return { ok: false, message: "Something went wrong." };
+    }
+    redirect("/sign-up");
+}
+</file>
+
+<file path="lib/getUser.js">
+"use server"
+import { getSession } from "../utils/getSession";
+import { db } from "./turso";
+export async function getUser() {
+    try {
+        const session = await getSession("mub-session-token");
+        if (!session) return null;
+        const sessionRes = await db.execute(
+            'SELECT user_id FROM sessions WHERE session_id = ? AND expires_at > ?',
+            [session, Date.now()]
+        );
+        if (sessionRes.rows.length === 0) return null;
+        const userId = sessionRes.rows[0].user_id;
+        const userRes = await db.execute('SELECT id, public_id, name, username, email, role, email_verified FROM users WHERE id = ?', [userId]);
+        if (userRes.rows.length === 0) return null;
+        return userRes.rows[0];
+    } catch (error) {
+        console.error(error);
+        return null;
+    }
+}
+</file>
+
+<file path="lib/logout.js">
+"use server";
+import { redirect } from "next/navigation";
+import { getUser } from "./getUser";
+import { db } from "@/app/lib/turso";
+import { cookies } from "next/headers";
+export async function logout() {
+    const cookieStore = await cookies();
+    const token = cookieStore.get('mub-session-token');
+    try {
+        const currentUser = await getUser();
+        if (!currentUser) return null;
+        await db.execute('DELETE FROM sessions WHERE user_id = ? AND session_id = ?', [currentUser?.id, token?.value]);
+        cookieStore.delete("mub-session-token");
+    } catch (error) {
+        console.error(error);
+        return null;
+    }
+    redirect("/login");
+}
+</file>
+
+<file path="lib/posts/deletePost.js">
+"use server";
+import { redirect } from "next/navigation";
+import { db } from "../turso";
+import { getUser } from "../getUser";
+import { cloudinaryDeleteMultiple } from "../cloudinary";
+export async function deletePostServerAction(_, formData) {
+    const ppid = formData.get('ppid');
+    if (!ppid) {
+        return { ok: false, message: "Post public id is broken or missing." };
+    }
+    try {
+        const currentUser = await getUser();
+        if (!currentUser?.id) {
+            return { ok: false, message: "User needs to be logged in." };
+        }
+        const fetchPost = await db.execute(`SELECT id, user_id, content FROM posts WHERE public_id = ?`, [ppid]);
+        if (fetchPost.rows.length === 0) {
+            return { ok: false, message: "Post not found." };
+        }
+        if (fetchPost?.rows[0]?.user_id !== currentUser?.id) {
+            return { ok: false, message: "You are not authorized to delete this post." };
+        }
+        const postId = fetchPost?.rows[0]?.id;
+        const result = await db.execute(`DELETE FROM posts WHERE id = ?`, [postId]);
+        if (result.rowsAffected === 0) {
+            return { ok: false, message: "failed to delete post" };
+        }
+        let acquireImag = [];
+        try {
+            acquireImag = JSON.parse(fetchPost.rows[0].content || "[]");
+        } catch (e) {
+            console.error("Failed to parse content during post deletion:", e);
+        }
+        const ids = [];
+        if (acquireImag && acquireImag.length > 0) {
+            for (const block of acquireImag) {
+                if (block.type === "image" && block.value?.publicId) {
+                    ids.push(block.value.publicId);
+                }
+            }
+        }
+        if(ids.length > 0) {
+            await cloudinaryDeleteMultiple(ids);
+        }
+    } catch (error) {
+        console.error(error);
+        return { ok: false, message: "Something went wrong" };
+    }
+    redirect("/blog");
+}
+</file>
+
+<file path="lib/posts/favorites.js">
+"use server";
+import { getUser } from "../getUser";
+import { db } from "../turso";
+export async function addTofavorites(_, formData) {
+  const ppid = formData.get("ppid");
+  if (!ppid) {
+    return { ok: false, added: null, removed: null, message: "Post public id is broken or missing." };
+  }
+  try {
+    const currentUser = await getUser();
+    if (!currentUser?.id) {
+      return { ok: false, added: null, removed: null, message: "User needs to be logged in." };
+    }
+    const getPost = await db.execute(
+      `SELECT id FROM posts WHERE public_id = ?`,
+      [ppid]
+    );
+    if (getPost.rows.length === 0) {
+      return { ok: false, added: null, removed: null, message: "Post not found." };
+    }
+    const postId = getPost.rows[0].id;
+    const favs = await db.execute(
+      `SELECT * FROM favorites WHERE user_id = ? AND post_id = ?`,
+      [currentUser.id, postId]
+    );
+    if (favs.rows.length === 0) {
+      const result = await db.execute(
+        `INSERT INTO favorites (user_id, post_id) VALUES (?, ?)`,
+        [currentUser.id, postId]
+      )
+      if (result.rowsAffected === 0) return { ok: false, added: null, removed: null, message: "failed to add to favorites." };
+      return { ok: true, added: true, removed: false, message: "Post added to favorites." };
+    } else if (favs.rows.length > 0) {
+      const result = await db.execute(
+        `DELETE FROM favorites WHERE user_id = ? AND post_id = ?`,
+        [currentUser.id, postId]
+      )
+      if (result.rowsAffected === 0) return { ok: false, added: null, removed: null, message: "failed to remove from favorites." };
+      return { ok: true, added: false, removed: true, message: "Post removed from favorites." };
+    }
+  } catch (error) {
+    console.error(error);
+    return { ok: false, added: null, removed: null, message: "Something went wrong." };
+  }
+}
+</file>
+
+<file path="lib/posts/upsert.js">
+"use server";
+import { nanoid } from "nanoid";
+import { cloudinaryDeleteMultiple, cloudinaryUpload } from "../cloudinary";
+import { getUser } from "../getUser";
+import { db } from "../turso";
+import { redirect } from "next/navigation";
+import sharp from "sharp";
+import { redisIpLimit } from "@/app/utils/redidIpLimit";
+export async function postUpsert(_, formData) {
+    const currentUser = await getUser();
+    if (!currentUser?.id) redirect('/login');
+    if (currentUser?.email_verified !== 1) return { ok: false, message: "Please verify your email first." };
+    let redirectSlug, redirectPublicId;
+    try {
+        const ipLimit = await redisIpLimit(10, 'post_upsert');
+        if (!ipLimit.ok) return ipLimit;
+        const existingPPID = formData.get('post_public_id') || null;
+        const title = formData.get('title')?.trim();
+        if (!title) return { ok: false, message: "Title is required." };
+        if (title.length > 150) {
+            return { ok: false, message: "Title must be under 150 characters." };
+        }
+        const slug = title?.replace(/\s+/g, '-').toLowerCase() || 'titleless';
+        const excerpt = formData.get('excerpt')?.trim() || 'no description';
+        if (excerpt && excerpt.length > 300) {
+            return { ok: false, message: "Excerpt must be under 300 characters." };
+        }
+        const taxonomy = formData.get('taxonomy')?.trim().replace(/\s+/g, '-').toUpperCase() || 'uncategorized';
+        const tagsArr = formData.getAll('tags').filter(Boolean);
+        const tags = tagsArr.length > 0 ? tagsArr : ['uncategorized'];
+        const contentArr = separateContent(formData);
+        const contentWithBlobs = contentArr.length > 0 ? contentArr : [{ type: null, name: null, value: null }];
+        const contentNormalized = await uploadBlobs(contentWithBlobs);
+        const fetchOldPost = await db.execute(`SELECT user_id, content FROM posts WHERE public_id = ? LIMIT 1`, [existingPPID]);
+        const autherizedToUpdate = fetchOldPost?.rows?.length > 0 && fetchOldPost.rows[0].user_id === currentUser?.id;
+        if (existingPPID && fetchOldPost.rows.length > 0 && autherizedToUpdate) {
+            const oldImagesPIds = getImagesPIds(JSON.parse(fetchOldPost.rows[0].content));
+            const newImagesPIds = getImagesPIds(contentNormalized);
+            await deleteImages(oldImagesPIds, newImagesPIds);
+        }
+        const { postId, publicId } = await upsertPost(existingPPID, contentNormalized, title, slug, excerpt, currentUser.id, autherizedToUpdate);
+        if (!postId) throw new Error('no post upserted');
+        const taxonomyId = await upsertTaxonomy(taxonomy);
+        if (!taxonomyId) throw new Error('no taxonomy upserted');
+        const postTaxonomyResult = await upsertPost_taxonomies(postId, taxonomyId);
+        if (!postTaxonomyResult) throw new Error('no post_taxonomies upserted');
+        const tagIds = await upsertTags(tags);
+        if (tagIds.length === 0) throw new Error('no tags upserted');
+        const postTagResult = await postTagResults(postId, tagIds);
+        if (!postTagResult) throw new Error('no post_tags upserted');
+        redirectSlug = slug;
+        redirectPublicId = publicId;
+    } catch (error) {
+        console.error(error);
+        return { ok: false, message: error.message ? error.message : 'Something went wrong' };
+    };
+    redirect(`/post/${redirectSlug}/${redirectPublicId}`);
+}
+const separateContent = (formData) => {
+    const content = [];
+    for (const [key, value] of formData.entries()) {
+        if (key === 'title' || key === 'excerpt' || key === 'taxonomy' || key === 'tags') continue;
+        if (key.startsWith('heading')) content.push({
+            type: 'heading', name: key, value
+        });
+        if (key.startsWith('paragraph')) content.push({
+            type: 'paragraph', name: key, value
+        });
+        if (key.startsWith('image')) content.push({
+            type: 'image', name: key, value
+        });
+    }
+    const MAX_BLOCKS = 20;
+    if (content.length > MAX_BLOCKS) throw new Error(`You can't have more than ${MAX_BLOCKS} blocks`);
+    return content;
+};
+const uploadBlobs = async (contentBlocks) => {
+    const copy = contentBlocks.map(block => ({ ...block }));
+    for (const block of copy) {
+        if (
+            block.type === "image" &&
+            block.value instanceof File &&
+            block.value.size > 0
+        ) {
+            let arrayBuffer;
+            const MAX_SIZE = 10 * 1024 * 1024;
+            if (block.value.size > MAX_SIZE) throw new Error("Image must be under 10MB");
+            try {
+                arrayBuffer = await block.value.arrayBuffer();
+            } catch {
+                throw new Error("Failed to read image file");
+            }
+            const buffer = Buffer.from(arrayBuffer);
+            const sharpResult = await sharpValidation(buffer);
+            if (!sharpResult.ok) throw new Error(sharpResult.message);
+            const result = await cloudinaryUpload(sharpResult?.file);
+            if (!result.ok) throw new Error(result.message);
+            if (result?.url && result?.publicId) {
+                block.value = {
+                    url: result.url,
+                    publicId: result.publicId
+                };
+            }
+        }
+        else if (block.type === 'image' && typeof block.value === 'string') {
+            const pasred = JSON.parse(block.value);
+            block.value = pasred;
+        }
+    }
+    return copy;
+};
+const upsertPost = async (public_id, content, title, slug, excerpt, user_id, isAutherized) => {
+    if (!public_id) {
+        const newPublicId = nanoid(12);
+        const result = await db.execute(`
+            INSERT INTO posts (public_id, user_id, title, slug, excerpt, content)
+            VALUES (?, ?, ?, ?, ?, ?)
+            RETURNING id
+        `, [newPublicId, user_id, title, slug, excerpt, JSON.stringify(content)]);
+        return { postId: result.rows[0]?.id, publicId: newPublicId };
+    } else {
+        if (!isAutherized) throw new Error('unauthorized');
+        const result = await db.execute(`
+            UPDATE posts SET title = ?, slug = ?, excerpt = ?, content = ? WHERE public_id = ?
+            RETURNING id
+        `, [title, slug, excerpt, JSON.stringify(content), public_id]);
+        const id = result.rows[0]?.id;
+        if (id) {
+            await db.execute(`DELETE FROM post_taxonomies WHERE post_id = ?`, [id]);
+            await db.execute(`DELETE FROM post_tags WHERE post_id = ?`, [id]);
+        }
+        return { postId: id, publicId: public_id };
+    }
+};
+const upsertTaxonomy = async (taxonomy) => {
+    if (!taxonomy) return null;
+    const result = await db.execute(`SELECT id FROM taxonomies WHERE name = ? LIMIT 1`, [taxonomy]);
+    if (result.rows.length > 0) return result.rows[0].id;
+    const result2 = await db.execute(`INSERT INTO taxonomies (name) VALUES (?) RETURNING id`, [taxonomy]);
+    return result2.rows[0].id;
+};
+const upsertPost_taxonomies = async (post_id, taxonomy_id) => {
+    if (!post_id || !taxonomy_id) return false;
+    const result = await db.execute(`INSERT INTO post_taxonomies (post_id, taxonomy_id) VALUES (?, ?)`, [post_id, taxonomy_id]);
+    return result.rowsAffected === 1;
+};
+const upsertTags = async (tagsArr) => {
+    const clean = [...new Set(tagsArr.filter(Boolean).map(tag => tag.trim().replace(/\s+/g, '-').toLowerCase()))];
+    if (clean.length === 0) return [];
+    const insertPlaceholders = clean.map(() => '(?)').join(', ');
+    const selectPlaceholders = clean.map(() => '?').join(', ');
+    await db.execute(`INSERT OR IGNORE INTO tags (name) VALUES ${insertPlaceholders}`, clean);
+    const result = await db.execute(`SELECT id FROM tags WHERE name IN (${selectPlaceholders})`, clean);
+    return result.rows.map(r => r.id);
+};
+const postTagResults = async (post_id, tagIdsArr) => {
+    if (!post_id || tagIdsArr.length === 0) return false;
+    const placeholders = tagIdsArr.map(() => '(?, ?)').join(', ');
+    const values = tagIdsArr.flatMap(tagId => [post_id, tagId]);
+    const result = await db.execute(
+        `INSERT INTO post_tags (post_id, tag_id) VALUES ${placeholders}`,
+        values
+    );
+    return result.rowsAffected > 0;
+};
+async function deleteImages(oldImagesPIds, newImagesPIds) {
+    const idsToDelete = oldImagesPIds.filter(oldId => !newImagesPIds.includes(oldId));
+    if (idsToDelete.length === 0) return;
+    try {
+        await cloudinaryDeleteMultiple(idsToDelete);
+    } catch (err) {
+        console.error('Failed to delete orphan images:', idsToDelete, err);
+    }
+};
+function getImagesPIds(content) {
+    const pIds = [];
+    for (const { type, value } of content) {
+        if (type === 'image' && value?.publicId) pIds.push(value.publicId);
+    }
+    return pIds;
+};
+async function sharpValidation(buffer) {
+    try {
+        const image = sharp(buffer, { failOnError: true });
+        const metadata = await image.metadata();
+        const allowedFormats = new Set(["jpeg", "png", "webp"]);
+        if (!allowedFormats.has(metadata.format)) {
+            return { ok: false, file: null, message: "Unsupported format" };
+        }
+        if (!metadata.width || !metadata.height) {
+            return { ok: false, file: null, message: "Invalid dimensions" };
+        }
+        if (metadata.width < 300 || metadata.height < 300) {
+            return { ok: false, file: null, message: "Image too small" };
+        }
+        if (metadata.width > 5000 || metadata.height > 5000) {
+            return { ok: false, file: null, message: "Image too large" };
+        }
+        const processedBuffer = await sharp(buffer)
+            .rotate()
+            .resize(1200, 1200, { fit: "inside", withoutEnlargement: true })
+            .webp({ quality: 80 })
+            .toBuffer();
+        return { ok: true, file: processedBuffer, message: null };
+    } catch {
+        return { ok: false, file: null, message: "Invalid image file" };
+    }
+}
+</file>
+
+<file path="lib/redis.js">
+import { Redis } from "@upstash/redis";
+export const redis = new Redis({
+    url: process.env.UPSTASH_REDIS_REST_URL,
+    token: process.env.UPSTASH_REDIS_REST_TOKEN,
+});
+</file>
+
+<file path="lib/resend.js">
+'use server';
+import { Resend } from "resend";
+import crypto from "crypto";
+import { hash } from "../utils/bcrypt";
+import { db } from "../lib/turso";
+const resendInstance = new Resend(process.env.RESEND_API_KEY);
+export const emailOrchestrator = async (user_pid, email, incomingToken) => {
+    try {
+        const verified = await isVerified(user_pid);
+        if (verified.email === email && verified.email_verified) {
+            return { ok: true, message: "Email is already verified." };
+        }
+        if (!incomingToken) {
+            incomingToken = crypto.randomBytes(32).toString("hex");
+            const hashToken = await hash(incomingToken);
+            const inserted = await insertTokenIntoDB(user_pid, hashToken);
+            if (!inserted) return { ok: false, message: "Something went wrong" };
+        }
+        return await sendWithResend(email, incomingToken, user_pid);
+    } catch (error) {
+        console.error(error);
+        return { ok: false, message: "Something went wrong" };
+    }
+}
+const isVerified = async (user_pid) => {
+    const result = await db.execute(
+        `SELECT email, email_verified FROM users WHERE  public_id = ?`,
+        [user_pid]
+    );
+    return { email: result.rows[0]?.email, email_verified: result.rows[0]?.email_verified === 1 };
+}
+const insertTokenIntoDB = async (userPId, token) => {
+    const result = await db.execute(
+        `UPDATE users SET email_token = ? WHERE public_id = ?`,
+        [token, userPId]
+    );
+    return result.rowsAffected === 1;
+}
+const sendWithResend = async (email, token, user_pid) => {
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://portfolio-2mnb.vercel.app";
+    const url = `${appUrl}/verify/?token=${token}&pid=${user_pid}`;
+    const result = await resendInstance.emails.send({
+        from: "MUB <noreply@nomidev.com>",
+        to: email,
+        subject: "Verify your email address",
+        html: `<p>Click <a href="${url}">here</a> to verify your email address.</p>`,
+    });
+    return result;
+}
+</file>
+
+<file path="lib/turso.js">
+import { createClient } from "@libsql/client";
+const databaseUrl = process.env.TURSO_DATABASE_URL;
+function missingDatabaseClient() {
+    return new Proxy({}, {
+        get(_target, prop) {
+            if (prop === "then") return undefined;
+            return () => {
+                throw new Error("TURSO_DATABASE_URL is required before database queries can run.");
+            };
+        },
+    });
+}
+export const db = databaseUrl
+    ? createClient({
+        url: databaseUrl,
+        authToken: process.env.TURSO_AUTH_TOKEN,
+    })
+    : missingDatabaseClient();
+</file>
+
+<file path="loading.jsx">
+import { HomeSkeleton } from "./components/Skeletons";
+export default function Loading() {
+  return <HomeSkeleton />;
+}
+</file>
+
+<file path="models/tablesInit.js">
+import { db } from "@/app/lib/turso";
+export async function initUsersTable() {
+    await db.execute(`
+        CREATE TABLE IF NOT EXISTS users (
+            id             INTEGER  PRIMARY KEY AUTOINCREMENT,
+            public_id      TEXT     NOT NULL UNIQUE,
+            name           TEXT     NOT NULL,
+            username       TEXT     NOT NULL UNIQUE,
+            email          TEXT     NOT NULL UNIQUE,
+            email_verified INTEGER  NOT NULL DEFAULT 0,
+            email_token    TEXT,
+            password       TEXT     NOT NULL,
+            role           TEXT     NOT NULL DEFAULT 'user',
+            CreatedAt      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+        )
+    `);
+}
+export async function initSessionsTable() {
+    await db.execute(`
+        CREATE TABLE IF NOT EXISTS sessions (
+            id         INTEGER  PRIMARY KEY AUTOINCREMENT,
+            session_id TEXT     NOT NULL UNIQUE,
+            user_id    INTEGER  NOT NULL,
+            expires_at TEXT     NOT NULL,
+            created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+        )
+    `);
+}
+export async function initPostsTable() {
+    await db.execute(`
+        CREATE TABLE IF NOT EXISTS posts (
+            id         INTEGER  PRIMARY KEY AUTOINCREMENT,
+            public_id  TEXT     NOT NULL UNIQUE,
+            user_id    INTEGER  NOT NULL,
+            title      TEXT     NOT NULL,
+            slug       TEXT     NOT NULL,
+            excerpt    TEXT,
+            content    TEXT,
+            created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+        )
+    `);
+}
+export async function initTaxonomiesTable() {
+    await db.execute(`
+        CREATE TABLE IF NOT EXISTS taxonomies (
+            id         INTEGER  PRIMARY KEY AUTOINCREMENT,
+            public_id  TEXT,
+            name       TEXT     NOT NULL UNIQUE,
+            created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+        )
+    `);
+}
+export async function initTagsTable() {
+    await db.execute(`
+        CREATE TABLE IF NOT EXISTS tags (
+            id         INTEGER  PRIMARY KEY AUTOINCREMENT,
+            public_id  TEXT,
+            name       TEXT     NOT NULL UNIQUE,
+            created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+        )
+    `);
+}
+export async function initPostTaxonomiesTable() {
+    await db.execute(`
+        CREATE TABLE IF NOT EXISTS post_taxonomies (
+            post_id     INTEGER NOT NULL,
+            taxonomy_id INTEGER NOT NULL,
+            PRIMARY KEY (post_id, taxonomy_id),
+            FOREIGN KEY (post_id)     REFERENCES posts(id)      ON DELETE CASCADE ON UPDATE CASCADE,
+            FOREIGN KEY (taxonomy_id) REFERENCES taxonomies(id) ON DELETE CASCADE ON UPDATE CASCADE
+        )
+    `);
+}
+export async function initPostTagsTable() {
+    await db.execute(`
+        CREATE TABLE IF NOT EXISTS post_tags (
+            post_id INTEGER NOT NULL,
+            tag_id  INTEGER NOT NULL,
+            PRIMARY KEY (post_id, tag_id),
+            FOREIGN KEY (post_id) REFERENCES posts(id) ON DELETE CASCADE ON UPDATE CASCADE,
+            FOREIGN KEY (tag_id)  REFERENCES tags(id)  ON DELETE CASCADE ON UPDATE CASCADE
+        )
+    `);
+}
+export async function initFavoritesTable() {
+    await db.execute(`
+        CREATE TABLE IF NOT EXISTS favorites (
+            user_id INTEGER NOT NULL,
+            post_id INTEGER NOT NULL,
+            PRIMARY KEY (user_id, post_id),
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE ON UPDATE CASCADE,
+            FOREIGN KEY (post_id) REFERENCES posts(id) ON DELETE CASCADE ON UPDATE CASCADE
+        )
+    `);
+}
+export async function initCommentsTable() {
+    await db.execute(`
+        CREATE TABLE IF NOT EXISTS comments (
+            id         INTEGER  PRIMARY KEY AUTOINCREMENT,
+            public_id  TEXT     NOT NULL UNIQUE,
+            user_id    INTEGER  NOT NULL,
+            post_id    INTEGER  NOT NULL,
+            username   TEXT     NOT NULL,
+            comment    TEXT     NOT NULL,
+            created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id)  REFERENCES users(id)    ON DELETE CASCADE,
+            FOREIGN KEY (post_id)  REFERENCES posts(id)    ON DELETE CASCADE,
+            FOREIGN KEY (username) REFERENCES users(username) ON UPDATE CASCADE
+        )
+    `);
+}
+export async function initAllTables() {
+    if (global.__dbInitialized) return;
+    await initUsersTable();
+    await initSessionsTable();
+    await initPostsTable();
+    await initTaxonomiesTable();
+    await initTagsTable();
+    await initPostTaxonomiesTable();
+    await initPostTagsTable();
+    await initFavoritesTable();
+    await initCommentsTable();
+    global.__dbInitialized = true;
+}
+</file>
+
+<file path="my-posts/loading.jsx">
+import { MyPostsSkeleton } from "../components/Skeletons";
+export default function Loading() {
+  return <MyPostsSkeleton />;
+}
+</file>
+
+<file path="my-posts/page.jsx">
+import Link from "next/link";
+import { getUser } from "../lib/getUser";
+import { db } from "../lib/turso";
+import PostCard from "../components/PostCard";
+export const metadata = {
+  title: "My Posts",
+  description: "View and manage your published articles, posts, and drafts.",
+};
+export default async function MyPosts() {
+  const currentUser = await getUser();
+  if (!currentUser?.id) return (
+    <div className="max-w-3xl mx-auto px-4 py-16">
+      <p className="font-sans text-[var(--text-muted)]">You must <Link href="/login" className="underline underline-offset-4 hover:text-[var(--accent)] transition-colors">login</Link> to view your posts.</p>
+    </div>
+  );
+  const fetchPosts = await db.execute(`
+    SELECT posts.*, taxonomies.name as taxonomy, GROUP_CONCAT(DISTINCT tags.name) as tags,
+    users.username as author, users.public_id as author_public_id
+    FROM posts LEFT JOIN post_taxonomies ON posts.id = post_taxonomies.post_id
+    LEFT JOIN taxonomies ON post_taxonomies.taxonomy_id = taxonomies.id
+    LEFT JOIN post_tags ON posts.id = post_tags.post_id
+    LEFT JOIN tags ON post_tags.tag_id = tags.id
+    LEFT JOIN users ON posts.user_id = users.id
+    WHERE posts.user_id = ? GROUP BY posts.id
+  `, [currentUser?.id]);
+  if (!fetchPosts?.rows?.length) return (
+    <div className="max-w-3xl mx-auto px-4 py-16 text-center">
+      <p className="font-sans text-[var(--text-muted)] mb-4">You have not written any posts yet.</p>
+      <Link href="/add-post" className="font-sans font-semibold bg-[var(--text)] text-[var(--bg)] px-5 py-2 rounded-full text-sm hover:opacity-80 transition-opacity">Write your first post</Link>
+    </div>
+  );
+  const posts = fetchPosts.rows;
+  const fetchFavs = await db.execute("SELECT post_id FROM favorites WHERE user_id = ?", [currentUser.id]);
+  const favIds = fetchFavs.rows?.length > 0 ? fetchFavs.rows.map(r => r.post_id) : [];
+  for (const p of posts) p.isFavorited = favIds.includes(p.id);
+  return (
+    <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8">
+      <div className="flex items-center justify-between mb-8 pb-4 border-b-2 border-[var(--text)]">
+        <div>
+          <h1 className="text-2xl font-bold text-[var(--text)]">My Posts</h1>
+          <p className="font-sans text-sm text-[var(--text-faint)] mt-0.5">{posts.length} article{posts.length !== 1 ? "s" : ""}</p>
+        </div>
+        <Link href="/add-post" className="font-sans font-semibold bg-[var(--text)] text-[var(--bg)] px-5 py-2 rounded-full text-sm hover:opacity-80 transition-opacity">+ New Post</Link>
+      </div>
+      {posts.map((post, i) => <PostCard key={i} post={post} currentUser={currentUser} />)}
+    </div>
+  );
+}
+</file>
+
+<file path="page.js">
+import Link from "next/link";
+import { getUser } from "./lib/getUser";
+export const metadata = {
+  title: "Home",
+  description: "Inkline is a calmer place to publish and discover writing. Read essays, follow topics, save favorites, and write posts in a focused multi-user environment.",
+};
+export default async function Home() {
+  const user = await getUser();
+  return (
+    <div className="max-w-4xl mx-auto px-4 sm:px-6 py-16 sm:py-24">
+      <div className="max-w-2xl">
+        <p className="text-sm uppercase tracking-widest text-[var(--accent)] font-sans mb-4">Inkline</p>
+        <h1 className="text-4xl sm:text-6xl font-bold text-[var(--text)] leading-tight mb-5">
+          A calmer place to publish and discover writing.
+        </h1>
+        <p className="text-lg text-[var(--text-muted)] font-sans mb-8 max-w-xl leading-relaxed">
+          Read essays, follow topics, save favorites, and keep your own posts organized in a focused multi-user blog.
+        </p>
+        <div className="flex gap-3 flex-wrap">
+          <Link href="/blog"
+            className="font-sans text-sm font-semibold bg-[var(--text)] text-[var(--bg)] px-6 py-2.5 rounded-md hover:opacity-85 transition-opacity">
+            Browse posts
+          </Link>
+          {!user && (
+            <Link href="/sign-up"
+              className="font-sans text-sm font-semibold border border-[var(--border)] text-[var(--text-muted)] px-6 py-2.5 rounded-md hover:border-[var(--text)] hover:text-[var(--text)] transition-colors">
+              Create account
+            </Link>
+          )}
+          {user && (
+            <Link href="/add-post"
+              className="font-sans text-sm font-semibold border border-[var(--border)] text-[var(--text-muted)] px-6 py-2.5 rounded-md hover:border-[var(--text)] hover:text-[var(--text)] transition-colors">
+              Write a post
+            </Link>
+          )}
+        </div>
+      </div>
+      <div className="mt-16 grid gap-4 sm:grid-cols-3 font-sans">
+        {[
+          ["Write", "Rich posts with headings, paragraphs, images, tags, and categories."],
+          ["Discuss", "Verified users can comment and authors can manage their own threads."],
+          ["Save", "Favorites, personal post lists, and profile settings stay close at hand."],
+        ].map(([title, copy]) => (
+          <section key={title} className="border-t border-[var(--border)] pt-4">
+            <h2 className="font-sans text-sm font-semibold text-[var(--text)] mb-2">{title}</h2>
+            <p className="text-sm leading-relaxed text-[var(--text-muted)]">{copy}</p>
+          </section>
+        ))}
+      </div>
+    </div>
+  );
+}
+</file>
+
+<file path="post/[slug]/[pid]/Comments.jsx">
+'use client';
+import { useActionState, useState } from "react";
+import { commentsSA } from "./commentsSA";
+function formatDate(d) {
+  if (!d) return "";
+  return new Date(d).toLocaleDateString("en-US", { day: "numeric", month: "short" });
+}
+function applyCommentResult(comments, state) {
+  if (!state.ok) return comments;
+  if (state.deleted) return comments.filter(c => c.cPId !== state.cPId);
+  const nextComment = {
+    cPId: state.cPId,
+    comment: state.comment,
+    username: state.username,
+    isOwned: true,
+  };
+  const idx = comments.findIndex(c => c.cPId === state.cPId);
+  if (idx === -1) return [nextComment, ...comments];
+  const next = [...comments];
+  next[idx] = { ...next[idx], ...nextComment };
+  return next;
+}
+export default function Comments({ commentsSerialized, isLoggedIn, postPublicId, userPublicId, isVerified }) {
+  const comments = JSON.parse(commentsSerialized);
+  const initialState = { ok: false, message: "", comment: null, deleted: false, cPId: null };
+  const [state, action, isPending] = useActionState(commentsSA, initialState);
+  const [isEditing, setIsEditing] = useState("");
+  const commentsState = applyCommentResult(comments, state);
+  const inputCls = "w-full font-sans bg-[var(--bg-subtle)] border border-[var(--border)] text-[var(--text)] placeholder-[var(--text-faint)] rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--text)] resize-none transition-colors";
+  return (
+    <div>
+      <h3 className="text-xl font-bold text-[var(--text)] mb-5">
+        Comments {commentsState.length > 0 && <span className="text-[var(--text-faint)] font-normal text-base">({commentsState.length})</span>}
+      </h3>
+      {state.ok === false && state.message && (
+        <p className="font-sans text-sm text-red-600 dark:text-red-400 mb-4">{state.message}</p>
+      )}
+      {isLoggedIn && isVerified ? (
+        <form action={action} className="mb-8">
+          <input type="hidden" name="post_public_id" value={postPublicId} />
+          <input type="hidden" name="user_public_id" value={userPublicId} />
+          <textarea name="comment" placeholder="Write a comment..." rows={3} className={`${inputCls} mb-3`} />
+          <button type="submit" disabled={isPending}
+            className="font-sans text-sm font-semibold bg-[var(--text)] text-[var(--bg)] px-5 py-2 rounded-full hover:opacity-80 disabled:opacity-50 transition-opacity cursor-pointer">
+            {isPending ? "Posting..." : "Post comment"}
+          </button>
+        </form>
+      ) : (
+        <div className="mb-8 border border-[var(--border)] rounded-lg px-4 py-3 font-sans text-sm text-[var(--text-faint)]">
+          {isLoggedIn ? "Verify your email to comment." : "Login and verify your email to comment."}
+        </div>
+      )}
+      {commentsState.length === 0
+        ? <p className="font-sans text-sm text-[var(--text-faint)]">No comments yet. Be the first!</p>
+        : <div className="space-y-5">
+            {commentsState.map(comment => (
+              <div key={comment.cPId} className="border-b border-[var(--border)] pb-5">
+                {isEditing !== comment.cPId ? (
+                  <>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="font-sans text-sm font-semibold text-[var(--text)]">@{comment.username}</span>
+                      {comment.created_at && <span className="font-sans text-xs text-[var(--text-faint)]">{formatDate(comment.created_at)}</span>}
+                    </div>
+                    <p className="font-sans text-sm text-[var(--text-muted)] leading-relaxed">{comment.comment}</p>
+                    {comment.isOwned && (
+                      <div className="flex gap-3 mt-2.5">
+                        <button onClick={() => setIsEditing(comment.cPId)}
+                          className="font-sans text-xs border border-[var(--border)] text-[var(--text-muted)] px-3 py-1 rounded-full hover:border-[var(--text)] hover:text-[var(--text)] transition-colors cursor-pointer">
+                          Edit
+                        </button>
+                        <form action={action} className="inline">
+                          <input type="hidden" name="comment_public_id" value={comment.cPId} />
+                          <input type="hidden" name="post_public_id" value={postPublicId} />
+                          <input type="hidden" name="user_public_id" value={userPublicId} />
+                          <button type="submit" name="delete" value="true"
+                            className="font-sans text-xs border border-[var(--border)] text-red-500 px-3 py-1.5 rounded-full hover:border-red-400 transition-colors cursor-pointer">
+                            Delete
+                          </button>
+                        </form>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <form action={action} className="space-y-3" onSubmit={() => setIsEditing("")}>
+                    <input type="hidden" name="comment_public_id" value={comment.cPId} />
+                    <input type="hidden" name="post_public_id" value={postPublicId} />
+                    <input type="hidden" name="user_public_id" value={userPublicId} />
+                    <textarea name="comment" defaultValue={comment.comment} rows={3} className={inputCls} />
+                    <div className="flex gap-2">
+                      <button type="submit"
+                        className="font-sans text-xs font-semibold bg-[var(--text)] text-[var(--bg)] px-4 py-1.5 rounded-full hover:opacity-80 transition-opacity cursor-pointer">
+                        Update
+                      </button>
+                      <button type="button" onClick={() => setIsEditing("")}
+                        className="font-sans text-xs border border-[var(--border)] text-[var(--text-muted)] px-4 py-1.5 rounded-full hover:border-[var(--text)] transition-colors cursor-pointer">
+                        Cancel
+                      </button>
+                      <button type="submit" name="delete" value="true"
+                        className="font-sans text-xs border border-[var(--border)] text-red-500 px-3 py-1.5 rounded-full hover:border-red-400 transition-colors cursor-pointer">
+                        Delete
+                      </button>
+                    </div>
+                  </form>
+                )}
+              </div>
+            ))}
+          </div>
+      }
+    </div>
+  );
+}
+</file>
+
+<file path="post/[slug]/[pid]/commentsSA.js">
+"use server";
+import { getUser } from "@/app/lib/getUser";
+import { db } from "@/app/lib/turso";
+import { nanoid } from "nanoid";
+import { redisIpLimit } from "@/app/utils/redidIpLimit";
+export async function commentsSA(_, formData) {
+    try {
+        const ipLimit = await redisIpLimit(15, 'comments');
+        if (!ipLimit.ok) return ipLimit;
+        const ToDelete = formData.get("delete");
+        let comment_public_id = formData.get("comment_public_id") || null;
+        const user_public_id = formData.get("user_public_id");
+        const post_public_id = formData.get("post_public_id");
+        const comment = formData.get("comment");
+        const trimmedComment = comment?.trim();
+        if (!user_public_id || !post_public_id || (!trimmedComment && !ToDelete)) {
+            return { ok: false, message: "Required fields are missing" };
+        }
+        if (!ToDelete) {
+            if (!trimmedComment || trimmedComment.length < 2) {
+                return { ok: false, message: "Comment must be at least 2 characters" };
+            }
+            if (trimmedComment.length > 1000) {
+                return { ok: false, message: "Comment must be under 1000 characters" };
+            }
+        }
+        const currentUser = await getUser();
+        if (!currentUser?.id || currentUser.email_verified === 0 || currentUser.public_id !== user_public_id) {
+            return { ok: false, message: "Unauthorized request. Use a verified account" };
+        }
+        if (ToDelete) {
+            const getComment = await db.execute(
+                `SELECT id, user_id FROM comments WHERE public_id = ?`,
+                [comment_public_id]
+            );
+            if (!getComment.rows.length) {
+                return { ok: false, message: "Comment not found" };
+            }
+            if (getComment.rows[0].user_id !== currentUser.id) {
+                return { ok: false, message: "Unauthorized" };
+            }
+            await db.execute(`DELETE FROM comments WHERE public_id = ?`, [comment_public_id]);
+            return { ok: true, deleted: true, cPId: comment_public_id, message: "Comment deleted successfully" };
+        }
+        if (!comment_public_id) {
+            const getPostId = await db.execute(
+                `SELECT id FROM posts WHERE public_id = ?`,
+                [post_public_id]
+            );
+            if (!getPostId.rows.length) {
+                return { ok: false, message: "Post not found" };
+            }
+            const new_public_id = nanoid();
+            await db.execute(
+                `INSERT INTO comments (public_id, user_id, post_id, username, comment)
+                 VALUES (?, ?, ?, ?, ?)`,
+                [new_public_id, currentUser.id, getPostId.rows[0].id, currentUser.username, trimmedComment]
+            );
+            return {
+                ok: true,
+                message: "Comment created successfully",
+                comment: trimmedComment,
+                username: currentUser.username,
+                cPId: new_public_id,
+                inserted: true
+            };
+        }
+        const fetchComment = await db.execute(
+            `SELECT id, user_id FROM comments WHERE public_id = ?`,
+            [comment_public_id]
+        );
+        if (!fetchComment.rows.length) {
+            return { ok: false, message: "Comment not found" };
+        }
+        if (fetchComment.rows[0].user_id !== currentUser.id) {
+            return { ok: false, message: "Unauthorized" };
+        }
+        await db.execute(
+            `UPDATE comments
+             SET comment = ?, updated_at = CURRENT_TIMESTAMP
+             WHERE public_id = ?`,
+            [trimmedComment, comment_public_id]
+        );
+        return {
+            ok: true,
+            message: "Comment updated successfully",
+            comment: trimmedComment,
+            username: currentUser.username,
+            cPId: comment_public_id,
+            updated: true
+        };
+    } catch (error) {
+        console.error(error);
+        return { ok: false, message: "Something went wrong" };
+    }
+}
+</file>
+
+<file path="post/[slug]/[pid]/loading.jsx">
+import { ArticleDetailSkeleton } from "@/app/components/Skeletons";
+export default function Loading() {
+  return <ArticleDetailSkeleton />;
+}
+</file>
+
+<file path="post/[slug]/[pid]/page.jsx">
+import AddTofavorites from "@/app/components/AddToFavorites";
+import DeleteButton from "@/app/components/DeleteBTN";
+import { getUser } from "@/app/lib/getUser";
+import { db } from "@/app/lib/turso";
+import Image from "next/image";
+import Link from "next/link";
+import Comments from "./Comments";
+function formatDate(d) {
+  if (!d) return "";
+  return new Date(d).toLocaleDateString("en-US", { day: "numeric", month: "long", year: "numeric" });
+}
+export async function generateMetadata({ params }) {
+  const { pid } = await params;
+  if (!pid) return {};
+  try {
+    const fetchPost = await db.execute(
+      `SELECT title, excerpt FROM posts WHERE public_id = ? LIMIT 1`,
+      [pid]
+    );
+    if (fetchPost.rows?.length > 0) {
+      const post = fetchPost.rows[0];
+      const desc = post.excerpt || "Read this post on Inkline.";
+      return {
+        title: post.title,
+        description: desc,
+        openGraph: {
+          title: post.title,
+          description: desc,
+        },
+      };
+    }
+  } catch (error) {
+    console.error("Error generating metadata:", error);
+  }
+  return {};
+}
+export default async function DynamicPost({ params }) {
+  const { slug, pid } = await params;
+  if (!slug || !pid) return <div className="max-w-3xl mx-auto px-4 py-16"><p className="font-sans text-[var(--text-muted)]">Broken link.</p></div>;
+  const currentUser = await getUser();
+  const fetchPost = await db.execute(`
+    SELECT posts.*, taxonomies.name as taxonomy, GROUP_CONCAT(DISTINCT tags.name) as tags,
+    users.username as author, users.public_id as author_public_id, users.id as user_id
+    FROM posts LEFT JOIN post_taxonomies ON posts.id = post_taxonomies.post_id
+    LEFT JOIN taxonomies ON post_taxonomies.taxonomy_id = taxonomies.id
+    LEFT JOIN post_tags ON posts.id = post_tags.post_id
+    LEFT JOIN tags ON post_tags.tag_id = tags.id
+    LEFT JOIN users ON posts.user_id = users.id
+    WHERE posts.public_id = ? GROUP BY posts.id
+  `, [pid]);
+  if (!fetchPost?.rows?.length) return <div className="max-w-3xl mx-auto px-4 py-16"><p className="font-sans text-[var(--text-muted)]">Post not found.</p></div>;
+  const post = fetchPost.rows[0];
+  const tags = post?.tags?.split(",").map(t => t.trim()).filter(Boolean) || [];
+  let content = [];
+  try {
+    content = JSON.parse(post.content || "[]");
+  } catch (e) {
+    content = [{ type: "paragraph", value: post.content }];
+  }
+  let isFavorited = false;
+  if (currentUser?.id) {
+    const r = await db.execute("SELECT * FROM favorites WHERE user_id = ? AND post_id = ?", [currentUser.id, post.id]);
+    isFavorited = r?.rows?.length > 0;
+  }
+  const fetchComments = await db.execute(
+    "SELECT public_id, user_id, username, comment, created_at, updated_at FROM comments WHERE post_id = ? ORDER BY created_at DESC",
+    [post.id]
+  );
+  const comments = (fetchComments?.rows || []).map(c => ({
+    cPId: c.public_id, comment: c.comment, username: c.username,
+    created_at: c.created_at, updated_at: c.updated_at, isOwned: c.user_id === currentUser?.id
+  }));
+  return (
+    <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8">
+      {post?.slug !== slug && (
+        <div className="mb-4 border-l-4 border-amber-500 bg-amber-50 dark:bg-amber-950 px-4 py-3">
+          <p className="font-sans text-sm text-amber-700 dark:text-amber-400">URL conflict: the slug has changed. Please use the updated link.</p>
+        </div>
+      )}
+      {}
+      <header className="mb-8 pb-6 border-b border-[var(--border)]">
+        {post.taxonomy && (
+          <Link href={`/taxonomies?value=${post.taxonomy}`}
+            className="font-sans text-xs font-bold uppercase tracking-widest text-[var(--accent)] hover:underline">
+            {post.taxonomy}
+          </Link>
+        )}
+        <h1 className="text-3xl sm:text-4xl font-bold text-[var(--text)] leading-tight mt-2 mb-4">
+          {post.title}
+        </h1>
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 font-sans text-sm text-[var(--text-muted)]">
+          {post.author && (
+            <Link href={`/authors?value=${post.author}`} className="hover:text-[var(--text)] transition-colors">
+              {post.author}
+            </Link>
+          )}
+          {post.created_at && <span className="text-[var(--text-faint)]">{formatDate(post.created_at)}</span>}
+          {post.updated_at !== post.created_at && (
+            <span className="text-[var(--text-faint)] text-xs">Updated {formatDate(post.updated_at)}</span>
+          )}
+          {currentUser?.id
+            ? <AddTofavorites ppid={post.public_id} isFavorited={isFavorited} />
+            : <Link href="/login" className="text-[var(--text-faint)] text-xs hover:text-[var(--text)] transition-colors">Login to save</Link>
+          }
+        </div>
+        {tags.length > 0 && (
+          <div className="flex flex-wrap gap-3 mt-3">
+            {tags.map((t, i) => (
+              <Link key={i} href={`/tags?value=${t}`} className="font-sans text-xs text-[var(--text-faint)] hover:text-[var(--text)] transition-colors">#{t}</Link>
+            ))}
+          </div>
+        )}
+        {currentUser?.id === post.user_id && (
+          <div className="flex gap-3 mt-4">
+            <Link href={`/edit?value=${post.public_id}`}
+              className="font-sans text-xs border border-[var(--border)] text-[var(--text-muted)] px-3 py-1 rounded-full hover:border-[var(--text)] hover:text-[var(--text)] transition-colors">
+              Edit
+            </Link>
+            <DeleteButton publicId={post.public_id} />
+          </div>
+        )}
+      </header>
+      {}
+      {post.content && (
+        <div className="mb-12 space-y-5">
+          {content.map((item, i) => {
+            if (item.type === "heading") return (
+              <h2 key={i} className="text-2xl font-bold text-[var(--text)] mt-8 mb-3 leading-snug">{item.value}</h2>
+            );
+            if (item.type === "paragraph") return (
+              <p key={i} className="font-sans text-base text-[var(--text-muted)] leading-relaxed">{item.value}</p>
+            );
+            if (item.type === "image" && item.value?.url) return (
+              <figure key={i} className="my-6">
+                <Image src={item.value.url} alt={`${post.slug}-${i}`} width={800} height={500} className="w-full object-cover" />
+              </figure>
+            );
+          })}
+        </div>
+      )}
+      {}
+      <div className="border-t border-[var(--border)] pt-8">
+        <Comments
+          commentsSerialized={JSON.stringify(comments)}
+          isLoggedIn={!!currentUser?.id}
+          postPublicId={post.public_id}
+          userPublicId={currentUser?.public_id}
+          isVerified={currentUser?.email_verified === 1}
+        />
+      </div>
+    </div>
+  );
+}
+</file>
+
+<file path="settings/Client.jsx">
+"use client";
+import { startTransition, useActionState, useState } from "react";
+import { updateUserSA, changePasswordSA } from "./SA";
+import { checkUsername } from "../lib/checkUsername";
+import { checkEmail } from "../lib/checkEmail";
+import { emailOrchestrator } from "../lib/resend";
+import Link from "next/link";
+import { logout } from "../lib/logout";
+const IC = "w-full font-sans bg-[var(--bg-subtle)] border border-[var(--border)] text-[var(--text)] placeholder-[var(--text-faint)] rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--text)] focus:border-transparent transition-colors";
+const LC = "block font-sans text-xs text-[var(--text-faint)] uppercase tracking-widest mb-1.5";
+export default function SettingsForm({ serializedUser }) {
+  const initialState = { ok: null, message: "" };
+  const [state, formAction, isPending] = useActionState(updateUserSA, initialState);
+  const [passwordState, passwordAction, isPasswordPending] = useActionState(changePasswordSA, initialState);
+  const [usernameState, usernameAction, usernamePending] = useActionState(checkUsername, initialState);
+  const [emailState, emailAction, emailPending] = useActionState(checkEmail, initialState);
+  const [sent, setSent] = useState(false);
+  const user = JSON.parse(serializedUser);
+  const isVerified = user.email_verified === 1;
+  const msgCls = (ok) => `font-sans text-sm px-4 py-2.5 rounded-lg border ${ok ? "text-green-700 bg-green-50 border-green-200 dark:text-green-400 dark:bg-green-950 dark:border-green-800" : "text-red-700 bg-red-50 border-red-200 dark:text-red-400 dark:bg-red-950 dark:border-red-800"}`;
+  return (
+    <div className="space-y-6">
+      {!isVerified && (
+        <div className="border-l-4 border-amber-500 bg-amber-50 dark:bg-amber-950 px-4 py-3">
+          <p className="font-sans text-sm text-amber-700 dark:text-amber-300 mb-2">Email not verified. Verify to write posts.</p>
+          {!sent
+            ? <button onClick={() => {
+                setSent(true);
+                startTransition(() => emailOrchestrator(user.public_id, user.email));
+              }}
+                className="font-sans text-xs font-semibold border border-amber-400 text-amber-700 dark:text-amber-300 px-3 py-1 rounded-full hover:bg-amber-100 dark:hover:bg-amber-900 transition-colors cursor-pointer">
+                Send verification email
+              </button>
+            : <p className="font-sans text-xs text-green-700 dark:text-green-400">Email sent. Check your inbox and refresh this page.</p>
+          }
+        </div>
+      )}
+      {state.message && <p className={msgCls(state.ok)}>{state.message}</p>}
+      <div className="border-b border-[var(--border)] pb-6">
+        <h2 className="font-sans text-xs font-bold uppercase tracking-widest text-[var(--text-faint)] mb-4">Profile</h2>
+        <form action={formAction} className="space-y-4">
+          <input type="hidden" name="ppid" value={user.public_id} readOnly />
+          <div><label className={LC}>Full Name</label><input name="name" defaultValue={user.name} className={IC} /></div>
+          <div>
+            <label className={LC}>Username</label>
+            <input name="username" defaultValue={user.username} className={IC} onBlur={(e) => startTransition(() => usernameAction(e.target.value))} />
+            {usernamePending && <p className="font-sans mt-1 text-xs text-[var(--text-faint)]">Checking...</p>}
+            {usernameState?.message && <p className={`font-sans mt-1 text-xs ${usernameState.ok ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>{usernameState.message}</p>}
+          </div>
+          <div>
+            <label className={LC}>Email</label>
+            <input name="email" defaultValue={user.email} type="email" className={IC} onBlur={(e) => startTransition(() => emailAction(e.target.value))} />
+            {emailPending && <p className="font-sans mt-1 text-xs text-[var(--text-faint)]">Checking...</p>}
+            {emailState?.message && <p className={`font-sans mt-1 text-xs ${emailState.ok ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>{emailState.message}</p>}
+          </div>
+          <button type="submit" disabled={isPending}
+            className="font-sans font-semibold bg-[var(--text)] text-[var(--bg)] px-6 py-2 rounded-full text-sm hover:opacity-80 disabled:opacity-50 transition-opacity cursor-pointer">
+            {isPending ? "Saving..." : "Save changes"}
+          </button>
+        </form>
+      </div>
+      <div className="border-b border-[var(--border)] pb-6">
+        <h2 className="font-sans text-xs font-bold uppercase tracking-widest text-[var(--text-faint)] mb-4">Change Password</h2>
+        {passwordState.message && <p className={msgCls(passwordState.ok) + " mb-4"}>{passwordState.message}</p>}
+        <form action={passwordAction} className="space-y-4">
+          <div>
+            <label className={LC}>Current Password</label>
+            <input name="current_password" type="password" placeholder="••••••••" className={IC} required />
+          </div>
+          <div>
+            <label className={LC}>New Password</label>
+            <input name="new_password" type="password" placeholder="••••••••" className={IC} required />
+          </div>
+          <div>
+            <label className={LC}>Confirm New Password</label>
+            <input name="confirm_password" type="password" placeholder="••••••••" className={IC} required />
+          </div>
+          <button type="submit" disabled={isPasswordPending}
+            className="font-sans font-semibold bg-[var(--text)] text-[var(--bg)] px-6 py-2 rounded-full text-sm hover:opacity-80 disabled:opacity-50 transition-opacity cursor-pointer">
+            {isPasswordPending ? "Changing..." : "Change Password"}
+          </button>
+        </form>
+      </div>
+      <div>
+        <h2 className="font-sans text-xs font-bold uppercase tracking-widest text-[var(--text-faint)] mb-4">Account</h2>
+        <div className="flex flex-col gap-3 items-start">
+          <form action={logout}>
+            <button type="submit" className="font-sans text-sm text-[var(--text-muted)] border border-[var(--border)] px-4 py-2 rounded-full hover:border-[var(--text)] hover:text-[var(--text)] transition-colors cursor-pointer">
+              Logout
+            </button>
+          </form>
+          <Link href="/delete_account" className="font-sans text-sm text-red-500 hover:underline underline-offset-4 transition-colors">Delete Account</Link>
+        </div>
+      </div>
+    </div>
+  );
+}
+</file>
+
+<file path="settings/loading.jsx">
+import { SettingsSkeleton } from "../components/Skeletons";
+export default function Loading() {
+  return <SettingsSkeleton />;
+}
+</file>
+
+<file path="settings/page.jsx">
+import { redirect } from "next/navigation";
+import SettingsForm from "./Client";
+import { getUser } from "../lib/getUser";
+export const metadata = {
+  title: "Settings",
+  description: "Manage your profile, change your password, update your email, or delete your account on Inkline.",
+};
+export default async function SettingsPage() {
+  const result = await getUser();
+  if (!result?.id) redirect("/login");
+  const user = { public_id: result.public_id, name: result.name, username: result.username, email: result.email, role: result.role, email_verified: result.email_verified };
+  return (
+    <div className="max-w-lg mx-auto px-4 sm:px-6 py-8">
+      <h1 className="text-2xl font-bold text-[var(--text)] mb-6">Settings</h1>
+      <SettingsForm serializedUser={JSON.stringify(user)} />
+    </div>
+  );
+}
+</file>
+
+<file path="settings/SA.js">
+"use server";
+import { getUser } from "../lib/getUser";
+import { emailOrchestrator } from "../lib/resend";
+import { db } from "../lib/turso";
+import { compare, hash } from "../utils/bcrypt";
+import { redisIpLimit } from "@/app/utils/redidIpLimit";
+export async function updateUserSA(_, formData) {
+    const ppid = formData.get("ppid");
+    const name = formData.get("name")?.trim();
+    const username = formData.get("username")?.trim();
+    const email = formData.get("email")?.trim();
+    if (!name || !username || !email) {
+        return { ok: false, message: "All fields are required." };
+    }
+    if (name.length < 2 || name.length > 60) {
+        return { ok: false, message: "Name must be 2–60 characters." };
+    }
+    if (username.length < 3 || username.length > 30) {
+        return { ok: false, message: "Username must be 3–30 characters." };
+    }
+    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailPattern.test(email)) {
+        return { ok: false, message: 'Invalid email format.' };
+    }
+    try {
+        const ipLimit = await redisIpLimit(10, 'update_profile');
+        if (!ipLimit.ok) return ipLimit;
+        const fetchUser = await db.execute(`SELECT id, public_id, name, username, email FROM users WHERE public_id = ?`, [ppid]);
+        if (fetchUser.rows.length === 0) {
+            return { ok: false, message: "User not found." };
+        }
+        const currentUser = await getUser();
+        if (!currentUser?.id || currentUser?.id !== fetchUser.rows[0].id) {
+            return { ok: false, message: "You are not authorized to update this user's profile." };
+        }
+        if (name === currentUser?.name && username === currentUser?.username && email === currentUser?.email) {
+            return { ok: false, message: "Nothing to update." };
+        }
+        let resultUpdate = null;
+        if (email !== currentUser?.email) {
+            resultUpdate = await db.execute(`
+            UPDATE users
+            SET name = ?, username = ?, email = ?, email_verified = 0
+            WHERE id = ?
+        `, [name, username, email, currentUser?.id]);
+            await emailOrchestrator(currentUser?.public_id, email);
+        }
+        else {
+            resultUpdate = await db.execute(`
+            UPDATE users
+            SET name = ?, username = ?
+            WHERE id = ?
+        `, [name, username, currentUser?.id]);
+        }
+        if (resultUpdate.rowsAffected === 0) {
+            return { ok: false, message: "Something went wrong. Please try again." };
+        }
+        return { ok: true, message: "Profile updated successfully." };
+    } catch (error) {
+        console.error("Update failed:", error);
+        return { ok: false, message: "Something went wrong. Please try again." };
+    }
+}
+export async function changePasswordSA(_, formData) {
+    const currentPassword = formData.get("current_password");
+    const newPassword = formData.get("new_password");
+    const confirmPassword = formData.get("confirm_password");
+    if (!currentPassword || !newPassword || !confirmPassword) {
+        return { ok: false, message: "All fields are required." };
+    }
+    if (newPassword.length < 8) {
+        return { ok: false, message: "New password must be at least 8 characters long." };
+    }
+    if (newPassword !== confirmPassword) {
+        return { ok: false, message: "New passwords do not match." };
+    }
+    try {
+        const ipLimit = await redisIpLimit(10, 'change_password');
+        if (!ipLimit.ok) return ipLimit;
+        const currentUser = await getUser();
+        if (!currentUser?.id) {
+            return { ok: false, message: "Unauthorized. Please log in." };
+        }
+        const fetchUser = await db.execute(
+            `SELECT password FROM users WHERE id = ? LIMIT 1`,
+            [currentUser.id]
+        );
+        if (fetchUser.rows.length === 0) {
+            return { ok: false, message: "User not found." };
+        }
+        const user = fetchUser.rows[0];
+        const isPasswordValid = await compare(currentPassword, user.password);
+        if (!isPasswordValid) {
+            return { ok: false, message: "Incorrect current password." };
+        }
+        const hashedNewPassword = await hash(newPassword);
+        const resultUpdate = await db.execute(
+            `UPDATE users SET password = ? WHERE id = ?`,
+            [hashedNewPassword, currentUser.id]
+        );
+        if (resultUpdate.rowsAffected === 0) {
+            return { ok: false, message: "Failed to update password. Please try again." };
+        }
+        return { ok: true, message: "Password updated successfully." };
+    } catch (error) {
+        console.error("Password change failed:", error);
+        return { ok: false, message: "Something went wrong. Please try again." };
+    }
+}
+</file>
+
+<file path="tags/loading.jsx">
+import { TagResultsSkeleton } from "../components/Skeletons";
+export default function Loading() {
+  return <TagResultsSkeleton />;
+}
+</file>
+
+<file path="tags/page.jsx">
+import Link from "next/link";
+import { getUser } from "../lib/getUser";
+import { db } from "../lib/turso";
+import AddTofavorites from "../components/AddToFavorites";
+import DeleteButton from "../components/DeleteBTN";
+function formatDate(d) {
+  if (!d) return "";
+  return new Date(d).toLocaleDateString("en-US", { day: "numeric", month: "long", year: "numeric" });
+}
+function PostRow({ post, currentUser }) {
+  const tags = post.tags ? post.tags.split(",").map(t => t.trim()).filter(Boolean) : [];
+  return (
+    <article className="py-5 border-b border-[var(--border)]">
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex-1 min-w-0">
+          {post.taxonomy && (
+            <Link href={`/taxonomies?value=${post.taxonomy}`}
+              className="font-sans text-xs font-bold uppercase tracking-widest text-[var(--accent)] hover:underline mr-2">
+              {post.taxonomy}
+            </Link>
+          )}
+          <h3 className="text-lg font-bold text-[var(--text)] leading-snug mt-1 mb-1.5">
+            <Link href={`/post/${post.slug}/${post.public_id}`} className="hover:text-[var(--accent)] transition-colors">
+              {post.title}
+            </Link>
+          </h3>
+          {post.excerpt && (
+            <p className="font-sans text-sm text-[var(--text-muted)] leading-relaxed mb-2 line-clamp-2 hidden sm:block">
+              {post.excerpt}
+            </p>
+          )}
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 font-sans text-xs text-[var(--text-faint)]">
+            {post.author && <Link href={`/authors?value=${post.author}`} className="hover:text-[var(--text)] transition-colors">{post.author}</Link>}
+            <span>{formatDate(post.created_at)}</span>
+            {tags.map((t, i) => <Link key={i} href={`/tags?value=${t}`} className="hover:text-[var(--text)] transition-colors">#{t}</Link>)}
+          </div>
+        </div>
+        {currentUser?.id && <div className="shrink-0 mt-1"><AddTofavorites ppid={post.public_id} isFavorited={post.isFavorited ?? false} /></div>}
+      </div>
+      {post.user_id === currentUser?.id && (
+        <div className="flex gap-3 mt-2.5">
+          <Link href={`/edit?value=${post.public_id}`} className="font-sans text-xs border border-[var(--border)] text-[var(--text-muted)] px-3 py-1 rounded-full hover:border-[var(--text)] hover:text-[var(--text)] transition-colors">Edit</Link>
+          <DeleteButton publicId={post.public_id} />
+        </div>
+      )}
+    </article>
+  );
+}
+export default async function Tags({ searchParams }) {
+  const { value } = await searchParams;
+  if (!value) return <div className="max-w-3xl mx-auto px-4 py-16"><p className="font-sans text-[var(--text-muted)]">No tag specified.</p></div>;
+  const tag = value;
+  const fetchPosts = await db.execute(`
+    SELECT posts.*, taxonomies.name as taxonomy, GROUP_CONCAT(DISTINCT tags.name) as tags, users.username as author
+    FROM posts LEFT JOIN post_taxonomies ON posts.id = post_taxonomies.post_id
+    LEFT JOIN taxonomies ON post_taxonomies.taxonomy_id = taxonomies.id
+    LEFT JOIN post_tags ON posts.id = post_tags.post_id
+    LEFT JOIN tags ON post_tags.tag_id = tags.id
+    LEFT JOIN users ON posts.user_id = users.id
+    WHERE tags.name = ? GROUP BY posts.id ORDER BY posts.created_at DESC
+  `, [tag]);
+  if (!fetchPosts?.rows?.length) return <div className="max-w-3xl mx-auto px-4 py-16"><p className="font-sans text-[var(--text-muted)]">No posts tagged #{tag}.</p></div>;
+  const posts = fetchPosts.rows;
+  const currentUser = await getUser();
+  let favIds = [];
+  if (currentUser?.id) { const r = await db.execute("SELECT post_id FROM favorites WHERE user_id = ?", [currentUser.id]); favIds = r.rows.map(row => row.post_id); }
+  for (const p of posts) p.isFavorited = favIds.includes(p.id);
+  return (
+    <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8">
+      <div className="mb-8 pb-4 border-b-2 border-[var(--text)]">
+        <p className="font-sans text-xs uppercase tracking-widest text-[var(--accent)] mb-1">Tag</p>
+        <h1 className="text-2xl font-bold text-[var(--text)]">#{tag}</h1>
+        <p className="font-sans text-sm text-[var(--text-faint)] mt-1">{posts.length} article{posts.length !== 1 ? "s" : ""}</p>
+      </div>
+      {posts.map((post, i) => <PostRow key={i} post={post} currentUser={currentUser} />)}
+    </div>
+  );
+}
+</file>
+
+<file path="taxonomies/loading.jsx">
+import { CategoryResultsSkeleton } from "../components/Skeletons";
+export default function Loading() {
+  return <CategoryResultsSkeleton />;
+}
+</file>
+
+<file path="taxonomies/page.jsx">
+import Link from "next/link";
+import { getUser } from "../lib/getUser";
+import { db } from "../lib/turso";
+import AddTofavorites from "../components/AddToFavorites";
+import DeleteButton from "../components/DeleteBTN";
+function formatDate(d) {
+  if (!d) return "";
+  return new Date(d).toLocaleDateString("en-US", { day: "numeric", month: "long", year: "numeric" });
+}
+function PostRow({ post, currentUser }) {
+  const tags = post.tags ? post.tags.split(",").map(t => t.trim()).filter(Boolean) : [];
+  return (
+    <article className="py-5 border-b border-[var(--border)]">
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex-1 min-w-0">
+          {post.taxonomy && (
+            <Link href={`/taxonomies?value=${post.taxonomy}`}
+              className="font-sans text-xs font-bold uppercase tracking-widest text-[var(--accent)] hover:underline mr-2">
+              {post.taxonomy}
+            </Link>
+          )}
+          <h3 className="text-lg font-bold text-[var(--text)] leading-snug mt-1 mb-1.5">
+            <Link href={`/post/${post.slug}/${post.public_id}`} className="hover:text-[var(--accent)] transition-colors">
+              {post.title}
+            </Link>
+          </h3>
+          {post.excerpt && (
+            <p className="font-sans text-sm text-[var(--text-muted)] leading-relaxed mb-2 line-clamp-2 hidden sm:block">
+              {post.excerpt}
+            </p>
+          )}
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 font-sans text-xs text-[var(--text-faint)]">
+            {post.author && <Link href={`/authors?value=${post.author}`} className="hover:text-[var(--text)] transition-colors">{post.author}</Link>}
+            <span>{formatDate(post.created_at)}</span>
+            {tags.map((t, i) => <Link key={i} href={`/tags?value=${t}`} className="hover:text-[var(--text)] transition-colors">#{t}</Link>)}
+          </div>
+        </div>
+        {currentUser?.id && <div className="shrink-0 mt-1"><AddTofavorites ppid={post.public_id} isFavorited={post.isFavorited ?? false} /></div>}
+      </div>
+      {post.user_id === currentUser?.id && (
+        <div className="flex gap-3 mt-2.5">
+          <Link href={`/edit?value=${post.public_id}`} className="font-sans text-xs border border-[var(--border)] text-[var(--text-muted)] px-3 py-1 rounded-full hover:border-[var(--text)] hover:text-[var(--text)] transition-colors">Edit</Link>
+          <DeleteButton publicId={post.public_id} />
+        </div>
+      )}
+    </article>
+  );
+}
+export default async function Taxonomies({ searchParams }) {
+  const { value } = await searchParams;
+  if (!value) return <div className="max-w-3xl mx-auto px-4 py-16"><p className="font-sans text-[var(--text-muted)]">No category specified.</p></div>;
+  const taxonomy = value;
+  const fetchPosts = await db.execute(`
+    SELECT posts.*, taxonomies.name as taxonomy, GROUP_CONCAT(DISTINCT tags.name) as tags, users.username as author
+    FROM posts LEFT JOIN post_taxonomies ON posts.id = post_taxonomies.post_id
+    LEFT JOIN taxonomies ON post_taxonomies.taxonomy_id = taxonomies.id
+    LEFT JOIN post_tags ON posts.id = post_tags.post_id
+    LEFT JOIN tags ON post_tags.tag_id = tags.id
+    LEFT JOIN users ON posts.user_id = users.id
+    WHERE taxonomies.name = ? GROUP BY posts.id ORDER BY posts.created_at DESC
+  `, [taxonomy]);
+  if (!fetchPosts?.rows?.length) return <div className="max-w-3xl mx-auto px-4 py-16"><p className="font-sans text-[var(--text-muted)]">No posts in {taxonomy}.</p></div>;
+  const posts = fetchPosts.rows;
+  const currentUser = await getUser();
+  let favIds = [];
+  if (currentUser?.id) { const r = await db.execute("SELECT post_id FROM favorites WHERE user_id = ?", [currentUser.id]); favIds = r.rows.map(row => row.post_id); }
+  for (const p of posts) p.isFavorited = favIds.includes(p.id);
+  return (
+    <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8">
+      <div className="mb-8 pb-4 border-b-2 border-[var(--text)]">
+        <p className="font-sans text-xs uppercase tracking-widest text-[var(--accent)] mb-1">Category</p>
+        <h1 className="text-2xl font-bold text-[var(--text)]">{taxonomy}</h1>
+        <p className="font-sans text-sm text-[var(--text-faint)] mt-1">{posts.length} article{posts.length !== 1 ? "s" : ""}</p>
+      </div>
+      {posts.map((post, i) => <PostRow key={i} post={post} currentUser={currentUser} />)}
+    </div>
+  );
+}
+</file>
+
+<file path="utils/bcrypt.js">
+import bcrypt from "bcrypt";
+export async function hash(raw) {
+    const saltRounds = 10;
+    const hashed = await bcrypt.hash(raw, saltRounds);
+    return hashed;
+}
+export async function compare(raw, hashed) {
+    return await bcrypt.compare(raw, hashed);
+}
+</file>
+
+<file path="utils/getSession.js">
+"use server";
+import { cookies } from "next/headers";
+export async function getSession(name) {
+    const cookieStore = await cookies();
+    const token = cookieStore.get(name);
+    if (!token) return null;
+    return token.value;
+}
+</file>
+
+<file path="utils/pagination.js">
+export function paginate(pageRaw = 1, totalPostsRaw = 1) {
+    const pageNum = Number(pageRaw);
+    const totalNum = Number(totalPostsRaw);
+    const page = Number.isNaN(pageNum) ? 1 : pageNum;
+    const totalPosts = Number.isNaN(totalNum) ? 1 : totalNum;
+    const perPage = 10;
+    const maxPages = Math.ceil(totalPosts / perPage);
+    const maxBtns = 5;
+    const half = Math.floor(maxBtns / 2);
+    let start = page - half;
+    let end = page + half;
+    if (start < 1) {
+        start = 1;
+        end = Math.min(maxBtns, maxPages);
+    }
+    if (end > maxPages) {
+        end = maxPages;
+        start = Math.max(1, end - maxBtns + 1);
+    }
+    const btns = Array.from(
+        { length: end - start + 1 },
+        (_, idx) => start + idx
+    );
+    return btns;
+}
+</file>
+
+<file path="utils/redidIpLimit.js">
+import { headers } from "next/headers";
+import { redis } from "../lib/redis";
+export async function redisIpLimit(incomingLimit, _for) {
+    try {
+        let limit = parseInt(incomingLimit);
+        if (isNaN(limit) || limit <= 0) {
+            limit = 5;
+        }
+        const identifier = _for || "default_action";
+        const headerStore = await headers();
+        const rawIp = headerStore.get("x-forwarded-for");
+        const ip = rawIp?.split(",")[0].trim() || "127.0.0.1";
+        const key = `limit:${identifier}:${ip}`;
+        const windowInSeconds = 60 * 15;
+        let attempts = parseInt(await redis.get(key)) || 0;
+        if (attempts >= limit) {
+            return {
+                ok: false,
+                message: `Too many ${identifier.replace("_", " ")} attempts. Try again later.`
+            };
+        }
+        attempts = await redis.incr(key);
+        if (attempts === 1) {
+            await redis.expire(key, windowInSeconds);
+        }
+        return { ok: true, message: `${limit - attempts} attempts left` };
+    } catch (error) {
+        console.error(error);
+        return { ok: false, message: "An error occurred" };
+    }
+}
+</file>
+
+</files>

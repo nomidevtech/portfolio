@@ -28,7 +28,10 @@ export default function SettingsForm({ serializedUser }) {
         <div className="border-l-4 border-amber-500 bg-amber-50 dark:bg-amber-950 px-4 py-3">
           <p className="font-sans text-sm text-amber-700 dark:text-amber-300 mb-2">Email not verified. Verify to write posts.</p>
           {!sent
-            ? <button onClick={() => { setSent(true); emailOrchestrator(user.public_id, user.email); }}
+            ? <button onClick={() => {
+                setSent(true);
+                startTransition(() => emailOrchestrator(user.public_id, user.email));
+              }}
                 className="font-sans text-xs font-semibold border border-amber-400 text-amber-700 dark:text-amber-300 px-3 py-1 rounded-full hover:bg-amber-100 dark:hover:bg-amber-900 transition-colors cursor-pointer">
                 Send verification email
               </button>

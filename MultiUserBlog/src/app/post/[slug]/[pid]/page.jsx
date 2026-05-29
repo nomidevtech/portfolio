@@ -67,7 +67,10 @@ export default async function DynamicPost({ params }) {
     const r = await db.execute("SELECT * FROM favorites WHERE user_id = ? AND post_id = ?", [currentUser.id, post.id]);
     isFavorited = r?.rows?.length > 0;
   }
-  const fetchComments = await db.execute("SELECT * FROM comments WHERE post_id = ? ORDER BY created_at DESC", [post.id]);
+  const fetchComments = await db.execute(
+    "SELECT public_id, user_id, username, comment, created_at, updated_at FROM comments WHERE post_id = ? ORDER BY created_at DESC",
+    [post.id]
+  );
   const comments = (fetchComments?.rows || []).map(c => ({
     cPId: c.public_id, comment: c.comment, username: c.username,
     created_at: c.created_at, updated_at: c.updated_at, isOwned: c.user_id === currentUser?.id

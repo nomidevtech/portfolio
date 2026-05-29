@@ -4,28 +4,34 @@ import { getUser } from "../lib/getUser";
 import { emailOrchestrator } from "../lib/resend";
 import { db } from "../lib/turso";
 import { compare, hash } from "../utils/bcrypt";
+import { redisIpLimit } from "@/app/utils/redidIpLimit";
 
 export async function updateUserSA(_, formData) {
     const ppid = formData.get("ppid");
-    const name = formData.get("name");
-    const username = formData.get("username");
-    const email = formData.get("email");
+    const name = formData.get("name")?.trim();
+    const username = formData.get("username")?.trim();
+    const email = formData.get("email")?.trim();
 
     if (!name || !username || !email) {
         return { ok: false, message: "All fields are required." };
     }
 
-    if (username.length < 3 || username.length > 20) {
-        return { ok: false, message: "Username must be 3–20 characters." };
+    if (name.length < 2 || name.length > 60) {
+        return { ok: false, message: "Name must be 2–60 characters." };
     }
-    if (!/^[a-zA-Z0-9_-]+$/.test(username)) {
-        return { ok: false, message: "Username can only contain letters, numbers, - and _" };
+
+    if (username.length < 3 || username.length > 30) {
+        return { ok: false, message: "Username must be 3–30 characters." };
     }
-    if (name.length > 50) {
-        return { ok: false, message: "Name is too long." };
+
+    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailPattern.test(email)) {
+        return { ok: false, message: 'Invalid email format.' };
     }
 
     try {
+        const ipLimit = await redisIpLimit(10, 'update_profile');
+        if (!ipLimit.ok) return ipLimit;
         const fetchUser = await db.execute(`SELECT id, public_id, name, username, email FROM users WHERE public_id = ?`, [ppid]);
         if (fetchUser.rows.length === 0) {
             return { ok: false, message: "User not found." };
@@ -88,6 +94,9 @@ export async function changePasswordSA(_, formData) {
     }
 
     try {
+        const ipLimit = await redisIpLimit(10, 'change_password');
+        if (!ipLimit.ok) return ipLimit;
+
         const currentUser = await getUser();
         if (!currentUser?.id) {
             return { ok: false, message: "Unauthorized. Please log in." };

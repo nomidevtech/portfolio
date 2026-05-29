@@ -3,6 +3,7 @@
 import { getUser } from "@/app/lib/getUser";
 import { db } from "@/app/lib/turso";
 import { nanoid } from "nanoid";
+import { redisIpLimit } from "@/app/utils/redidIpLimit";
 
 export async function commentsSA(_, formData) {
 
@@ -25,6 +26,8 @@ export async function commentsSA(_, formData) {
 
     try {
 
+        const ipLimit = await redisIpLimit(15, 'comments');
+        if (!ipLimit.ok) return ipLimit;
 
         const ToDelete = formData.get("delete");
         let comment_public_id = formData.get("comment_public_id") || null;
@@ -32,14 +35,20 @@ export async function commentsSA(_, formData) {
         const post_public_id = formData.get("post_public_id");
         const comment = formData.get("comment");
 
+        const trimmedComment = comment?.trim();
 
-
-        if (!user_public_id || !post_public_id || (!comment && !ToDelete)) {
+        if (!user_public_id || !post_public_id || (!trimmedComment && !ToDelete)) {
             return { ok: false, message: "Required fields are missing" };
         }
 
-        if (comment && comment.length > 1000) {
-            return { ok: false, message: "Comment must be under 1000 characters" };
+        if (!ToDelete) {
+            if (!trimmedComment || trimmedComment.length < 2) {
+                return { ok: false, message: "Comment must be at least 2 characters" };
+            }
+
+            if (trimmedComment.length > 1000) {
+                return { ok: false, message: "Comment must be under 1000 characters" };
+            }
         }
 
 
@@ -82,13 +91,13 @@ export async function commentsSA(_, formData) {
             await db.execute(
                 `INSERT INTO comments (public_id, user_id, post_id, username, comment)
                  VALUES (?, ?, ?, ?, ?)`,
-                [new_public_id, currentUser.id, getPostId.rows[0].id, currentUser.username, comment]
+                [new_public_id, currentUser.id, getPostId.rows[0].id, currentUser.username, trimmedComment]
             );
 
             return {
                 ok: true,
                 message: "Comment created successfully",
-                comment,
+                comment: trimmedComment,
                 username: currentUser.username,
                 cPId: new_public_id,
                 inserted: true
@@ -112,13 +121,13 @@ export async function commentsSA(_, formData) {
             `UPDATE comments
              SET comment = ?, updated_at = CURRENT_TIMESTAMP
              WHERE public_id = ?`,
-            [comment, comment_public_id]
+            [trimmedComment, comment_public_id]
         );
 
         return {
             ok: true,
             message: "Comment updated successfully",
-            comment,
+            comment: trimmedComment,
             username: currentUser.username,
             cPId: comment_public_id,
             updated: true

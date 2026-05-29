@@ -6,6 +6,7 @@ import { getUser } from "../getUser";
 import { db } from "../turso";
 import { redirect } from "next/navigation";
 import sharp from "sharp";
+import { redisIpLimit } from "@/app/utils/redidIpLimit";
 
 
 // try {
@@ -32,12 +33,21 @@ export async function postUpsert(_, formData) {
     // let newImagesPIds, oldImagesPIds;
 
     try {
+        const ipLimit = await redisIpLimit(10, 'post_upsert');
+        if (!ipLimit.ok) return ipLimit;
+
         const existingPPID = formData.get('post_public_id') || null;
 
         const title = formData.get('title')?.trim();
         if (!title) return { ok: false, message: "Title is required." };
+        if (title.length > 150) {
+            return { ok: false, message: "Title must be under 150 characters." };
+        }
         const slug = title?.replace(/\s+/g, '-').toLowerCase() || 'titleless';
         const excerpt = formData.get('excerpt')?.trim() || 'no description';
+        if (excerpt && excerpt.length > 300) {
+            return { ok: false, message: "Excerpt must be under 300 characters." };
+        }
         const taxonomy = formData.get('taxonomy')?.trim().replace(/\s+/g, '-').toUpperCase() || 'uncategorized';
 
         const tagsArr = formData.getAll('tags').filter(Boolean);
@@ -160,71 +170,6 @@ const uploadBlobs = async (contentBlocks) => {
     }
     return copy;
 };
-
-async function initPostTable() {
-    await db.execute(`
-        CREATE TABLE IF NOT EXISTS posts (
-            id INTEGER PRIMARY KEY,
-            public_id TEXT,
-            user_id INTEGER,
-            title TEXT,
-            slug TEXT,
-            excerpt TEXT,
-            content TEXT,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-        )
-    `);
-}
-
-async function initTaxonomyTable() {
-    await db.execute(`
-        CREATE TABLE IF NOT EXISTS taxonomies (
-            id INTEGER PRIMARY KEY,
-            public_id TEXT,
-            name TEXT UNIQUE,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )
-    `);
-}
-
-async function initPost_taxonomies() {
-    await db.execute(`
-        CREATE TABLE IF NOT EXISTS post_taxonomies (
-            post_id INTEGER NOT NULL,
-            taxonomy_id INTEGER NOT NULL,
-            PRIMARY KEY (post_id, taxonomy_id),
-            FOREIGN KEY (post_id) REFERENCES posts(id) ON DELETE CASCADE ON UPDATE CASCADE,
-            FOREIGN KEY (taxonomy_id) REFERENCES taxonomies(id) ON DELETE CASCADE ON UPDATE CASCADE
-        )
-    `);
-}
-
-async function initTagsTable() {
-    await db.execute(`
-        CREATE TABLE IF NOT EXISTS tags (
-            id INTEGER PRIMARY KEY,
-            public_id TEXT,
-            name TEXT UNIQUE,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )
-    `);
-}
-
-async function initPost_tags() {
-    await db.execute(`
-        CREATE TABLE IF NOT EXISTS post_tags (
-            post_id INTEGER NOT NULL,
-            tag_id INTEGER NOT NULL,
-            PRIMARY KEY (post_id, tag_id),
-            FOREIGN KEY (post_id) REFERENCES posts(id) ON DELETE CASCADE ON UPDATE CASCADE,
-            FOREIGN KEY (tag_id) REFERENCES tags(id) ON DELETE CASCADE ON UPDATE CASCADE
-        )
-    `);
-}
 
 const upsertPost = async (public_id, content, title, slug, excerpt, user_id, isAutherized) => {
     if (!public_id) {

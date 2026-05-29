@@ -4,10 +4,11 @@ import { db } from "@/app/lib/turso";
 import { redisIpLimit } from "../utils/redidIpLimit";
 
 export async function checkUsername(_, username) {
+    username = username?.trim();
+
     if (!username) return { ok: false, message: 'Username is required' };
     if (username.length < 3) return { ok: false, message: 'Username must be at least 3 characters' };
-    if (username.length > 20) return { ok: false, message: 'Username must be at most 20 characters' };
-    if (!username.match(/^[a-zA-Z0-9_-]+$/)) return { ok: false, message: 'Username must only contain letters, numbers, hyphen  and underscores' };
+    if (username.length > 30) return { ok: false, message: 'Username must be at most 30 characters' };
 
     const ipLimit = await redisIpLimit(30, 'username_check');
     if (!ipLimit.ok) return ipLimit;

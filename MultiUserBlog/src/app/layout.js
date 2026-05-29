@@ -30,18 +30,25 @@ export const metadata = {
   keywords: ["blog", "publishing", "multi-user", "Next.js", "portfolio project"],
   authors: [{ name: siteName }],
   creator: siteName,
-  metadataBase: new URL("http://localhost:3000"),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"),
   openGraph: {
     title: `${siteName} | Multi-user blog platform`,
     description,
     type: "website",
     siteName,
+    images: [{ url: '/og-image.png', width: 1200, height: 630 }],
   },
   twitter: {
     card: "summary",
     title: `${siteName} | Multi-user blog platform`,
     description,
+    images: ['/og-image.png'],
   },
+};
+
+export const viewport = {
+  width: 'device-width',
+  initialScale: 1,
 };
 
 export default function RootLayout({ children }) {

@@ -4,6 +4,8 @@ import { db } from "@/app/lib/turso";
 import { redisIpLimit } from "../utils/redidIpLimit";
 
 export async function checkEmail(_, email) {
+    email = email?.trim();
+
     if (!email) return { ok: false, message: 'Email is required' };
 
     const ipLimit = await redisIpLimit(30, 'email_check');

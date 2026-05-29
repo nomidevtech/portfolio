@@ -15,14 +15,22 @@ export async function signuptServerAction(_, formData) {
 
 
 
-    const name = formData.get('name')?.trim().toUpperCase();
-    const username = formData.get('username')?.trim().replace(/\s+/g, '').toLowerCase();
+    const name = formData.get('name')?.trim();
+    const username = formData.get('username')?.trim();
     const email = formData.get('email')?.trim();
-    const password = formData.get('password')?.trim();
-    const confirmPassword = formData.get('confirmPassword')?.trim();
+    const password = formData.get('password');
+    const confirmPassword = formData.get('confirmPassword');
 
     if (!name || !username || !email || !password || !confirmPassword) {
         return { ok: false, message: 'All fields are required' };
+    }
+
+    if (name.length < 2 || name.length > 60) {
+        return { ok: false, message: 'Name must be between 2 and 60 characters' };
+    }
+
+    if (username.length < 3 || username.length > 30) {
+        return { ok: false, message: 'Username must be between 3 and 30 characters' };
     }
 
     const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -66,7 +74,10 @@ export async function signuptServerAction(_, formData) {
 
     } catch (error) {
         console.error(error);
-        return { ok: false, message: 'something went wrong while signing up' };
+        if (error?.message?.includes('UNIQUE')) {
+            return { ok: false, message: 'Username or email is already in use.' };
+        }
+        return { ok: false, message: 'Something went wrong while signing up.' };
     }
 
     redirect('/login');

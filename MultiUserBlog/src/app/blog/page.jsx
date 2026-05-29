@@ -119,7 +119,7 @@ function ListPost({ post, currentUser }) {
 
 export default async function Blog({ searchParams }) {
   let { page } = await searchParams;
-  if (!page || page < 1) page = 1;
+  page = Math.max(1, Math.min(parseInt(page) || 1, 9999));
   let fetchTotal;
   try {
     fetchTotal = await db.execute("SELECT COUNT(*) as total FROM posts");
