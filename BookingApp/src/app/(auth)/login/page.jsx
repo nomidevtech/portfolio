@@ -1,6 +1,5 @@
 import Client from "./Client";
 import { getUser } from "@/app/lib/getUser";
-import { mockDataInsersion } from "@/app/lib/mockData";
 import { redirect } from "next/navigation";
 
 export const metadata = {
@@ -9,8 +8,6 @@ export const metadata = {
 };
 
 export default async function Login({ searchParams }) {
-
-    //await mockDataInsersion();
 
     const params = await searchParams;
     const currentUser = await getUser();

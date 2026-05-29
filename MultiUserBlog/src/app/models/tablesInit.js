@@ -1,21 +1,5 @@
 import { db } from "@/app/lib/turso";
 
-// ─────────────────────────────────────────────
-// ORDER MATTERS.
-// Tables that are referenced by foreign keys must
-// be created BEFORE the tables that reference them.
-//
-// Safe creation order:
-//   1. users
-//   2. sessions      (FK → users)
-//   3. posts         (FK → users)
-//   4. taxonomies
-//   5. tags
-//   6. post_taxonomies  (FK → posts, taxonomies)
-//   7. post_tags        (FK → posts, tags)
-//   8. favorites        (FK → users, posts)
-//   9. comments         (FK → users, posts)
-// ─────────────────────────────────────────────
 
 export async function initUsersTable() {
     await db.execute(`
@@ -135,17 +119,33 @@ export async function initCommentsTable() {
             comment    TEXT     NOT NULL,
             created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
             updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (user_id)  REFERENCES users(id)    ON DELETE CASCADE,
-            FOREIGN KEY (post_id)  REFERENCES posts(id)    ON DELETE CASCADE,
+            FOREIGN KEY (user_id)  REFERENCES users(id)       ON DELETE CASCADE,
+            FOREIGN KEY (post_id)  REFERENCES posts(id)       ON DELETE CASCADE,
             FOREIGN KEY (username) REFERENCES users(username) ON UPDATE CASCADE
         )
     `);
 }
 
+export async function resetDb() {
+    const tables = [
+        "comments",
+        "favorites",
+        "post_tags",
+        "post_taxonomies",
+        "posts",
+        "tags",
+        "taxonomies",
+        "sessions",
+        "users",
+    ];
+    for (const table of tables) {
+        await db.execute(`DROP TABLE IF EXISTS ${table}`);
+    }
+    global.__dbInitialized = false;
+}
+
 export async function initAllTables() {
     if (global.__dbInitialized) return;
-    
-    // Create tables in order of foreign key dependencies
     await initUsersTable();
     await initSessionsTable();
     await initPostsTable();
@@ -155,7 +155,5 @@ export async function initAllTables() {
     await initPostTagsTable();
     await initFavoritesTable();
     await initCommentsTable();
-    
     global.__dbInitialized = true;
 }
-
